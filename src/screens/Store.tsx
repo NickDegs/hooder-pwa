@@ -1,0 +1,244 @@
+import { useState, useEffect } from 'react'
+import { useGame } from '../store/useGame'
+import { formatPrice } from '../data'
+import GlassCard from '../components/GlassCard'
+
+const API = '/hooder-api'
+
+interface Package {
+  id:        string
+  name:      string
+  emoji:     string
+  cash:      number
+  price_usd: number
+  desc:      string
+  color:     string
+  popular:   boolean
+}
+
+export default function Store() {
+  const { addCash } = useGame()
+  const [packages,  setPackages]  = useState<Package[]>([])
+  const [loading,   setLoading]   = useState(true)
+  const [buying,    setBuying]    = useState<string | null>(null)
+  const [toast,     setToast]     = useState<string | null>(null)
+  const [toastOk,   setToastOk]   = useState(true)
+
+  useEffect(() => {
+    fetch(`${API}/packages`)
+      .then(r => r.json())
+      .then(setPackages)
+      .catch(() => setPackages([]))
+      .finally(() => setLoading(false))
+  }, [])
+
+  // Handle Stripe redirect back (success or cancel)
+  useEffect(() => {
+    const params  = new URLSearchParams(window.location.search)
+    const status  = params.get('purchase')
+    const session = params.get('session_id')
+
+    if (status === 'success' && session) {
+      // Verify payment server-side
+      const userId = localStorage.getItem('hooder_auth_user')
+        ? JSON.parse(localStorage.getItem('hooder_auth_user')!).uid
+        : 'guest'
+
+      fetch(`${API}/verify`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ session_id: session, user_id: userId }),
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (data.ok) {
+            addCash(data.cash)
+            showToast(`🎉 ${data.package} eklendi! +${formatPrice(data.cash)}`, true)
+          } else {
+            showToast(data.error || 'Doğrulama başarısız', false)
+          }
+        })
+        .catch(() => showToast('Sunucu hatası', false))
+
+      // Clean URL
+      window.history.replaceState({}, '', '/hooder/')
+
+    } else if (status === 'cancelled') {
+      showToast('Ödeme iptal edildi', false)
+      window.history.replaceState({}, '', '/hooder/')
+    }
+  }, [])
+
+  function showToast(msg: string, ok: boolean) {
+    setToastOk(ok)
+    setToast(msg)
+    setTimeout(() => setToast(null), 4000)
+  }
+
+  async function handleBuy(pkg: Package) {
+    setBuying(pkg.id)
+    const userId = localStorage.getItem('hooder_auth_user')
+      ? JSON.parse(localStorage.getItem('hooder_auth_user')!).uid
+      : 'guest'
+
+    try {
+      const res  = await fetch(`${API}/checkout`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ package_id: pkg.id, user_id: userId }),
+      })
+      const data = await res.json()
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        showToast(data.error || 'Ödeme başlatılamadı', false)
+      }
+    } catch {
+      showToast('Bağlantı hatası', false)
+    } finally {
+      setBuying(null)
+    }
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div className="scroll-y" style={{ flex: 1, padding: 'var(--sp-lg) var(--sp-lg) var(--sp-4x)' }}>
+
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: 'var(--sp-2x)' }}>
+          <div style={{ fontSize: 48, marginBottom: 'var(--sp-sm)' }}>🏪</div>
+          <div className="t-h2" style={{ color: 'var(--text)', marginBottom: 4 }}>Mağaza</div>
+          <div className="t-body" style={{ color: 'var(--text-muted)' }}>
+            Oyun parası satın alarak imparatorluğunu büyüt
+          </div>
+        </div>
+
+        {/* Test mode banner */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '8px 14px',
+          background: 'rgba(255,196,52,0.12)',
+          border: '0.5px solid rgba(255,196,52,0.4)',
+          borderRadius: 'var(--r-md)',
+          marginBottom: 'var(--sp-lg)',
+        }}>
+          <span style={{ fontSize: 14 }}>🧪</span>
+          <span className="t-caption" style={{ color: 'var(--gold)' }}>
+            Test modu — gerçek ödeme alınmaz. Kart: 4242 4242 4242 4242
+          </span>
+        </div>
+
+        {/* Packages */}
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: 'var(--sp-4x)', color: 'var(--text-muted)' }}>
+            Yükleniyor...
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }}>
+            {packages.map(pkg => (
+              <div key={pkg.id} style={{ position: 'relative' }}>
+                {pkg.popular && (
+                  <div style={{
+                    position:   'absolute', top: -10, right: 16, zIndex: 1,
+                    padding:    '3px 10px',
+                    background: pkg.color,
+                    borderRadius: 'var(--r-full)',
+                    color: '#000',
+                  }} className="t-label">⭐ EN POPÜLER</div>
+                )}
+                <GlassCard style={{
+                  border: pkg.popular ? `1px solid ${pkg.color}60` : undefined,
+                  background: pkg.popular ? `${pkg.color}0d` : undefined,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-md)' }}>
+                    {/* Icon */}
+                    <div style={{
+                      width: 56, height: 56, borderRadius: 'var(--r-lg)',
+                      background: `${pkg.color}20`,
+                      border: `1px solid ${pkg.color}40`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 28, flexShrink: 0,
+                    }}>
+                      {pkg.emoji}
+                    </div>
+
+                    {/* Info */}
+                    <div style={{ flex: 1 }}>
+                      <div className="t-h4" style={{ color: 'var(--text)', marginBottom: 2 }}>{pkg.name}</div>
+                      <div className="t-bold" style={{ color: pkg.color, fontSize: 15 }}>
+                        {formatPrice(pkg.cash)} oyun parası
+                      </div>
+                      <div className="t-caption" style={{ color: 'var(--text-muted)' }}>
+                        {formatPrice(pkg.cash / 1000) } alım gücü
+                      </div>
+                    </div>
+
+                    {/* Buy button */}
+                    <button
+                      onClick={() => handleBuy(pkg)}
+                      disabled={buying === pkg.id}
+                      style={{
+                        flexShrink: 0,
+                        padding: 'var(--sp-sm) var(--sp-md)',
+                        borderRadius: 'var(--r-lg)',
+                        background: buying === pkg.id ? 'rgba(255,255,255,0.1)' : pkg.color,
+                        minWidth: 72,
+                        opacity: buying === pkg.id ? 0.7 : 1,
+                        transition: 'opacity 0.2s',
+                      }}
+                    >
+                      <div className="t-label" style={{ color: '#000', marginBottom: 1 }}>
+                        {buying === pkg.id ? '...' : `$${pkg.price_usd}`}
+                      </div>
+                      <div className="t-label" style={{ color: 'rgba(0,0,0,0.7)', fontWeight: 400 }}>
+                        USD
+                      </div>
+                    </button>
+                  </div>
+                </GlassCard>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Info footer */}
+        <div style={{
+          marginTop: 'var(--sp-2x)',
+          padding: 'var(--sp-md)',
+          borderRadius: 'var(--r-md)',
+          background: 'rgba(255,255,255,0.04)',
+          border: '0.5px solid var(--border)',
+        }}>
+          <div className="t-label" style={{ color: 'var(--text-muted)', marginBottom: 'var(--sp-sm)' }}>
+            ÖDEME BİLGİSİ
+          </div>
+          <div className="t-caption" style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>
+            Ödemeler Stripe ile güvenli şekilde işlenir. Satın alınan oyun parası anında hesabına eklenir.
+            Sanal para gerçek değer taşımaz. İade yapılmaz.
+          </div>
+        </div>
+      </div>
+
+      {/* Toast */}
+      {toast && (
+        <div style={{
+          position: 'fixed',
+          bottom: 'calc(var(--tab-h) + 12px)',
+          left: '50%', transform: 'translateX(-50%)',
+          background: toastOk ? 'var(--green)' : 'var(--red)',
+          color: '#000',
+          padding: '10px 20px',
+          borderRadius: 99,
+          zIndex: 200,
+          animation: 'slideUp 0.3s cubic-bezier(0.34,1.56,0.64,1)',
+          whiteSpace: 'nowrap',
+          maxWidth: '90vw',
+          textOverflow: 'ellipsis',
+          overflow: 'hidden',
+        }}>
+          <span className="t-bold">{toast}</span>
+        </div>
+      )}
+    </div>
+  )
+}

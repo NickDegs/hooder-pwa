@@ -12,9 +12,10 @@ import Login           from './screens/Login'
 import Market          from './screens/Market'
 import Portfolio       from './screens/Portfolio'
 import Rankings        from './screens/Rankings'
+import Store           from './screens/Store'
 import Settings        from './screens/Settings'
 
-const SCREEN_TITLES = ['Harita', 'Piyasa', 'Portföyüm', 'Sıralama', 'Ayarlar']
+const SCREEN_TITLES = ['Harita', 'Piyasa', 'Portföyüm', 'Sıralama', 'Mağaza', 'Ayarlar']
 
 function useIsDesktop() {
   const [desktop, setDesktop] = useState(() => window.innerWidth >= 768)
@@ -254,7 +255,8 @@ export default function App() {
           {tab === 1 && <Market />}
           {tab === 2 && <Portfolio />}
           {tab === 3 && <Rankings />}
-          {tab === 4 && <Settings />}
+          {tab === 4 && <Store />}
+          {tab === 5 && <Settings />}
         </div>
       </div>
 

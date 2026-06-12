@@ -6,6 +6,7 @@ const TABS = [
   { icon: '🏪',  label: 'Piyasa'   },
   { icon: '📊',  label: 'Portföy'  },
   { icon: '🏆',  label: 'Sıralama' },
+  { icon: '💎',  label: 'Mağaza'   },
   { icon: '⚙️',  label: 'Ayarlar'  },
 ]
 
