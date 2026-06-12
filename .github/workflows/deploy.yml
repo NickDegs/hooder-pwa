@@ -1,4 +1,4 @@
-name: Deploy to Vercel
+name: Build & Deploy
 
 on:
   push:
@@ -13,14 +13,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
 
-      - name: Install deps
-        run: npm ci
+      - run: npm ci
 
       - name: Build
         run: npm run build
@@ -33,11 +31,21 @@ jobs:
           VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
 
-      - name: Deploy to Vercel
-        uses: amondnet/vercel-action@v25
+      - name: Deploy to server
+        uses: appleboy/scp-action@v0.1.7
         with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: --prod
-          working-directory: .
+          host: 188.245.240.10
+          username: root
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          source: dist/*
+          target: /opt/apps-website/hooder
+          strip_components: 1
+          rm: true
+
+      - name: Reload nginx
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: 188.245.240.10
+          username: root
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: nginx -s reload
