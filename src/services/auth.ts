@@ -4,8 +4,11 @@ export interface AuthUser {
   uid:         string
   displayName: string
   email:       string
-  provider:    'google' | 'apple' | 'guest'
+  provider:    'google' | 'apple' | 'guest' | 'email'
+  token?:      string
 }
+
+const API = '/hooder-api'
 
 // ── Firebase lazy init ────────────────────────────────────────────────────────
 
@@ -30,7 +33,50 @@ async function getFirebaseAuth() {
   return _auth
 }
 
-// ── Sign-in functions ─────────────────────────────────────────────────────────
+// ── Email / Password auth (backend) ──────────────────────────────────────────
+
+export async function registerWithEmail(
+  username: string,
+  email: string,
+  password: string,
+): Promise<AuthUser> {
+  const res  = await fetch(`${API}/register`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ username, email, password }),
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error || 'Kayıt başarısız')
+  return {
+    uid:         data.user.id,
+    displayName: data.user.username,
+    email:       data.user.email,
+    provider:    'email',
+    token:       data.token,
+  }
+}
+
+export async function loginWithEmail(
+  email: string,
+  password: string,
+): Promise<AuthUser> {
+  const res  = await fetch(`${API}/login`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ email, password }),
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error || 'E-posta veya şifre hatalı')
+  return {
+    uid:         data.user.id,
+    displayName: data.user.username,
+    email:       data.user.email,
+    provider:    'email',
+    token:       data.token,
+  }
+}
+
+// ── Social sign-in functions ──────────────────────────────────────────────────
 
 export async function signInWithGoogle(): Promise<AuthUser> {
   const auth = await getFirebaseAuth()
@@ -95,6 +141,22 @@ export function useAuth() {
     setUser(u)
   }
 
+  const loginEmail = async (email: string, password: string) => {
+    setLoading(true)
+    try {
+      const u = await loginWithEmail(email, password)
+      saveUser(u)
+    } finally { setLoading(false) }
+  }
+
+  const registerEmail = async (username: string, email: string, password: string) => {
+    setLoading(true)
+    try {
+      const u = await registerWithEmail(username, email, password)
+      saveUser(u)
+    } finally { setLoading(false) }
+  }
+
   const loginGoogle = async () => {
     setLoading(true)
     try {
@@ -117,10 +179,24 @@ export function useAuth() {
 
   const signOut = async () => {
     await doSignOut()
+    localStorage.removeItem('hooder_selected_server')
     saveUser(null)
   }
 
+  // Refresh token on mount for email users (optional future enhancement)
+  useEffect(() => {}, [])
+
   const firebaseAvailable = !!import.meta.env.VITE_FIREBASE_API_KEY
 
-  return { user, loading, loginGoogle, loginApple, loginGuest, signOut, firebaseAvailable }
+  return {
+    user,
+    loading,
+    loginEmail,
+    registerEmail,
+    loginGoogle,
+    loginApple,
+    loginGuest,
+    signOut,
+    firebaseAvailable,
+  }
 }

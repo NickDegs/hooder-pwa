@@ -2,9 +2,33 @@ import { useState } from 'react'
 import { useAuth } from '../services/auth'
 import GlassCard from '../components/GlassCard'
 
+type Tab    = 'email' | 'apple' | 'google' | 'guest'
+type Mode   = 'login' | 'register'
+
 export default function Login() {
-  const { loginGoogle, loginApple, loginGuest, loading, firebaseAvailable } = useAuth()
-  const [error, setError] = useState<string | null>(null)
+  const { loginEmail, registerEmail, loginGoogle, loginApple, loginGuest, loading, firebaseAvailable } = useAuth()
+  const [tab,      setTab]      = useState<Tab>('email')
+  const [mode,     setMode]     = useState<Mode>('login')
+  const [username, setUsername] = useState('')
+  const [email,    setEmail]    = useState('')
+  const [password, setPassword] = useState('')
+  const [error,    setError]    = useState<string | null>(null)
+
+  async function handleEmailSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    try {
+      if (mode === 'register') {
+        if (!username.trim()) { setError('Kullanıcı adı gerekli'); return }
+        if (username.length < 3) { setError('Kullanıcı adı en az 3 karakter'); return }
+        await registerEmail(username.trim(), email, password)
+      } else {
+        await loginEmail(email, password)
+      }
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Bir hata oluştu')
+    }
+  }
 
   async function handleGoogle() {
     setError(null)
@@ -16,6 +40,18 @@ export default function Login() {
     setError(null)
     try { await loginApple() }
     catch (e: unknown) { setError(e instanceof Error ? e.message : 'Giriş başarısız') }
+  }
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    padding: 'var(--sp-md)',
+    background: 'rgba(255,255,255,0.06)',
+    border: '0.5px solid var(--border)',
+    borderRadius: 'var(--r-md)',
+    color: 'var(--text)',
+    fontSize: 15,
+    outline: 'none',
+    boxSizing: 'border-box',
   }
 
   return (
@@ -51,12 +87,11 @@ export default function Login() {
 
       {/* Hero text */}
       <div style={{
-        position: 'absolute', top: '12%',
+        position: 'absolute', top: '10%',
         width: '100%', textAlign: 'center',
         padding: '0 var(--sp-3x)',
         animation: 'slideUp 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards',
       }}>
-        {/* App icon */}
         <div style={{
           width: 88, height: 88, borderRadius: 24,
           background: 'linear-gradient(135deg, rgba(52,148,255,0.3), rgba(191,90,242,0.15))',
@@ -64,20 +99,17 @@ export default function Login() {
           WebkitBackdropFilter: 'blur(20px)',
           border: '0.5px solid var(--specular)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 44, margin: '0 auto var(--sp-2x)',
+          fontSize: 44, margin: '0 auto 16px',
           boxShadow: '0 16px 48px rgba(52,148,255,0.25)',
         }}>
           🏙️
         </div>
-
         <h1 className="t-h1" style={{ color: 'var(--text)', marginBottom: 8 }}>Hooder</h1>
-        <p className="t-body" style={{ color: 'var(--text-muted)', marginBottom: 'var(--sp-2x)' }}>
+        <p className="t-body" style={{ color: 'var(--text-muted)', marginBottom: 16 }}>
           Emlak İmparatorluğu Kur
         </p>
-
-        {/* Feature pills */}
         <div style={{ display: 'flex', justifyContent: 'center', gap: 'var(--sp-sm)', flexWrap: 'wrap' }}>
-          {['35 Mülk', '7 Şehir', '3D Harita', 'Liderlik'].map(f => (
+          {['4 Sunucu', '35 Mülk', '7 Şehir', '3D Harita'].map(f => (
             <div key={f} style={{
               padding: '5px 12px',
               background: 'rgba(52,148,255,0.12)',
@@ -97,74 +129,188 @@ export default function Login() {
         animation: 'slideUp 0.5s 0.1s cubic-bezier(0.34,1.56,0.64,1) both',
       }}>
         <GlassCard>
-          <h2 className="t-h3" style={{ color: 'var(--text)', marginBottom: 4 }}>Hemen Başla</h2>
-          <p className="t-caption" style={{ color: 'var(--text-muted)', marginBottom: 'var(--sp-lg)' }}>
-            Hesabınla giriş yap veya misafir olarak devam et
-          </p>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-sm)' }}>
-            {/* Apple */}
-            {firebaseAvailable && (
+          {/* Tab bar */}
+          <div style={{
+            display: 'flex', gap: 4,
+            background: 'rgba(255,255,255,0.05)',
+            borderRadius: 'var(--r-md)',
+            padding: 4,
+            marginBottom: 'var(--sp-lg)',
+          }}>
+            {[
+              { id: 'email',  label: '📧 E-posta' },
+              ...(firebaseAvailable ? [
+                { id: 'apple',  label: '🍎 Apple' },
+                { id: 'google', label: '🔵 Google' },
+              ] : []),
+              { id: 'guest',  label: '👤 Misafir' },
+            ].map(t => (
               <button
-                onClick={handleApple}
-                disabled={loading}
+                key={t.id}
+                onClick={() => { setTab(t.id as Tab); setError(null) }}
                 style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-                  padding: 'var(--sp-md) var(--sp-lg)',
-                  background: 'var(--text)',
-                  borderRadius: 'var(--r-lg)',
-                  opacity: loading ? 0.6 : 1,
+                  flex: 1,
+                  padding: '7px 4px',
+                  borderRadius: 'calc(var(--r-md) - 2px)',
+                  background: tab === t.id ? 'rgba(52,148,255,0.2)' : 'transparent',
+                  border: tab === t.id ? '0.5px solid rgba(52,148,255,0.4)' : '0.5px solid transparent',
+                  color: tab === t.id ? 'var(--primary)' : 'var(--text-muted)',
+                  fontSize: 11,
+                  fontWeight: tab === t.id ? 600 : 400,
+                  transition: 'all 0.15s',
+                  whiteSpace: 'nowrap',
                 }}
               >
-                <span style={{ fontSize: 18 }}>🍎</span>
-                <span className="t-btn-md" style={{ color: '#000' }}>Apple ile Giriş Yap</span>
+                {t.label}
               </button>
-            )}
+            ))}
+          </div>
 
-            {/* Google */}
-            {firebaseAvailable && (
+          {/* Email tab */}
+          {tab === 'email' && (
+            <form onSubmit={handleEmailSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-sm)' }}>
+              {/* Mode toggle */}
+              <div style={{
+                display: 'flex', gap: 0,
+                background: 'rgba(255,255,255,0.04)',
+                border: '0.5px solid var(--border)',
+                borderRadius: 'var(--r-md)',
+                overflow: 'hidden',
+                marginBottom: 4,
+              }}>
+                {(['login', 'register'] as Mode[]).map(m => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => { setMode(m); setError(null) }}
+                    style={{
+                      flex: 1,
+                      padding: '10px',
+                      background: mode === m ? 'rgba(52,148,255,0.15)' : 'transparent',
+                      color: mode === m ? 'var(--primary)' : 'var(--text-muted)',
+                      fontWeight: mode === m ? 600 : 400,
+                      fontSize: 13,
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    {m === 'login' ? 'Giriş Yap' : 'Kayıt Ol'}
+                  </button>
+                ))}
+              </div>
+
+              {mode === 'register' && (
+                <input
+                  type="text"
+                  placeholder="Kullanıcı adı"
+                  value={username}
+                  onChange={e => setUsername(e.target.value)}
+                  required
+                  style={inputStyle}
+                />
+              )}
+              <input
+                type="email"
+                placeholder="E-posta"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                required
+                style={inputStyle}
+              />
+              <input
+                type="password"
+                placeholder="Şifre"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+                minLength={6}
+                style={inputStyle}
+              />
               <button
-                onClick={handleGoogle}
+                type="submit"
                 disabled={loading}
                 style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-                  padding: 'var(--sp-md) var(--sp-lg)',
-                  background: 'rgba(255,255,255,0.1)',
-                  border: '0.5px solid var(--border)',
+                  padding: 'var(--sp-md)',
+                  background: loading ? 'rgba(52,148,255,0.3)' : 'var(--primary)',
                   borderRadius: 'var(--r-lg)',
-                  opacity: loading ? 0.6 : 1,
+                  opacity: loading ? 0.7 : 1,
+                  transition: 'opacity 0.2s',
                 }}
               >
-                <span style={{ fontSize: 18 }}>🔵</span>
-                <span className="t-btn-md" style={{ color: 'var(--text)' }}>Google ile Giriş Yap</span>
+                <span className="t-btn-md" style={{ color: '#fff' }}>
+                  {loading ? '...' : mode === 'login' ? 'Giriş Yap' : 'Hesap Oluştur'}
+                </span>
               </button>
-            )}
+            </form>
+          )}
 
-            {/* Guest */}
+          {/* Apple tab */}
+          {tab === 'apple' && firebaseAvailable && (
             <button
-              onClick={loginGuest}
+              onClick={handleApple}
+              disabled={loading}
               style={{
+                width: '100%',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
                 padding: 'var(--sp-md) var(--sp-lg)',
-                background: 'transparent',
+                background: 'var(--text)',
                 borderRadius: 'var(--r-lg)',
+                opacity: loading ? 0.6 : 1,
               }}
             >
-              <span className="t-btn-md" style={{ color: 'var(--text-muted)' }}>
-                {firebaseAvailable ? 'Misafir Olarak Devam Et' : 'Oynamaya Başla (Misafir)'}
+              <span style={{ fontSize: 20 }}>🍎</span>
+              <span className="t-btn-md" style={{ color: '#000' }}>
+                {loading ? '...' : 'Apple ile Giriş Yap'}
               </span>
             </button>
-          </div>
+          )}
+
+          {/* Google tab */}
+          {tab === 'google' && firebaseAvailable && (
+            <button
+              onClick={handleGoogle}
+              disabled={loading}
+              style={{
+                width: '100%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                padding: 'var(--sp-md) var(--sp-lg)',
+                background: 'rgba(255,255,255,0.1)',
+                border: '0.5px solid var(--border)',
+                borderRadius: 'var(--r-lg)',
+                opacity: loading ? 0.6 : 1,
+              }}
+            >
+              <span style={{ fontSize: 20 }}>🔵</span>
+              <span className="t-btn-md" style={{ color: 'var(--text)' }}>
+                {loading ? '...' : 'Google ile Giriş Yap'}
+              </span>
+            </button>
+          )}
+
+          {/* Guest tab */}
+          {tab === 'guest' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }}>
+              <p className="t-caption" style={{ color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.5 }}>
+                Misafir modunda oyun ilerlemen yalnızca bu cihaza kaydedilir. Sunucu seçimi, liderlik tablosu ve satın alma için hesap oluştur.
+              </p>
+              <button
+                onClick={loginGuest}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                  padding: 'var(--sp-md) var(--sp-lg)',
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '0.5px solid var(--border)',
+                  borderRadius: 'var(--r-lg)',
+                }}
+              >
+                <span style={{ fontSize: 18 }}>👤</span>
+                <span className="t-btn-md" style={{ color: 'var(--text-sub)' }}>Misafir Olarak Devam Et</span>
+              </button>
+            </div>
+          )}
 
           {error && (
             <p className="t-caption" style={{ color: 'var(--red)', marginTop: 'var(--sp-sm)', textAlign: 'center' }}>
               {error}
-            </p>
-          )}
-
-          {!firebaseAvailable && (
-            <p className="t-caption" style={{ color: 'var(--text-muted)', marginTop: 'var(--sp-md)', textAlign: 'center' }}>
-              Firebase kurulu değil — misafir modunda oynayabilirsin
             </p>
           )}
         </GlassCard>

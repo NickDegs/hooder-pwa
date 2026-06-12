@@ -9,6 +9,7 @@ import TabBar          from './components/TabBar'
 import DesktopSidebar  from './components/DesktopSidebar'
 import PropertyPanel   from './components/PropertyPanel'
 import Login           from './screens/Login'
+import ServerSelect    from './screens/ServerSelect'
 import Market          from './screens/Market'
 import Portfolio       from './screens/Portfolio'
 import Rankings        from './screens/Rankings'
@@ -16,6 +17,7 @@ import Store           from './screens/Store'
 import Settings        from './screens/Settings'
 
 const SCREEN_TITLES = ['Harita', 'Piyasa', 'Portföyüm', 'Sıralama', 'Mağaza', 'Ayarlar']
+const SERVER_KEY    = 'hooder_selected_server'
 
 function useIsDesktop() {
   const [desktop, setDesktop] = useState(() => window.innerWidth >= 768)
@@ -37,11 +39,39 @@ export default function App() {
   const [selectedProp,   setSelectedProp]   = useState<Property | null>(null)
   const [flyToCity,      setFlyToCity]      = useState<City | null>(allCities[0])
   const [showCityPicker, setShowCityPicker] = useState(false)
+  const [selectedServer, setSelectedServer] = useState<string | null>(() => {
+    // Guests skip server selection
+    const saved = localStorage.getItem(SERVER_KEY)
+    return saved ?? null
+  })
 
-  useEffect(() => { if (user) load(user.uid) }, [user?.uid])
+  // When user changes, load game state
+  useEffect(() => {
+    if (!user) return
+    if (user.provider === 'guest') {
+      load(user.uid, '', '')
+    } else if (selectedServer) {
+      load(user.uid, selectedServer, user.token ?? '')
+    }
+    // If email user without server → wait for ServerSelect
+  }, [user?.uid, selectedServer])
+
   useEffect(() => { if (tab !== 0) setSelectedProp(null) }, [tab])
 
   if (!user) return <Login />
+
+  // Email/non-guest users must select a server before playing
+  if (user.provider !== 'guest' && !selectedServer) {
+    return (
+      <ServerSelect
+        displayName={user.displayName}
+        onSelect={id => {
+          localStorage.setItem(SERVER_KEY, id)
+          setSelectedServer(id)
+        }}
+      />
+    )
+  }
 
   const isMap = tab === 0
 
@@ -58,7 +88,7 @@ export default function App() {
         {/* Left sidebar */}
         <DesktopSidebar tab={tab} onChange={handleTabChange} />
 
-        {/* Map (always visible, takes remaining space) */}
+        {/* Map (always visible) */}
         <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
           <MapView
             selectedProperty={selectedProp}
@@ -105,7 +135,7 @@ export default function App() {
             </div>
           </div>
 
-          {/* Property detail (bottom of map area) */}
+          {/* Property detail */}
           {isMap && selectedProp && (
             <div style={{ position: 'absolute', bottom: 20, left: 20, right: 20, zIndex: 50 }}>
               <PropertyPanel property={selectedProp} onClose={() => setSelectedProp(null)} />
@@ -127,7 +157,6 @@ export default function App() {
             borderLeft: '0.5px solid var(--specular)',
             animation: 'slideFromRight 0.38s cubic-bezier(0.34,1.26,0.64,1) forwards',
           }}>
-            {/* Header */}
             <div style={{
               padding: '24px 20px 12px',
               borderBottom: '0.5px solid var(--border)',
@@ -135,12 +164,15 @@ export default function App() {
             }}>
               <span className="t-h3" style={{ color: 'var(--text)' }}>{SCREEN_TITLES[tab]}</span>
             </div>
-            {/* Content */}
             <div style={{ flex: 1, overflow: 'hidden' }}>
               {tab === 1 && <Market />}
               {tab === 2 && <Portfolio />}
               {tab === 3 && <Rankings />}
-              {tab === 4 && <Settings />}
+              {tab === 4 && <Store />}
+              {tab === 5 && <Settings onChangeServer={() => {
+                localStorage.removeItem(SERVER_KEY)
+                setSelectedServer(null)
+              }} />}
             </div>
           </div>
         )}
@@ -256,7 +288,10 @@ export default function App() {
           {tab === 2 && <Portfolio />}
           {tab === 3 && <Rankings />}
           {tab === 4 && <Store />}
-          {tab === 5 && <Settings />}
+          {tab === 5 && <Settings onChangeServer={() => {
+            localStorage.removeItem(SERVER_KEY)
+            setSelectedServer(null)
+          }} />}
         </div>
       </div>
 

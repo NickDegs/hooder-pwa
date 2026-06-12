@@ -4,8 +4,12 @@ import { useAuth } from '../services/auth'
 import { formatPrice, formatIncome } from '../data'
 import GlassCard from '../components/GlassCard'
 
-export default function Settings() {
-  const { playerName, cash, netWorth, owned, dailyIncome, level, setPlayerName, addCash, reset } = useGame()
+interface Props {
+  onChangeServer?: () => void
+}
+
+export default function Settings({ onChangeServer }: Props) {
+  const { playerName, cash, netWorth, owned, dailyIncome, level, setPlayerName, addCash, reset, serverId } = useGame()
   const { user, signOut } = useAuth()
   const [editingName,      setEditingName]      = useState(false)
   const [nameInput,        setNameInput]        = useState('')
@@ -97,6 +101,37 @@ export default function Settings() {
                 <span style={{ fontSize: 16 }}>🚪</span>
                 <span className="t-bold" style={{ color: 'var(--red)' }}>Çıkış Yap</span>
               </button>
+            </GlassCard>
+          </>
+        )}
+
+        {/* Server change */}
+        {user && user.provider !== 'guest' && onChangeServer && (
+          <>
+            <SectionLabel>SUNUCU</SectionLabel>
+            <GlassCard style={{ marginBottom: 'var(--sp-lg)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div className="t-bold" style={{ color: 'var(--text)' }}>
+                    {serverId === 'srv-hizli' ? '⚡ Hızlı Arena' :
+                     serverId === 'srv-hafta' ? '🗓 Haftalık Ligi' :
+                     serverId === 'srv-sezon' ? '🏆 Aylık Sezon' :
+                     serverId === 'srv-kalici' ? '🌍 Kalıcı Dünya' : 'Seçilmedi'}
+                  </div>
+                  <div className="t-caption" style={{ color: 'var(--text-muted)' }}>Aktif sunucu</div>
+                </div>
+                <button
+                  onClick={onChangeServer}
+                  style={{
+                    padding: '8px 14px',
+                    background: 'rgba(52,148,255,0.12)',
+                    border: '0.5px solid rgba(52,148,255,0.3)',
+                    borderRadius: 'var(--r-lg)',
+                  }}
+                >
+                  <span className="t-caption" style={{ color: 'var(--primary)' }}>Değiştir</span>
+                </button>
+              </div>
             </GlassCard>
           </>
         )}
