@@ -1,6 +1,8 @@
 // ── Types ────────────────────────────────────────────────────────────────────
 
-export type PropertyCategory = 'hotel' | 'office' | 'retail' | 'residential' | 'land' | 'industrial'
+export type PropertyCategory =
+  | 'hotel' | 'office' | 'retail' | 'residential' | 'land' | 'industrial'
+  | 'park' | 'street' | 'marina' | 'landmark' | 'stadium' | 'parking'
 
 export interface Property {
   id:           string
@@ -39,6 +41,12 @@ export const categoryMeta: Record<PropertyCategory, { emoji: string; label: stri
   residential: { emoji: '🏠', label: 'Konut',     accent: '#30d158' },
   land:        { emoji: '🌿', label: 'Arsa',      accent: '#30b0c7' },
   industrial:  { emoji: '🏭', label: 'Endüstri',  accent: '#ff6b35' },
+  park:        { emoji: '🌳', label: 'Park/Bahçe',    accent: '#34c759' },
+  street:      { emoji: '🛣️',  label: 'Cadde/Sokak',  accent: '#ff9f0a' },
+  marina:      { emoji: '⛵', label: 'Marina/Liman',  accent: '#0a84ff' },
+  landmark:    { emoji: '🏛️', label: 'Meydan/Eser',  accent: '#ffd60a' },
+  stadium:     { emoji: '🏟️', label: 'Stadyum/Arena', accent: '#ff375f' },
+  parking:     { emoji: '🅿️',  label: 'Otopark',       accent: '#8e8e93' },
 }
 
 // ── Helper ────────────────────────────────────────────────────────────────────
@@ -283,6 +291,189 @@ export const allProperties: Property[] = [
   p('bak-s01','İçərişəhər Butik Dükkânı','12 Kichik Qala, İçərişəhər','retail','İçərişəhər','Baku','AZ',480_000,960,4,49.8362,40.3662,'UNESCO mirası alanında özel butik.'),
   p('bak-s02','Nizami Caddesi Mağazası','78 Nizami St, Baku','retail','Şəhər Mərkəzi','Baku','AZ',820_000,1_640,3,49.8402,40.3704,'Bakü\'nün ana alışveriş caddesi.'),
   p('bak-s03','Port Baku Mall Kiosk','153 Neftchilar Ave, Baku','retail','Port Baku','Baku','AZ',640_000,1_280,3,49.8622,40.3706,'Modern AVM\'de köşe kiosk.'),
+
+  // ═══════════════════════════════════════════════
+  //  İSTANBUL — PARKLAR, CADDELER, MARİNALAR, MEYDANLAR, STADYUMLAR
+  // ═══════════════════════════════════════════════
+
+  p('ist-pa01','Emirgan Korusu','Emirgan Cad. No:107, Sarıyer','park','Emirgan','Istanbul','TR',18_000_000,21_600,5,29.0538,41.1082,'Boğaz kıyısında 3 köşklü tarihi koru, lale bahçeleri.'),
+  p('ist-pa02','Yıldız Parkı','Çırağan Cad., Beşiktaş','park','Beşiktaş','Istanbul','TR',22_000_000,26_400,5,29.0166,41.0515,'Osmanlı saray bahçesi, Boğaz manzarası.'),
+  p('ist-pa03','Gülhane Parkı','Alemdar Cad., Fatih','park','Eminönü','Istanbul','TR',9_500_000,11_400,4,28.9810,41.0130,'İstanbul\'un en eski halk parkı, Topkapı burnu.'),
+  p('ist-pa04','Çamlıca Tepesi','Büyük Çamlıca Cad., Üsküdar','park','Üsküdar','Istanbul','TR',14_000_000,16_800,5,29.0643,41.0275,'Şehrin 360° panoramik manzara tepesi.'),
+  p('ist-pa05','Büyükada Çam Koruları','Büyükada, Adalar','park','Adalar','Istanbul','TR',32_000_000,38_400,5,29.1227,40.8752,'Prens Adaları\'nın el değmemiş çam ormanları.'),
+
+  p('ist-st01','İstiklal Caddesi Yol Hakkı','İstiklal Cad., Beyoğlu','street','Beyoğlu','Istanbul','TR',95_000_000,114_000,5,28.9784,41.0335,'Türkiye\'nin en kalabalık yaya caddesi, 3M ziyaretçi/gün.'),
+  p('ist-st02','Bağdat Caddesi Koridoru','Bağdat Cad., Kadıköy','street','Bağdat Cad.','Istanbul','TR',78_000_000,93_600,5,29.0500,40.9750,'İstanbul\'un lüks alışveriş ve yaşam şeridi.'),
+  p('ist-st03','Bebek Sahil Yolu','Cevdet Paşa Cad., Bebek','street','Bebek','Istanbul','TR',38_000_000,45_600,4,29.0451,41.0774,'Boğaz kıyısının en gözde yürüyüş koridoru.'),
+  p('ist-st04','Abdi İpekçi Caddesi','Abdi İpekçi Cad., Nişantaşı','street','Nişantaşı','Istanbul','TR',52_000_000,62_400,5,28.9932,41.0492,'Türkiye\'nin Fifth Avenue\'su, haute couture vitrinleri.'),
+  p('ist-st05','Kapalıçarşı Ana Koridoru','Havuzlu Çeşme Sk., Fatih','street','Fatih','Istanbul','TR',28_000_000,33_600,5,28.9680,41.0108,'Kapalıçarşı\'nın 15. yy tarihi ana yolu.'),
+
+  p('ist-mr01','Ataköy Marina','Rıhtım Cad. No:1, Bakırköy','marina','Bakırköy','Istanbul','TR',58_000_000,69_600,5,28.8721,40.9833,'Marmara\'nın en büyük yat limanı, 900 tekne.'),
+  p('ist-mr02','Kalamış Marina','Yacht Club Cad., Kadıköy','marina','Fenerbahçe','Istanbul','TR',38_000_000,45_600,4,29.0610,40.9706,'Asya yakasının prestijli yat yeri.'),
+  p('ist-mr03','Bebek Yat Koyu','Bebek Koyu, Bebek','marina','Bebek','Istanbul','TR',24_000_000,28_800,5,29.0451,41.0774,'Boğaz\'ın en değerli küçük doğal koyu.'),
+  p('ist-mr04','Tarabya Yat Limanı','Tarabya Sahili, Sarıyer','marina','Tarabya','Istanbul','TR',18_000_000,21_600,4,29.0662,41.1211,'Tarihi Tarabya Koyu, elçilik yazlıkları.'),
+
+  p('ist-lm01','Sultanahmet Meydanı','Sultanahmet Meydanı, Fatih','landmark','Eminönü','Istanbul','TR',280_000_000,336_000,5,28.9773,41.0054,'Hipodrom üzerine kurulu, Ayasofya-Mavi Cami arası ikonik meydan.'),
+  p('ist-lm02','Ortaköy Meydanı','Meclis-i Mebusan Cad., Beşiktaş','landmark','Ortaköy','Istanbul','TR',120_000_000,144_000,5,29.0286,41.0501,'Cami ve Boğaz Köprüsü\'nün iç içe geçtiği ikonik meydan.'),
+  p('ist-lm03','Galata Kulesi Meydanı','Galata Meydanı, Beyoğlu','landmark','Beyoğlu','Istanbul','TR',85_000_000,102_000,5,28.9742,41.0256,'Cenevizliler\'den kalma 14. yy kulesinin tarihi meydanı.'),
+  p('ist-lm04','Dolmabahçe Sahil Şeridi','Çırağan Cad. No:1, Beşiktaş','landmark','Beşiktaş','Istanbul','TR',380_000_000,456_000,5,29.0004,41.0389,'Dolmabahçe Sarayı ile Boğaz arasındaki 600m sahil.'),
+  p('ist-lm05','Rumelihisarı Surları','Yahya Kemal Cad. No:42, Sarıyer','landmark','Bebek','Istanbul','TR',65_000_000,78_000,4,29.0540,41.0900,'1452\'de Fatih\'in inşa ettirdiği Boğaz kalesi.'),
+
+  p('ist-sd01','Vodafone Park','Dolmabahçe Cad. No:2, Beşiktaş','stadium','Beşiktaş','Istanbul','TR',380_000_000,570_000,5,29.0054,41.0403,'Beşiktaş JK\'nın 43,000 kişilik Boğaz manzaralı yuvası.'),
+  p('ist-sd02','Türk Telekom Stadyumu','Ali Sami Yen Spor Kompleksi, Sarıyer','stadium','Maslak','Istanbul','TR',420_000_000,630_000,5,29.0310,41.1110,'Galatasaray\'ın 52,652 kişilik çift halkalı stadı.'),
+  p('ist-sd03','Ülker Stadyumu','Kadıköy Spor Kompleksi, Kadıköy','stadium','Kadıköy','Istanbul','TR',320_000_000,480_000,5,29.0372,40.9928,'Fenerbahçe\'nin 50,530 kişilik kale surlu stadı.'),
+
+  p('ist-lot01','Taksim Metro Otoparkı','İstiklal Cad. Altı, Beyoğlu','parking','Beyoğlu','Istanbul','TR',28_000_000,33_600,3,28.9784,41.0369,'İstanbul\'un en yoğun merkezi kapalı otopark.'),
+  p('ist-lot02','Levent Tower Otoparkı','Büyükdere Cad. No:255, Maslak','parking','Maslak','Istanbul','TR',18_000_000,21_600,3,29.0152,41.1020,'Finans kuleleri altında 8 katlı otopark.'),
+
+  // ═══════════════════════════════════════════════
+  //  DUBAİ — PARKLAR, CADDELER, MARİNALAR, MEYDANLAR, STADYUMLAR
+  // ═══════════════════════════════════════════════
+
+  p('dxb-pa01','Safa Park','Al Wasl Rd, Jumeirah','park','Jumeirah','Dubai','AE',42_000_000,50_400,4,55.2279,25.1884,'Dubai\'nin en sevilen 64 hektarlık halk parkı.'),
+  p('dxb-pa02','Zabeel Park','Zabeel Rd, Karama','park','Karama','Dubai','AE',58_000_000,69_600,4,55.3040,25.2248,'32 hektarlık şehir merkezi parkı, teleskop kulesi.'),
+  p('dxb-pa03','Al Barsha Pond Park','Al Barsha Dr, Al Barsha','park','Al Barsha','Dubai','AE',28_000_000,33_600,3,55.1998,25.1107,'Göl etrafında ağaçlık şehir parkı.'),
+
+  p('dxb-st01','Sheikh Zayed Road Koridoru','Sheikh Zayed Rd, Trade Centre','street','Trade Centre','Dubai','AE',680_000_000,816_000,5,55.2799,25.2175,'Dubai\'nin omurgası, 55 km\'lik ikonik bulvar.'),
+  p('dxb-st02','JBR The Walk','JBR Walk, Dubai Marina','street','JBR','Dubai','AE',220_000_000,264_000,5,55.1280,25.0760,'1.7 km açık hava sahil alışveriş koridoru.'),
+  p('dxb-st03','Downtown Boulevard','Mohammed Bin Rashid Blvd','street','Downtown','Dubai','AE',380_000_000,456_000,5,55.2757,25.1928,'Burj Khalifa\'yı çevreleyen ana bulvar halkası.'),
+
+  p('dxb-mr01','Dubai Marina Yat Limanı','Marina Walk, Dubai Marina','marina','Dubai Marina','Dubai','AE',280_000_000,336_000,5,55.1402,25.0812,'200+ yatı barındıran yapay kanal mega marinası.'),
+  p('dxb-mr02','Dubai Creek Harbor Rıhtımı','Creek Blvd, Dubai Creek','marina','Dubai Creek','Dubai','AE',95_000_000,114_000,4,55.3518,25.2047,'Tarihi halicin yeni nesil liman bölgesi.'),
+  p('dxb-mr03','Palm Jumeirah Özel Koyu','Crescent Rd, Palm Jumeirah','marina','Palm Jumeirah','Dubai','AE',185_000_000,222_000,5,55.1304,25.1305,'Palm\'ın ucundaki VIP yat koyu.'),
+
+  p('dxb-lm01','Burj Khalifa Esplanadı','1 Mohammed Bin Rashid Blvd','landmark','Downtown','Dubai','AE',880_000_000,1_056_000,5,55.2744,25.1972,'Dünyanın en yüksek yapısının çevresi, Dubai Fountain.'),
+  p('dxb-lm02','Dubai Frame Meydanı','Zabeel Park, Zabeel','landmark','Karama','Dubai','AE',95_000_000,114_000,4,55.3002,25.2349,'150m yüksekliğindeki altın çerçevenin meydanı.'),
+  p('dxb-lm03','Museum of the Future Bahçesi','One Central, DWTC','landmark','Trade Centre','Dubai','AE',150_000_000,180_000,5,55.2820,25.2130,'Zaha Hadid\'in halef mimarisi – geleceğin müzesi çevresi.'),
+  p('dxb-lm04','Global Village Festivali Alanı','Sheikh Mohammed Bin Zayed Rd','landmark','Global Village','Dubai','AE',85_000_000,102_000,4,55.3064,25.0676,'90 ülke pavyonunun 1.6 km koridoru.'),
+
+  p('dxb-sd01','Dubai World Cup Pisti','Nad Al Sheba, Dubai','stadium','Nad Al Sheba','Dubai','AE',680_000_000,1_020_000,5,55.3161,25.1614,'Dünyanın en zengin yarış ödüllü hipodromu.'),
+  p('dxb-sd02','Coca-Cola Arena','City Walk, Al Wasl','stadium','City Walk','Dubai','AE',380_000_000,570_000,4,55.2405,25.1943,'17,000 kişilik tam kapalı çok amaçlı arena.'),
+
+  // ═══════════════════════════════════════════════
+  //  NEW YORK — PARKLAR, CADDELER, MARİNALAR, MEYDANLAR, STADYUMLAR
+  // ═══════════════════════════════════════════════
+
+  p('nyc-pa01','Central Park Bethesda Terrace','Central Park, Midtown','park','Midtown','New York','US',820_000_000,984_000,5,-73.9713,40.7735,'341 hektarlık ikonik şehir parkının kalbi.'),
+  p('nyc-pa02','High Line Parkı','W 30th St - Gansevoort St, Chelsea','park','Chelsea','New York','US',380_000_000,456_000,5,-74.0048,40.7480,'Eski yük treni rayları üstüne kurulu 2.3 km park.'),
+  p('nyc-pa03','Brooklyn Bridge Park','Furman St, Brooklyn Heights','park','Brooklyn Heights','New York','US',220_000_000,264_000,5,-73.9970,40.6996,'Manhattan ve köprü manzaralı East River parkı.'),
+  p('nyc-pa04','Prospect Park','Grand Army Plaza, Brooklyn','park','Park Slope','New York','US',420_000_000,504_000,4,-73.9721,40.6602,'Brooklyn\'ün Olmsted tasarımlı 526 hektarlık büyük parkı.'),
+
+  p('nyc-st01','5th Avenue Koridoru','5th Ave, Midtown','street','Midtown','New York','US',3_200_000_000,3_840_000,5,-73.9712,40.7613,'Dünyanın birim başına en pahalı alışveriş adresi.'),
+  p('nyc-st02','Broadway Caddesi','Broadway, Midtown','street','Midtown','New York','US',2_200_000_000,2_640_000,5,-73.9855,40.7580,'Tiyatro ve ticaretin efsanevi ana koridoru.'),
+  p('nyc-st03','Wall Street Koridoru','Wall St, Financial District','street','Financial District','New York','US',1_200_000_000,1_440_000,5,-74.0089,40.7069,'Küresel finans başkentinin tarihi sokağı.'),
+  p('nyc-st04','Madison Avenue','Madison Ave, Midtown','street','Midtown','New York','US',1_600_000_000,1_920_000,5,-73.9623,40.7747,'Reklam endüstrisinin ve lüks galeri sokağının ikonik adresi.'),
+
+  p('nyc-mr01','Manhattan Yacht Club Pier','N Moore St, Tribeca','marina','Tribeca','New York','US',95_000_000,114_000,4,-74.0140,40.7218,'Hudson Nehri\'nde prestijli özel yat iskelesi.'),
+  p('nyc-mr02','Brooklyn Navy Yard Marina','Flushing Ave, Williamsburg','marina','Williamsburg','New York','US',145_000_000,174_000,3,-73.9602,40.7002,'Tarihi ABD Deniz Kuvvetleri tersanesinin marina alanı.'),
+
+  p('nyc-lm01','Times Square Meydanı','Broadway & 7th Ave, Midtown','landmark','Midtown','New York','US',2_800_000_000,3_360_000,5,-73.9855,40.7580,'50M+/yıl ziyaretçiyle dünyanın "Dünya\'nın Merkezi".'),
+  p('nyc-lm02','Özgürlük Heykeli Adası','Liberty Island, Harbor','landmark','Financial District','New York','US',880_000_000,1_056_000,5,-74.0445,40.6892,'1886\'dan beri ABD\'nin özgürlük simgesi, tarihi ada.'),
+  p('nyc-lm03','Brooklyn Bridge Yürüyüş Yolu','Brooklyn Bridge, DUMBO','landmark','DUMBO','New York','US',620_000_000,744_000,5,-73.9969,40.7061,'1883\'ten beri New York\'un simge yaya köprüsü.'),
+  p('nyc-lm04','Rockefeller Center Sahası','1221 6th Ave, Midtown','landmark','Midtown','New York','US',1_400_000_000,1_680_000,5,-73.9800,40.7585,'Noel buz pisti ve 70 katlı Art Deco kompleksi.'),
+
+  p('nyc-sd01','Madison Square Garden','4 Penn Plaza, Midtown','stadium','Midtown','New York','US',1_200_000_000,1_800_000,5,-73.9939,40.7505,'20,000 kişilik "Dünyanın En Ünlü Arenası".'),
+  p('nyc-sd02','Yankee Stadium','1 E 161st St, South Bronx','stadium','Bronx','New York','US',680_000_000,1_020_000,5,-73.9264,40.8296,'54,000 kişilik MLB\'nin en ünlü takımı Yankees yuvası.'),
+
+  // ═══════════════════════════════════════════════
+  //  LONDRA — PARKLAR, CADDELER, MARİNALAR, MEYDANLAR, STADYUMLAR
+  // ═══════════════════════════════════════════════
+
+  p('lon-pa01','Hyde Park','Hyde Park, Westminster','park','Westminster','London','GB',3_200_000_000,3_840_000,5,-0.1657,51.5073,'Londra\'nın ikonik 142 hektarlık kraliyet parkı.'),
+  p('lon-pa02','Kensington Gardens','Kensington Gardens, Kensington','park','Kensington','London','GB',2_200_000_000,2_640_000,5,-0.1757,51.5057,'Peter Pan\'ın evi, Kraliçe Anne\'nin resmi bahçesi.'),
+  p('lon-pa03','Greenwich Park','Greenwich Park, Greenwich','park','Greenwich','London','GB',1_200_000_000,1_440_000,5,-0.0013,51.4769,'Meridyen sıfır noktası ve kraliyet gözlemevi parkı.'),
+  p('lon-pa04','Regent\'s Park','Regent\'s Park, Westminster','park','Marylebone','London','GB',1_600_000_000,1_920_000,5,-0.1545,51.5313,'ZOO, gül bahçesi ve açık hava tiyatrosu olan 197 ha park.'),
+
+  p('lon-st01','Oxford Street Koridoru','Oxford St, Westminster','street','Westminster','London','GB',5_200_000_000,6_240_000,5,-0.1408,51.5154,'Avrupa\'nın en kalabalık 300M+/yıl ziyaretçi alışveriş caddesi.'),
+  p('lon-st02','Bond Street','Bond St, Mayfair','street','Mayfair','London','GB',2_600_000_000,3_120_000,5,-0.1458,51.5130,'Lüks saatçilerin ve haute joaillerie\'nin ikonik sokağı.'),
+  p('lon-st03','Carnaby Street','Carnaby St, Soho','street','Soho','London','GB',780_000_000,936_000,4,-0.1399,51.5143,'1960\'ların mod modasının doğduğu efsanevi sokak.'),
+  p('lon-st04','King\'s Road','King\'s Rd, Chelsea','street','Chelsea','London','GB',1_100_000_000,1_320_000,4,-0.1754,51.4870,'Chelsea\'nin punk ve moda tarihinin omurgası.'),
+
+  p('lon-mr01','St. Katharine Docks Marina','St. Katharine\'s Way, Tower Hill','marina','Tower Hill','London','GB',320_000_000,384_000,5,-0.0720,51.5055,'Tower Bridge yanı tarihi dok – lüks yat limanına dönüşüm.'),
+  p('lon-mr02','Canary Wharf West India Docks','West India Ave, Canary Wharf','marina','Canary Wharf','London','GB',220_000_000,264_000,4,-0.0210,51.5070,'Bankacılık adası etrafındaki tarihi ticaret doku.'),
+
+  p('lon-lm01','Buckingham Palace Bahçesi','Buckingham Palace Rd, Westminster','landmark','Westminster','London','GB',5_200_000_000,6_240_000,5,-0.1419,51.5014,'Kraliyet sarayının 39 hektarlık özel bahçesi ve törenleri.'),
+  p('lon-lm02','Tower Bridge Güney Bankı','Tower Bridge Rd, Southwark','landmark','South Bank','London','GB',680_000_000,816_000,5,-0.0755,51.5055,'1894\'ten beri Londra\'nın simgesi, Viktorya açılır köprü.'),
+  p('lon-lm03','Westminster Parliament Meydanı','Parliament Sq, Westminster','landmark','Westminster','London','GB',1_100_000_000,1_320_000,5,-0.1246,51.5007,'Big Ben, Westminster Abbey ve Parlamento\'nun önü.'),
+  p('lon-lm04','Trafalgar Meydanı','Trafalgar Sq, Westminster','landmark','Westminster','London','GB',780_000_000,936_000,5,-0.1281,51.5080,'Nelson\'s Column etrafındaki tarihi milli meydan.'),
+
+  p('lon-sd01','Wembley Stadyumu','Wembley, Brent','stadium','Wembley','London','GB',1_400_000_000,2_100_000,5,-0.2795,51.5560,'90,000 kişilik FA Cup ve milli takım yuvası.'),
+  p('lon-sd02','Emirates Stadyumu','Queensland Rd, Holloway','stadium','Holloway','London','GB',680_000_000,1_020_000,4,-0.1088,51.5549,'Arsenal\'in 60,704 kişilik sektöre referans olan evi.'),
+  p('lon-sd03','Stamford Bridge','Fulham Rd, Chelsea','stadium','Chelsea','London','GB',580_000_000,870_000,4,-0.1910,51.4816,'Chelsea FC\'nin 1877\'den beri tarihi sahası.'),
+
+  // ═══════════════════════════════════════════════
+  //  TOKYO — PARKLAR, CADDELER, MARİNALAR, MEYDANLAR, STADYUMLAR
+  // ═══════════════════════════════════════════════
+
+  p('tyo-pa01','Shinjuku Gyoen','11 Naito-machi, Shinjuku','park','Shinjuku','Tokyo','JP',450_000_000,540_000,5,139.7109,35.6852,'144 hektarlık 70,000 ağaçlı ulusal Japon bahçesi.'),
+  p('tyo-pa02','Ueno Parkı','Ueno, Taito','park','Ueno','Tokyo','JP',320_000_000,384_000,4,139.7741,35.7153,'Müzeler, zoo ve en ünlü sakura korusunu barındıran park.'),
+  p('tyo-pa03','Yoyogi Parkı','2-1 Yoyogi Kamizonocho, Shibuya','park','Harajuku','Tokyo','JP',380_000_000,456_000,4,139.6972,35.6710,'2 milyon m² cosplay, müzisyenler ve piknik parkı.'),
+  p('tyo-pa04','Imperial Palace Doğu Bahçesi','1-1 Chiyoda, Chiyoda','park','Marunouchi','Tokyo','JP',2_200_000_000,2_640_000,5,139.7630,35.6860,'İmparatorluk Sarayı\'nın halkına açık tarihi bahçe alanı.'),
+
+  p('tyo-st01','Ginza Chuo Dori','Chuo Dori, Ginza','street','Ginza','Tokyo','JP',2_600_000_000,3_120_000,5,139.7685,35.6714,'Japonya\'nın en pahalı toprağındaki lüks mağazalar caddesi.'),
+  p('tyo-st02','Omotesando Avenue','Omotesando, Shibuya','street','Aoyama','Tokyo','JP',1_900_000_000,2_280_000,5,139.7134,35.6633,'Tokyo\'nun "Champs-Élysées\'si", mimar imzalı butik vitrinleri.'),
+  p('tyo-st03','Akihabara Electric Town Street','Chuo Dori, Chiyoda','street','Akihabara','Tokyo','JP',1_100_000_000,1_320_000,4,139.7729,35.7022,'Elektronik, anime ve otaku kültürünün dünya merkezi.'),
+  p('tyo-st04','Takeshita Caddesi','1-17 Jingumae, Shibuya','street','Harajuku','Tokyo','JP',680_000_000,816_000,3,139.7036,35.6700,'Japon kawaii ve harajuku moda kültürünün kalbi.'),
+
+  p('tyo-mr01','Odaiba Waterfront İskelesi','2-1 Daiba, Minato','marina','Odaiba','Tokyo','JP',95_000_000,114_000,4,139.7759,35.6246,'Gökkuşağı Köprüsü manzaralı Tokyo Körfezi yat iskelesi.'),
+  p('tyo-mr02','Hinode Feribot İskelesi','1 Kaigan, Minato','marina','Odaiba','Tokyo','JP',68_000_000,81_600,3,139.7577,35.6434,'Tokyo Körfezi\'ndeki tarihi feribot ve tekne iskelesi.'),
+
+  p('tyo-lm01','Shibuya Crossing Alanı','2-1 Dogenzaka, Shibuya','landmark','Shibuya','Tokyo','JP',1_400_000_000,1_680_000,5,139.7016,35.6580,'2.5M+/gün yaya trafiğiyle dünyanın en yoğun kavşağı.'),
+  p('tyo-lm02','Tokyo Tower Esplanadı','4-2-8 Shibakoen, Minato','landmark','Shiba','Tokyo','JP',450_000_000,540_000,5,139.7454,35.6586,'1958\'den beri Tokyo silüetinin simgesi, çevre alanı.'),
+  p('tyo-lm03','Sensoji Nakamise Yolu','2-3-1 Asakusa, Taito','landmark','Asakusa','Tokyo','JP',320_000_000,384_000,4,139.7966,35.7148,'628\'den beri açık, 250m\'lik tarihi çarşı koridoru.'),
+  p('tyo-lm04','Tsukiji Outer Market','4-16-2 Tsukiji, Chuo','landmark','Tsukiji','Tokyo','JP',210_000_000,252_000,4,139.7699,35.6658,'Dünyanın en ünlü balık pazarı çevre alışveriş sokakları.'),
+
+  p('tyo-sd01','Japan National Stadium','10-2 Kasumigaokamachi, Shinjuku','stadium','Shinjuku','Tokyo','JP',980_000_000,1_470_000,5,139.7138,35.6781,'60,102 kişilik 2020 Tokyo Olimpiyatları ana stadyumu.'),
+  p('tyo-sd02','Tokyo Dome','1-3-61 Koraku, Bunkyo','stadium','Koraku','Tokyo','JP',680_000_000,1_020_000,4,139.7517,35.7058,'55,000 kişilik Japonya\'nın ilk kapalı çok amaçlı stadı.'),
+
+  // ═══════════════════════════════════════════════
+  //  PARİS — PARKLAR, CADDELER, MARİNALAR, MEYDANLAR, STADYUMLAR
+  // ═══════════════════════════════════════════════
+
+  p('par-pa01','Bois de Boulogne','Route de Suresnes, 16e','park','16e Arrondissement','Paris','FR',2_200_000_000,2_640_000,5,2.2424,48.8555,'845 hektarlık Paris\'in kuzey ormanı, Roland-Garros içinde.'),
+  p('par-pa02','Tuileries Bahçesi','Rue de Rivoli, 1er','park','1er Arrondissement','Paris','FR',1_200_000_000,1_440_000,5,2.3322,48.8634,'Louvre\'dan Concorde\'a uzanan 28 hektarlık kraliyet bahçesi.'),
+  p('par-pa03','Luxembourg Bahçesi','6 Place Auguste-Comte, 6e','park','6e Arrondissement','Paris','FR',820_000_000,984_000,5,2.3370,48.8462,'Sorbonne\'un bitişiğinde 23 hektarlık Fransız senato bahçesi.'),
+  p('par-pa04','Bois de Vincennes','Route de la Pyramide, 12e','park','12e Arrondissement','Paris','FR',1_400_000_000,1_680_000,4,2.4399,48.8314,'Paris\'in güney ormanı, 995 hektar, dört göl ve şatosu.'),
+
+  p('par-st01','Champs-Élysées Koridoru','Av. des Champs-Élysées, 8e','street','8e Arrondissement','Paris','FR',9_800_000_000,11_760_000,5,2.3016,48.8698,'Dünyanın en ünlü 1.9 km bulvarı, Tour de France finişi.'),
+  p('par-st02','Rue du Faubourg Saint-Honoré','Rue du Faubourg Saint-Honoré, 8e','street','8e Arrondissement','Paris','FR',2_600_000_000,3_120_000,5,2.3083,48.8729,'Fransız haute couture ve cumhurbaşkanlığı sarayının caddesi.'),
+  p('par-st03','Boulevard Haussmann','Bd Haussmann, 9e','street','9e Arrondissement','Paris','FR',1_900_000_000,2_280_000,5,2.3327,48.8733,'Galeries Lafayette ve Printemps\'ın büyük mağazalar bulvarı.'),
+  p('par-st04','Rue de Rivoli','Rue de Rivoli, 1er','street','1er Arrondissement','Paris','FR',1_400_000_000,1_680_000,4,2.3425,48.8587,'Louvre yanik tarihi alışveriş caddesi, 2 km.'),
+
+  p('par-mr01','Seine Pont d\'Iéna İskelesi','Pont d\'Iéna, 16e','marina','16e Arrondissement','Paris','FR',95_000_000,114_000,4,2.2892,48.8614,'Eiffel Kulesi altında Seine nehir yat iskelesi.'),
+  p('par-mr02','Port Arsenal Marina','Bd de la Bastille, 12e','marina','12e Arrondissement','Paris','FR',75_000_000,90_000,4,2.3691,48.8502,'Bastille yanı kanal ve Seine\'i birleştiren yat limanı.'),
+
+  p('par-lm01','Eiffel Kulesi Esplanadı','Champ de Mars, 7e','landmark','7e Arrondissement','Paris','FR',14_000_000_000,16_800_000,5,2.2945,48.8584,'7M+/yıl ile dünyanın en çok ziyaret edilen anıtın meydanı.'),
+  p('par-lm02','Louvre Piramit Avlusu','Rue de Rivoli, 1er','landmark','1er Arrondissement','Paris','FR',8_500_000_000,10_200_000,5,2.3364,48.8606,'9M+/yıl ziyaretçiyle dünyanın en çok ziyaret edilen müzesinin avlusu.'),
+  p('par-lm03','Notre-Dame Katedrali Meydanı','Parvis Notre-Dame, 4e','landmark','Île de la Cité','Paris','FR',3_200_000_000,3_840_000,5,2.3499,48.8530,'2024\'te yeniden açılan 850 yıllık gotik katedralin önü.'),
+  p('par-lm04','Place Vendôme','Pl. Vendôme, 1er','landmark','1er Arrondissement','Paris','FR',1_900_000_000,2_280_000,5,2.3296,48.8686,'Cartier, Ritz ve Chopard\'ın çevrelediği Napolyon meydanı.'),
+  p('par-lm05','Pont des Arts Köprüsü','Pont des Arts, 6e','landmark','6e Arrondissement','Paris','FR',580_000_000,696_000,4,2.3374,48.8580,'Aşk kilitleriyle ünlü Louvre-Enstitü arası yaya köprüsü.'),
+
+  p('par-sd01','Stade de France','93210 Saint-Denis, Paris','stadium','Saint-Denis','Paris','FR',1_400_000_000,2_100_000,5,2.3608,48.9244,'81,338 kişilik Fransa milli stadyumu.'),
+  p('par-sd02','Parc des Princes','24 Rue du Commandant Guilbaud, 16e','stadium','16e Arrondissement','Paris','FR',680_000_000,1_020_000,4,2.2529,48.8415,'PSG\'nin 47,929 kişilik tarihi yuvası.'),
+
+  // ═══════════════════════════════════════════════
+  //  BAKÜ — PARKLAR, CADDELER, MARİNALAR, MEYDANLAR, STADYUMLAR
+  // ═══════════════════════════════════════════════
+
+  p('bak-pa01','Heydar Aliyev Parkı','Heydar Aliyev Ave, Ağ Şəhər','park','Ağ Şəhər','Baku','AZ',18_000_000,21_600,4,49.8672,40.3810,'Modern cumhurbaşkanlığı merkezinin tarihi parkı.'),
+  p('bak-pa02','Sahil Bulvar Parkı','Neftchilar Ave, Sahil','park','Sahil','Baku','AZ',38_000_000,45_600,5,49.8432,40.3700,'Hazar kıyısı boyunca 5 km sahil yürüyüş ve eğlence parkı.'),
+  p('bak-pa03','Nagorny Park','Mehdi Huseyn Blvd, Baku','park','Nagorny','Baku','AZ',12_000_000,14_400,4,49.8570,40.3752,'Şehir ve Hazar manzaralı tepe parkı.'),
+
+  p('bak-st01','Nizami Caddesi Koridoru','Nizami St, Şəhər Mərkəzi','street','Şəhər Mərkəzi','Baku','AZ',68_000_000,81_600,4,49.8402,40.3704,'Bakü\'nün ana alışveriş ve sosyal yaşam caddesi.'),
+  p('bak-st02','Neftchilar Bulvarı','Neftchilar Ave, Sahil','street','Sahil','Baku','AZ',95_000_000,114_000,5,49.8482,40.3715,'Hazar kıyısı boyunca uzanan prestijli sahil şeridi.'),
+  p('bak-st03','İçərişəhər Kichik Qala Sokakları','Kichik Qala, İçərişəhər','street','İçərişəhər','Baku','AZ',32_000_000,38_400,4,49.8362,40.3662,'UNESCO koruması altındaki 12. yy kale içi tarihi sokakları.'),
+
+  p('bak-mr01','Bakü Körfezi Yat Limanı','Heydar Aliyev Ave, Sahil','marina','Sahil','Baku','AZ',55_000_000,66_000,4,49.8432,40.3680,'Hazar Denizi kıyısında özel yat ve tekne limanı.'),
+  p('bak-mr02','Bibi-Heybat Limanı','Bibi-Heybat, Baku','marina','Bibi-Heybat','Baku','AZ',22_000_000,26_400,3,49.8740,40.3400,'Tarihi Bibi-Heybat Cami yanı tekne ve balıkçı limanı.'),
+
+  p('bak-lm01','Qız Qalası Meydanı','Old City, İçərişəhər','landmark','İçərişəhər','Baku','AZ',95_000_000,114_000,5,49.8372,40.3660,'UNESCO mirası 12. yy Kız Kulesi ve tarihi meydan.'),
+  p('bak-lm02','Alev Kuleleri Esplanadı','1 Mehdi Huseyn St, Ağ Şəhər','landmark','Ağ Şəhər','Baku','AZ',220_000_000,264_000,5,49.8672,40.3694,'3 alev şekilli kuleni önündeki gece show esplanadı.'),
+  p('bak-lm03','Heydar Aliyev Merkezi','1 Heydar Aliyev Ave, Ağ Şəhər','landmark','Ağ Şəhər','Baku','AZ',145_000_000,174_000,5,49.8700,40.3975,'Zaha Hadid imzalı dalga formlu müze ve kültür merkezi.'),
+  p('bak-lm04','Azadlıq Meydanı','Azadlig Ave, Sahil','landmark','Sahil','Baku','AZ',78_000_000,93_600,4,49.8502,40.3750,'Bağımsızlık meydanı, Bakü\'nün siyasi ve kültürel kalbi.'),
+
+  p('bak-sd01','Bakı Olimpiya Stadyumu','Heydar Aliyev Ave, Baku','stadium','Ağ Şəhər','Baku','AZ',320_000_000,480_000,5,49.9093,40.4086,'68,700 kişilik UEFA Avrupa Ligi ve Azerbaycan F1 Grand Prix pisti.'),
+  p('bak-sd02','Tofiq Bahramov Stadyumu','32A Mirali Qaşqay St, Baku','stadium','Sahil','Baku','AZ',95_000_000,142_500,3,49.8562,40.3720,'1966 Dünya Kupası finali hakemine adanmış tarihi stad.'),
 ]
 
 // ── Cities ────────────────────────────────────────────────────────────────────
