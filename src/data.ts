@@ -3,6 +3,8 @@
 export type PropertyCategory =
   | 'hotel' | 'office' | 'retail' | 'residential' | 'land' | 'industrial'
   | 'park' | 'street' | 'marina' | 'landmark' | 'stadium' | 'parking'
+  | 'apartment' | 'villa' | 'penthouse' | 'duplex' | 'studio'
+  | 'building' | 'townhouse' | 'yali' | 'garden_unit' | 'rooftop_unit'
 
 export interface Property {
   id:           string
@@ -46,7 +48,17 @@ export const categoryMeta: Record<PropertyCategory, { emoji: string; label: stri
   marina:      { emoji: '⛵', label: 'Marina/Liman',  accent: '#0a84ff' },
   landmark:    { emoji: '🏛️', label: 'Meydan/Eser',  accent: '#ffd60a' },
   stadium:     { emoji: '🏟️', label: 'Stadyum/Arena', accent: '#ff375f' },
-  parking:     { emoji: '🅿️',  label: 'Otopark',       accent: '#8e8e93' },
+  parking:     { emoji: '🅿️',  label: 'Otopark',        accent: '#8e8e93' },
+  apartment:   { emoji: '🏠', label: 'Daire',           accent: '#30d158' },
+  villa:       { emoji: '🏡', label: 'Villa/Müstakil',  accent: '#34c759' },
+  penthouse:   { emoji: '✨', label: 'Penthouse',        accent: '#ffd60a' },
+  duplex:      { emoji: '🏘️', label: 'Dubleks',         accent: '#ff9f0a' },
+  studio:      { emoji: '🛋️', label: 'Stüdyo Daire',   accent: '#5856d6' },
+  building:    { emoji: '🏗️', label: 'Bina/Blok',       accent: '#0a84ff' },
+  townhouse:   { emoji: '🏚️', label: 'Sıra Ev',         accent: '#ff6b35' },
+  yali:        { emoji: '🚤', label: 'Yalı',             accent: '#0a84ff' },
+  garden_unit: { emoji: '🌺', label: 'Bahçe Katı',       accent: '#30d158' },
+  rooftop_unit:{ emoji: '🌇', label: 'Çatı Katı',        accent: '#ff9f0a' },
 }
 
 // ── Helper ────────────────────────────────────────────────────────────────────
@@ -474,6 +486,212 @@ export const allProperties: Property[] = [
 
   p('bak-sd01','Bakı Olimpiya Stadyumu','Heydar Aliyev Ave, Baku','stadium','Ağ Şəhər','Baku','AZ',320_000_000,480_000,5,49.9093,40.4086,'68,700 kişilik UEFA Avrupa Ligi ve Azerbaycan F1 Grand Prix pisti.'),
   p('bak-sd02','Tofiq Bahramov Stadyumu','32A Mirali Qaşqay St, Baku','stadium','Sahil','Baku','AZ',95_000_000,142_500,3,49.8562,40.3720,'1966 Dünya Kupası finali hakemine adanmış tarihi stad.'),
+
+  // ═══════════════════════════════════════════════
+  //  İSTANBUL — YALILAR, VİLLALAR, DAİRELER, DUBLEX, PENTHOUSE, BİNA
+  // ═══════════════════════════════════════════════
+
+  // Yalılar
+  p('ist-ya01','Çengelköy Osmanlı Yalısı','Çengelköy Cad. No:4, Üsküdar','yali','Üsküdar','Istanbul','TR',85_000_000,102_000,5,29.0740,41.0580,'18. yy ahşap yalı, Boğaz\'a sıfır, orijinal yapı korunmuş.'),
+  p('ist-ya02','Kandilli Boğaz Yalısı','Kandilli Cad. No:8, Üsküdar','yali','Üsküdar','Istanbul','TR',52_000_000,62_400,5,29.0590,41.0640,'Kandilli tepesinin eteğinde tarihi boğaz yalısı.'),
+  p('ist-ya03','Anadoluhisarı Ahşap Yalı','Hisar İçi Sokak No:3, Beykoz','yali','Beykoz','Istanbul','TR',38_000_000,45_600,4,29.0620,41.0830,'1456 fetih döneminden kalma restore ahşap yapı.'),
+  p('ist-ya04','Arnavutköy Boğaz Yalısı','Arnavutköy Cad. No:42, Beşiktaş','yali','Arnavutköy','Istanbul','TR',68_000_000,81_600,5,29.0391,41.0710,'Su üstü yapı, Boğaz\'dan tekne erişimli.'),
+  p('ist-ya05','Sarıyer Büyük Boğaz Yalısı','Büyük Çamlıca Sk. No:1, Sarıyer','yali','Tarabya','Istanbul','TR',42_000_000,50_400,4,29.0610,41.1250,'Boğaz köprüsü manzaralı geniş yalı.'),
+  p('ist-ya06','Yeniköy Bodrum Çıkışlı Yalı','Yeniköy Cad. No:18, Sarıyer','yali','Yeniköy','Istanbul','TR',95_000_000,114_000,5,29.0585,41.1022,'Bodrum ve iskele dahil 3 katlı modern yalı.'),
+
+  // Villalar
+  p('ist-vi01','Büyükada Köşk','Çankaya Cad. No:8, Adalar','villa','Adalar','Istanbul','TR',18_000_000,21_600,5,29.1227,40.8752,'Prens Adası\'nda arabasız adada ahşap köşk.'),
+  p('ist-vi02','Zekeriyaköy Müstakil Villa','Zekeriyaköy Cad. No:24, Sarıyer','villa','Sarıyer','Istanbul','TR',6_800_000,8_160,4,29.0250,41.1820,'Orman içinde geniş bahçeli müstakil villa.'),
+  p('ist-vi03','Beykoz Bağevi','Bağ Yolu Sk. No:5, Beykoz','villa','Beykoz','Istanbul','TR',4_200_000,5_040,4,29.1010,41.1280,'Koruluk içinde bahçe ve havuzlu bağ evi.'),
+  p('ist-vi04','Çekmeköy Bahçeli Villa','Ömerli Ormanları, Çekmeköy','villa','Çekmeköy','Istanbul','TR',2_400_000,2_880,3,29.1930,41.0320,'İstanbul\'un yeşil köşesinde aile villası.'),
+  p('ist-vi05','Çatalca Çiftlik Evi','Çatalca İlçesi, Avrupa Yakası','villa','Çatalca','Istanbul','TR',1_600_000,1_920,3,28.4610,41.1430,'Tarlalı ve ahırlı geniş çiftlik evi.'),
+
+  // Penthouselar
+  p('ist-ph01','Maslak 42 Penthouse K.52','Büyükdere Cad. No:255, Maslak','penthouse','Maslak','Istanbul','TR',18_000_000,28_800,5,29.0152,41.1020,'500 m² teras, 360° İstanbul manzarası.'),
+  p('ist-ph02','Zorlu Center Penthouse K.36','Levazım Mah. No:1, Beşiktaş','penthouse','Beşiktaş','Istanbul','TR',22_000_000,35_200,5,29.0161,41.0672,'Çift katlı penthouse, özel havuz ve helipad.'),
+  p('ist-ph03','Sapphire Tower Penthouse K.58','Büyükdere Cad. No:1, Levent','penthouse','Levent','Istanbul','TR',28_000_000,44_800,5,29.0118,41.0755,'Türkiye\'nin en yüksek binasında 58. kat panorama.'),
+  p('ist-ph04','Bebek Köy Penthouse','Cevdet Paşa Cad. No:76, Bebek','penthouse','Bebek','Istanbul','TR',14_000_000,22_400,5,29.0451,41.0774,'Boğaz\'ı izleyen özel teras, butik bina.'),
+
+  // Dubleks daireler
+  p('ist-dx01','Nişantaşı Dubleks No:7','Vali Konağı Cad. No:18, Nişantaşı','duplex','Nişantaşı','Istanbul','TR',4_800_000,7_680,5,28.9932,41.0492,'İki katlı lüks dubleks, 280 m², özel giriş.'),
+  p('ist-dx02','Bebek Dubleks Daire 4A','Bebek Cad. No:52, Bebek','duplex','Bebek','Istanbul','TR',6_200_000,9_920,5,29.0451,41.0774,'Boğaz manzaralı çift katlı, 320 m² dubleks.'),
+  p('ist-dx03','Etiler Dubleks Blok C','Nispetiye Cad. No:28, Etiler','duplex','Etiler','Istanbul','TR',3_400_000,5_440,4,29.0302,41.0700,'Site içi dubleks, özel bahçe çıkışı.'),
+  p('ist-dx04','Ataşehir Tripleks Villa','Ataşehir Bulvarı No:45, Ataşehir','duplex','Ataşehir','Istanbul','TR',2_800_000,4_480,4,29.1190,40.9932,'Üç katlı tripleks, geniş otoparklı.'),
+
+  // Stüdyo daireler
+  p('ist-su01','Kadıköy 1+0 Stüdyo','Moda Cad. No:22, Kadıköy','studio','Moda','Istanbul','TR',580_000,928,3,29.0322,40.9848,'Trendy Moda semtinde tam donanımlı stüdyo.'),
+  p('ist-su02','Beşiktaş Stüdyo Daire','Sinanpaşa Mah. No:8, Beşiktaş','studio','Beşiktaş','Istanbul','TR',720_000,1_152,3,29.0161,41.0440,'Çarşı yakını 35 m² stüdyo, eşyalı.'),
+  p('ist-su03','Karaköy Loft Stüdyo','Bankalar Cad. No:12, Karaköy','studio','Karaköy','Istanbul','TR',980_000,1_568,4,28.9752,41.0271,'Endüstriyel dönüşüm, yüksek tavan loft stüdyo.'),
+  p('ist-su04','Levent Mini Daire','Büyükdere Cad. No:80, Levent','studio','Levent','Istanbul','TR',840_000,1_344,3,29.0118,41.0755,'Finans merkezi yanı akıllı stüdyo.'),
+  p('ist-su05','Üsküdar İskele Stüdyosu','Paşa Limanı Cad., Üsküdar','studio','Üsküdar','Istanbul','TR',620_000,992,3,29.0244,41.0230,'Vapur iskelesi yanı boğaz manzaralı stüdyo.'),
+
+  // Bahçe katı daireleri
+  p('ist-ga01','Bebek Bahçe Katı Daire','Bebek Cad. No:28, Bebek','garden_unit','Bebek','Istanbul','TR',3_200_000,5_120,4,29.0451,41.0774,'Özel bahçe girişli, 80 m² avlulu zemin kat.'),
+  p('ist-ga02','Nişantaşı Bahçeli Zemin Kat','Abdi İpekçi Cad. No:6, Nişantaşı','garden_unit','Nişantaşı','Istanbul','TR',2_600_000,4_160,4,28.9932,41.0492,'Bahçe erişimli butik bina zemin katı.'),
+  p('ist-ga03','Fenerbahçe Bahçe Dairesi','Bağdat Cad. No:205, Kadıköy','garden_unit','Fenerbahçe','Istanbul','TR',1_900_000,3_040,4,29.0610,40.9706,'250 m² özel bahçeli zemin kat daire.'),
+  p('ist-ga04','Üsküdar Bahçeli Apartman Katı','Büyük Hamam Sk. No:4, Üsküdar','garden_unit','Üsküdar','Istanbul','TR',1_100_000,1_760,3,29.0244,41.0230,'Restore binanın bahçe çıkışlı zemin katı.'),
+
+  // Çatı katı daireleri
+  p('ist-rt01','Cihangir Çatı Katı','Sıraselviler Cad. No:44, Beyoğlu','rooftop_unit','Beyoğlu','Istanbul','TR',2_800_000,4_480,4,28.9826,41.0340,'İstanbul manzaralı 180° açık teras çatı katı.'),
+  p('ist-rt02','Galata Çatı Dairesi','Galip Dede Cad. No:30, Beyoğlu','rooftop_unit','Beyoğlu','Istanbul','TR',3_400_000,5_440,5,28.9742,41.0256,'Galata Kulesi görünümlü açık çatı terası.'),
+  p('ist-rt03','Ortaköy Çatı Katı','Muallim Naci Cad. No:90, Beşiktaş','rooftop_unit','Ortaköy','Istanbul','TR',2_200_000,3_520,4,29.0286,41.0501,'Boğaz Köprüsü\'ne karşı özel çatı katı.'),
+
+  // Tüm binalar
+  p('ist-bl01','Beyoğlu 6 Katlı Apartman','Tarlabaşı Blv. No:32, Beyoğlu','building','Beyoğlu','Istanbul','TR',28_000_000,44_800,4,28.9784,41.0369,'18 daireli komple bina, ticari+konut karma.'),
+  p('ist-bl02','Kadıköy 8 Katlı Kiralık Blok','Moda Cad. No:86, Kadıköy','building','Moda','Istanbul','TR',22_000_000,35_200,4,29.0322,40.9848,'24 daireli kiralık gelir binası.'),
+  p('ist-bl03','Nişantaşı Butik Apartman','Teşvikiye Cad. No:44, Nişantaşı','building','Nişantaşı','Istanbul','TR',38_000_000,60_800,5,28.9932,41.0492,'6 dairelik lüks butik bina, her kat ayrı.'),
+
+  // Sıra ev / Townhouse
+  p('ist-th01','Arnavutköy Sıra Ev No:7','Arnavutköy Cad. No:7, Beşiktaş','townhouse','Arnavutköy','Istanbul','TR',8_500_000,13_600,5,29.0391,41.0710,'Boğaz kıyısı tarihi sıra ev, restore 1890.'),
+  p('ist-th02','Kuzguncuk Sıra Ev','İcadiye Cad. No:15, Üsküdar','townhouse','Üsküdar','Istanbul','TR',5_200_000,8_320,4,29.0380,41.0360,'Rum mahallesinin son ahşap sıra evlerinden.'),
+  p('ist-th03','Çekmeköy Townhouse K.A','Şehir Yolu Blv., Çekmeköy','townhouse','Çekmeköy','Istanbul','TR',2_800_000,4_480,3,29.1930,41.0320,'Bahçeli modern townhouse kompleksi.'),
+
+  // ═══════════════════════════════════════════════
+  //  DUBAİ — YALILAR, VİLLALAR, DAİRELER, PENTHOUSE, BİNA
+  // ═══════════════════════════════════════════════
+
+  p('dxb-vi01','Emirates Hills Mega Villa','Montgomerie, Emirates Hills','villa','Emirates Hills','Dubai','AE',45_000_000,54_000,5,55.1650,25.0920,'Dubai\'nin Bel-Air\'ı, golf sahası manzaralı 8 odalı villa.'),
+  p('dxb-vi02','Palm Frond O Villa','Frond O, Palm Jumeirah','villa','Palm Jumeirah','Dubai','AE',18_000_000,21_600,5,55.1250,25.1150,'Deniz erişimli Palm frond villası, özel iskele.'),
+  p('dxb-vi03','Arabian Ranches III Villa','Ranches Blvd No:44, Dubailand','villa','Arabian Ranches','Dubai','AE',4_200_000,5_040,4,55.2730,25.0350,'Kapalı site yeni nesil akıllı villa.'),
+  p('dxb-vi04','Jumeirah 1 Villa','Jumeirah St No:88, Jumeirah','villa','Jumeirah','Dubai','AE',8_500_000,10_200,4,55.2142,25.2028,'Sahil yürüyüş mesafesi müstakil villa.'),
+  p('dxb-vi05','Dubai Hills Golf Villa','Golf Course Rd, Dubai Hills','villa','Dubai Hills','Dubai','AE',14_000_000,16_800,5,55.2360,25.0960,'18 delik golf sahası kenarında tasarımcı villa.'),
+
+  p('dxb-ph01','Burj Vista Penthouse K.65','Burj Vista Tower 1, Downtown','penthouse','Downtown','Dubai','AE',28_000_000,44_800,5,55.2750,25.1958,'Burj Khalifa\'ya 300m mesafe, çatı havuzu.'),
+  p('dxb-ph02','One Palm Penthouse','Palm Trunk, Palm Jumeirah','penthouse','Palm Jumeirah','Dubai','AE',52_000_000,83_200,5,55.1370,25.1200,'Palm\'ın en prestijli 4 katlı penthouse.'),
+  p('dxb-ph03','DIFC Penthouse Suite','Gate Village No:3, DIFC','penthouse','DIFC','Dubai','AE',22_000_000,35_200,5,55.2808,25.2090,'Finans merkezi üstü özel helipad penthouse.'),
+
+  p('dxb-su01','Dubai Marina Studio','Marina Walk, Dubai Marina','studio','Dubai Marina','Dubai','AE',480_000,768,2,55.1402,25.0812,'43 m² tam donanımlı marina view stüdyo.'),
+  p('dxb-su02','Business Bay Studio Daire','Executive Tower C, Business Bay','studio','Business Bay','Dubai','AE',380_000,608,2,55.2620,25.1870,'Kanal manzaralı yeni nesil micro-apartment.'),
+  p('dxb-su03','JVC Stüdyo','Circle Mall, JVC','studio','JVC','Dubai','AE',280_000,448,2,55.2100,25.0612,'Uygun fiyatlı akıllı stüdyo, yatırımlık.'),
+
+  p('dxb-dx01','Downtown Duplex','Address Residences, Downtown','duplex','Downtown','Dubai','AE',8_500_000,13_600,5,55.2757,25.1928,'Burj Khalifa manzaralı 2 katlı 480 m² dubleks.'),
+  p('dxb-dx02','Palm Garden Duplex','Frond J, Palm Jumeirah','duplex','Palm Jumeirah','Dubai','AE',6_200_000,9_920,4,55.1350,25.1100,'Özel bahçe ve iç havuzlu Palm dubleks.'),
+
+  p('dxb-ga01','JBR Bahçe Katı','The Walk, JBR','garden_unit','JBR','Dubai','AE',2_400_000,3_840,4,55.1280,25.0760,'Sahil şeridinde özel teras çıkışlı zemin kat.'),
+  p('dxb-rt01','Marina Çatı Katı','Horizon Tower, Dubai Marina','rooftop_unit','Dubai Marina','Dubai','AE',5_800_000,9_280,4,55.1402,25.0812,'Körfez ve marina manzaralı özel çatı terası.'),
+
+  p('dxb-bl01','JVC 10 Katlı Kiralık Bina','Jumeirah Village Circle','building','JVC','Dubai','AE',28_000_000,44_800,3,55.2100,25.0612,'80 stüdyo ve 1BR içeren tam kiralık blok.'),
+  p('dxb-th01','Jumeirah Village Townhouse','Jumeirah Village Circle, Blk 12','townhouse','JVC','Dubai','AE',1_600_000,2_560,3,55.2100,25.0612,'3 katlı 180 m² townhouse, özel bahçe.'),
+
+  // ═══════════════════════════════════════════════
+  //  NEW YORK — VİLLALAR, TOWNHOUSE, DAİRELER, PENTHOUSE, STÜDYo
+  // ═══════════════════════════════════════════════
+
+  p('nyc-th01','West Village Townhouse','456 W 11th St, West Village','townhouse','West Village','New York','US',8_500_000,13_600,5,-74.0070,40.7339,'1840\'larda inşa Greenwich Village tarihi townhouse.'),
+  p('nyc-th02','Brownstone Brooklyn Sıra Ev','234 Berkeley Pl, Park Slope','townhouse','Park Slope','New York','US',4_200_000,6_720,4,-73.9793,40.6735,'1890\'lar sandstone cepheli 5 katlı brownstone.'),
+  p('nyc-th03','Harlem Historic Brownstone','126 W 121st St, Harlem','townhouse','Harlem','New York','US',2_400_000,3_840,4,-73.9515,40.8040,'Restore edilmiş Harlem Renaissance dönemi ev.'),
+  p('nyc-th04','UES Townhouse','45 E 74th St, Upper East Side','townhouse','Upper East Side','New York','US',18_000_000,28_800,5,-73.9641,40.7725,'Museum Mile yanı 6 katlı Beaux-Arts townhouse.'),
+
+  p('nyc-ph01','432 Park Ave Super Penthouse','432 Park Ave K.88, Midtown','penthouse','Midtown','New York','US',88_000_000,140_800,5,-73.9773,40.7619,'Dünyanın en ince kulesinde 88. kat penthouse.'),
+  p('nyc-ph02','Tribeca Penthouse','443 Greenwich St, Tribeca','penthouse','Tribeca','New York','US',22_000_000,35_200,5,-74.0094,40.7218,'A-list celebrity\'lerin mahallesi çatı terası.'),
+  p('nyc-ph03','Chelsea Penthouse','515 W 29th St, Chelsea','penthouse','Chelsea','New York','US',14_000_000,22_400,4,-74.0065,40.7510,'High Line üstü özel havuzlu çatı katı.'),
+
+  p('nyc-su01','East Village Stüdyo','142 E 7th St, East Village','studio','East Village','New York','US',620_000,992,3,-73.9836,40.7261,'Bohemian mahalle, 38 m² sanatçı stüdyosu.'),
+  p('nyc-su02','Astoria Queens Stüdyo','32-18 30th Ave, Astoria','studio','Long Island City','New York','US',480_000,768,2,-73.9276,40.7742,'Queens\'te uygun fiyatlı Manhattan erişimli stüdyo.'),
+  p('nyc-su03','Financial District Micro','80 John St, FiDi','studio','Financial District','New York','US',780_000,1_248,3,-74.0057,40.7069,'Wall Street\'e 2 dk\'lık 32 m² akıllı daire.'),
+
+  p('nyc-dx01','SoHo Duplex Loft','60 Mercer St, SoHo','duplex','SoHo','New York','US',6_800_000,10_880,5,-73.9991,40.7235,'İki katlı cast iron bina 320 m² sanatçı lofu.'),
+  p('nyc-dx02','Brooklyn Heights Duplex','42 Willow St, Brooklyn Heights','duplex','Brooklyn Heights','New York','US',3_400_000,5_440,4,-73.9952,40.6975,'Manhattan manzaralı 2 katlı tarihi daire.'),
+
+  p('nyc-ga01','West Village Bahçe Katı','52 Perry St, West Village','garden_unit','West Village','New York','US',3_200_000,5_120,4,-74.0043,40.7356,'Özel İngiliz bahçeli zemin kat, tarihi bina.'),
+  p('nyc-rt01','Midtown Çatı Terası Daire','30 W 63rd St, Upper West Side','rooftop_unit','Upper West Side','New York','US',8_500_000,13_600,5,-73.9843,40.7731,'Lincoln Center karşısı özel çatı katı.'),
+
+  p('nyc-bl01','Harlem 12 Katlı Kiralık Bina','256 W 116th St, Harlem','building','Harlem','New York','US',28_000_000,44_800,3,-73.9572,40.8021,'96 dairelik kiralık apartman blok.'),
+
+  // ═══════════════════════════════════════════════
+  //  LONDRA — YALILAR, VİLLALAR, DAİRELER, PENTHOUSE
+  // ═══════════════════════════════════════════════
+
+  p('lon-vi01','Kensington Palace Gardens Mansion','Palace Gardens Ter., Kensington','villa','Kensington','London','GB',120_000_000,144_000,5,-0.1868,51.5060,'Milyarderler Caddesi\'ndeki muhafızlı geniş konak.'),
+  p('lon-vi02','Surrey Country Estate','The Drive, Weybridge, Surrey','villa','Surrey','London','GB',18_000_000,21_600,4,-0.3518,51.3720,'Londra\'ya 30 dk, 2 hektarlık Surrey ülke konağı.'),
+  p('lon-vi03','Hampstead Detached Villa','The Grove No:8, Hampstead','villa','Hampstead','London','GB',8_500_000,10_200,4,-0.1680,51.5547,'Heath kenarında 6 yatak odalı müstakil ev.'),
+  p('lon-vi04','St. John\'s Wood Villa','Grove End Rd No:12, St. John\'s Wood','villa','Marylebone','London','GB',6_200_000,7_440,4,-0.1740,51.5310,'Diplomat ve sanatçıların tercih ettiği özel ev.'),
+
+  p('lon-ph01','One Hyde Park Penthouse K.18','Knightsbridge, London','penthouse','Knightsbridge','London','GB',95_000_000,152_000,5,-0.1614,51.5021,'Dünyanın en pahalı rezidansının penthouse katı.'),
+  p('lon-ph02','The Shard Çatı Katı Daire','32 London Bridge St K.32, Southwark','penthouse','South Bank','London','GB',22_000_000,35_200,5,-0.0886,51.5045,'Londra\'nın en yüksek binasında konut katı.'),
+  p('lon-ph03','Battersea Power Penthouse','Circus Rd West, Battersea','penthouse','Battersea','London','GB',16_000_000,25_600,5,-0.1442,51.4846,'Eski santral dönüşümünün çatı katı.'),
+
+  p('lon-th01','Chelsea Terrace House','The Vale No:6, Chelsea','townhouse','Chelsea','London','GB',5_800_000,9_280,5,-0.1754,51.4870,'Bahçeli 4 katlı Chelsea sıra evi.'),
+  p('lon-th02','Notting Hill Victorian Terrace','Ladbroke Grove No:48, Notting Hill','townhouse','Notting Hill','London','GB',3_800_000,6_080,4,-0.2010,51.5139,'Kırık beyaz pastel cepheli Viktoryan sıra evi.'),
+  p('lon-th03','Islington Georgian Terrace','Canonbury Sq No:14, Islington','townhouse','Islington','London','GB',2_800_000,4_480,4,-0.0994,51.5441,'1820 Georgian mimarisi sıra evi.'),
+
+  p('lon-su01','Shoreditch Micro Stüdyo','Redchurch St No:42, Shoreditch','studio','Shoreditch','London','GB',480_000,768,3,-0.0788,51.5232,'Trendy Shoreditch\'te 36 m² co-living stüdyo.'),
+  p('lon-su02','Elephant & Castle Stüdyo','Elephant Rd No:12, Southwark','studio','South Bank','London','GB',380_000,608,2,-0.0981,51.4944,'Tube istasyonu yanı yenilenmiş stüdyo.'),
+
+  p('lon-dx01','Mayfair Mews Dubleks','Shepherd Market, Mayfair','duplex','Mayfair','London','GB',7_200_000,11_520,5,-0.1458,51.5045,'Eski ahır dönüşümü Mayfair\'in secretive duplex konutu.'),
+  p('lon-ga01','Hampstead Bahçe Katı','Willow Rd No:4, Hampstead','garden_unit','Hampstead','London','GB',2_200_000,3_520,4,-0.1679,51.5547,'Heath\'e yürüme mesafesinde özel bahçeli zemin kat.'),
+  p('lon-rt01','Mayfair Çatı Dairesi','Grosvenor Sq No:8 Top, Mayfair','rooftop_unit','Mayfair','London','GB',12_000_000,19_200,5,-0.1499,51.5110,'Grosvenor Meydanı\'nın üstünde özel teras katı.'),
+
+  p('lon-bl01','Brixton 20 Dairelik Bina','Coldharbour Ln No:88, Brixton','building','Brixton','London','GB',12_000_000,19_200,3,-0.1139,51.4620,'Bütünleşik kiralık 20 daireli yatırım binası.'),
+
+  // ═══════════════════════════════════════════════
+  //  TOKYO — VİLLALAR, PENTHOUSE, TOWNHOUSE, STÜDYO
+  // ═══════════════════════════════════════════════
+
+  p('tyo-vi01','Karuizawa Mountain Villa','1-1 Karuizawa, Nagano (Tokyo Dağ Evi)','villa','Setagaya','Tokyo','JP',3_200_000,3_840,4,139.6780,35.6360,'Tokyo\'nun arka bahçesi Karuizawa\'da yazlık dağ evi.'),
+  p('tyo-vi02','Kamakura Deniz Evi','2-1 Yuigahama, Kamakura','villa','Odaiba','Tokyo','JP',5_800_000,6_960,4,139.7759,35.6246,'1 saatlik mesafede Pasifik kıyısı ahşap Japonya evi.'),
+  p('tyo-vi03','Setagaya Müstakil Ev','3-5 Sangenjaya, Setagaya','villa','Setagaya','Tokyo','JP',2_400_000,2_880,3,139.6780,35.6360,'İstasyon yakını müstakil bahçeli aile evi.'),
+  p('tyo-vi04','Minato-ku Lüks Konut','5-8 Azabudai, Minato','villa','Roppongi','Tokyo','JP',12_000_000,14_400,5,139.7312,35.6604,'Büyükelçilik mahallesinde özel bahçeli lüks konut.'),
+
+  p('tyo-ph01','Roppongi Hills Penthouse K.54','6-10 Roppongi, Minato','penthouse','Roppongi','Tokyo','JP',12_000_000,19_200,5,139.7312,35.6604,'Tokyo manzaralı özel helipad katı.'),
+  p('tyo-ph02','Azabu Penthouse','2-4 Nishi Azabu, Minato','penthouse','Roppongi','Tokyo','JP',8_500_000,13_600,5,139.7319,35.6598,'Tokyo\'nun prim mahallesinde 45. kat penthouse.'),
+
+  p('tyo-su01','Shinjuku Micro Daire','2-14 Kabukicho, Shinjuku','studio','Shinjuku','Tokyo','JP',280_000,448,2,139.6996,35.6950,'Tokyo tarzı 25 m² tam işlevsel capsule-plus stüdyo.'),
+  p('tyo-su02','Akihabara Geek Stüdyo','3-2 Soto-Kanda, Chiyoda','studio','Akihabara','Tokyo','JP',320_000,512,2,139.7729,35.7022,'Fiber internet, yüksek hız yapı, akıllı stüdyo.'),
+  p('tyo-su03','Shibuya Serviced Stüdyo','1-12 Dogenzaka, Shibuya','studio','Shibuya','Tokyo','JP',460_000,736,3,139.7016,35.6580,'Shibuya Crossing\'e 2 dk yürüyüş mesafesi stüdyo.'),
+
+  p('tyo-th01','Yanaka Machiya (Geleneksel Sıra Ev)','3-2 Yanaka, Taito','townhouse','Ueno','Tokyo','JP',2_800_000,4_480,4,139.7741,35.7153,'Edo dönemi machiya (町家) restore ahşap sıra evi.'),
+  p('tyo-th02','Meguro Modern Townhouse','2-5 Meguro, Meguro','townhouse','Daikanyama','Tokyo','JP',4_200_000,6_720,4,139.7029,35.6480,'3 katlı çağdaş Japon mimarisi townhouse.'),
+
+  p('tyo-dx01','Aoyama Duplex Mansion','4-2 Minami Aoyama, Minato','duplex','Aoyama','Tokyo','JP',6_800_000,10_880,5,139.7134,35.6633,'Aoyama\'nın en prestijli adresinde 2 katlı konut.'),
+  p('tyo-ga01','Daikanyama Bahçe Katı','18-2 Sarugakucho, Shibuya','garden_unit','Daikanyama','Tokyo','JP',2_200_000,3_520,4,139.7029,35.6480,'Sakin Daikanyama\'da gizli bahçe girişli zemin kat.'),
+  p('tyo-rt01','Shinjuku Çatı Katı','1-26 Kabukicho, Shinjuku','rooftop_unit','Shinjuku','Tokyo','JP',3_800_000,6_080,4,139.6996,35.6950,'Shinjuku neon manzaralı özel çatı katı.'),
+
+  p('tyo-bl01','Setagaya 12 Dairelik Bina','5-4 Taishido, Setagaya','building','Setagaya','Tokyo','JP',8_500_000,13_600,3,139.6780,35.6360,'Tamamen kiracılı 12 daireli sakin mahalle binası.'),
+
+  // ═══════════════════════════════════════════════
+  //  PARİS — VİLLALAR, PENTHOUSE, TOWNHOUSE, STÜDYO
+  // ═══════════════════════════════════════════════
+
+  p('par-vi01','Versailles Yakını Şato','Le Chesnay-Rocquencourt, Yvelines','villa','16e Arrondissement','Paris','FR',22_000_000,26_400,5,2.1335,48.8072,'Versailles\'ın 2 km\'sinde özel parkı olan küçük şato.'),
+  p('par-vi02','16e Arrondissement Özel Konak','Av. Foch No:58, 16e','villa','16e Arrondissement','Paris','FR',18_000_000,21_600,5,2.2760,48.8582,'Paris\'in en seçkin caddesinde hd korunaklı konak.'),
+  p('par-vi03','Neuilly-sur-Seine Villa','Bd du Château No:14, Neuilly','villa','Passy','Paris','FR',9_800_000,11_760,4,2.2693,48.8847,'Seine\'in karşısında zengin Neuilly villası.'),
+
+  p('par-ph01','Champs-Élysées Penthouse','55 Av. des Champs-Élysées, 8e','penthouse','8e Arrondissement','Paris','FR',28_000_000,44_800,5,2.3016,48.8698,'Dünyanın en ünlü caddesinde 7. kat penthouse.'),
+  p('par-ph02','Tour Montparnasse Çatı Katı','33 Av. du Maine, 15e','penthouse','15e Arrondissement','Paris','FR',12_000_000,19_200,4,2.3220,48.8421,'210m yüksekten Paris silüeti gören terası.'),
+  p('par-ph03','Saint-Germain Haussmann Penthouse','8 Quai Malaquais, 6e','penthouse','Saint-Germain','Paris','FR',16_000_000,25_600,5,2.3395,48.8572,'Seine manzaralı Haussmann bina çatı katı.'),
+
+  p('par-th01','Marais Hôtel Particulier','26 Rue des Francs-Bourgeois, 3e','townhouse','Le Marais','Paris','FR',14_000_000,22_400,5,2.3557,48.8588,'17. yy özel saray (hôtel particulier), avlulu.'),
+  p('par-th02','Montmartre Atelye Ev','12 Rue Lepic, Montmartre','townhouse','Montmartre','Paris','FR',4_200_000,6_720,4,2.3332,48.8855,'Utrillo\'nun eski komşuluğu, atölyeli iki katlı ev.'),
+
+  p('par-su01','Latin Quarter Stüdyo','22 Rue de la Huchette, 5e','studio','Saint-Germain','Paris','FR',420_000,672,3,2.3470,48.8528,'Sorbonne\'e 3 dakika stüdyo, öğrenci kiralama.'),
+  p('par-su02','Bastille Stüdyo Daire','44 Rue de la Roquette, 11e','studio','Nation','Paris','FR',360_000,576,2,2.3762,48.8533,'Trendy Bastille semtinde küçük stüdyo.'),
+
+  p('par-dx01','Île Saint-Louis Duplex','8 Quai de Bourbon, 4e','duplex','Île de la Cité','Paris','FR',8_500_000,13_600,5,2.3561,48.8519,'Seine adası üzerinde 2 katlı Haussmann duplex.'),
+  p('par-ga01','Marais Bahçe Katı','14 Rue de Bretagne, 3e','garden_unit','Le Marais','Paris','FR',2_800_000,4_480,4,2.3619,48.8630,'Gizli avlulu tarihi Marais binası zemin katı.'),
+  p('par-rt01','Montmartre Çatı Katı','3 Rue Norvins, 18e','rooftop_unit','Montmartre','Paris','FR',3_400_000,5_440,4,2.3390,48.8863,'Sacré-Cœur manzaralı sanatçı çatı katı.'),
+
+  p('par-bl01','9e Arrondissement Kiralık Bina','22 Rue La Bruyère, 9e','building','9e Arrondissement','Paris','FR',18_000_000,28_800,3,2.3310,48.8789,'16 dairelik Haussmann gelir binası.'),
+
+  // ═══════════════════════════════════════════════
+  //  BAKÜ — VİLLALAR, DAİRELER, PENTHOUSE, TOWNHOUSE
+  // ═══════════════════════════════════════════════
+
+  p('bak-vi01','Abşeron Yarımadası Villa','Novkhani qəs., Abşeron','villa','Abşeron','Baku','AZ',3_800_000,4_560,4,50.0200,40.4000,'Hazar sahili özel plajlı Abşeron yarımadası villası.'),
+  p('bak-vi02','Nardaran Sayfiye Evi','Nardaran qəs., Sabunçu','villa','Sabunçu','Baku','AZ',1_600_000,1_920,3,49.9310,40.4320,'Tarihi Nardaran köyünde bahçeli geleneksel ev.'),
+  p('bak-vi03','Novkhanı Sahil Villası','Novkhanı Sahili, Abşeron','villa','Abşeron','Baku','AZ',2_400_000,2_880,3,50.0130,40.3920,'Hazar kıyısı salkımı villalar sitesi.'),
+
+  p('bak-ph01','Flame Towers Penthouse K.33','1 Mehdi Huseyn St, Ağ Şəhər','penthouse','Ağ Şəhər','Baku','AZ',8_500_000,13_600,5,49.8672,40.3694,'Alev Kulesi\'nin en üst katında 360° panorama.'),
+  p('bak-ph02','Crescent Mall Çatı Katı','Crescent Bay, Baku','penthouse','Port Baku','Baku','AZ',5_200_000,8_320,4,49.8622,40.3706,'Crescent Bay projesi deniz manzaralı çatı katı.'),
+
+  p('bak-su01','Sovetski Stüdyo Daire','8 Rasul Rza St, Şəhər Mərkəzi','studio','Şəhər Mərkəzi','Baku','AZ',180_000,288,2,49.8402,40.3704,'Şehir merkezinde Sovyet döneminden restore stüdyo.'),
+  p('bak-su02','White City Stüdyo','White City Blvd, Ağ Şəhər','studio','Ağ Şəhər','Baku','AZ',280_000,448,3,49.8700,40.3710,'Yeni iş merkezinde modern micro-daire.'),
+
+  p('bak-th01','İçərişəhər Tarihi Sıra Ev','Kichik Qala Küç. No:5, İçərişəhər','townhouse','İçərişəhər','Baku','AZ',2_800_000,4_480,4,49.8362,40.3662,'UNESCO koruması altındaki 12. yy taş sıra ev.'),
+  p('bak-dx01','Sahil Residence Dubleks','Neftchilar Ave No:28, Sahil','duplex','Sahil','Baku','AZ',1_800_000,2_880,4,49.8482,40.3715,'Hazar manzaralı 2 katlı dubleks daire.'),
+  p('bak-ga01','Bulvar Bahçe Katı','Bulvar Parkı No:4, Sahil','garden_unit','Sahil','Baku','AZ',1_100_000,1_760,3,49.8432,40.3700,'Sahil Bulvarı kenarında özel bahçeli zemin kat.'),
+  p('bak-rt01','Nagorny Çatı Katı','Əliağa Vahid Küç. No:18, Nagorny','rooftop_unit','Nagorny','Baku','AZ',1_400_000,2_240,4,49.8570,40.3752,'Şehir silüeti ve Hazar manzaralı çatı katı.'),
+  p('bak-bl01','Nəriman Nərimanov Kiralık Bina','Nəriman Nərimanov Pr. No:56, Baku','building','Şəhər Mərkəzi','Baku','AZ',4_200_000,6_720,3,49.8500,40.3900,'24 dairelik karma kullanımlı kiralık apartman.'),
 ]
 
 // ── Cities ────────────────────────────────────────────────────────────────────
