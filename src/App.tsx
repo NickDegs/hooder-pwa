@@ -8,6 +8,8 @@ import MapView            from './components/MapView'
 import TabBar             from './components/TabBar'
 import DesktopSidebar     from './components/DesktopSidebar'
 import NeighborhoodPanel  from './components/NeighborhoodPanel'
+import PlaceClaimPanel    from './components/PlaceClaimPanel'
+import type { MapClickInfo } from './components/MapView'
 import Login              from './screens/Login'
 import Market             from './screens/Market'
 import Portfolio          from './screens/Portfolio'
@@ -36,6 +38,7 @@ export default function App() {
   const [tab,            setTab]            = useState(0)
   const [selectedProp,   setSelectedProp]   = useState<Property | null>(null)
   const [selectedHood,   setSelectedHood]   = useState<HoodGroup | null>(null)
+  const [claimTarget,    setClaimTarget]    = useState<MapClickInfo | null>(null)
   const [flyToCity,      setFlyToCity]      = useState<City | null>(allCities[0])
   const [showCityPicker, setShowCityPicker] = useState(false)
 
@@ -49,7 +52,7 @@ export default function App() {
   }, [user?.uid]) // eslint-disable-line
 
   useEffect(() => {
-    if (tab !== 0) { setSelectedProp(null); setSelectedHood(null) }
+    if (tab !== 0) { setSelectedProp(null); setSelectedHood(null); setClaimTarget(null) }
   }, [tab])
 
   if (!user) return <Login />
@@ -60,10 +63,12 @@ export default function App() {
     setTab(i)
     setSelectedProp(null)
     setSelectedHood(null)
+    setClaimTarget(null)
   }
 
   function handleSelectHood(h: HoodGroup) {
     setSelectedHood(h)
+    setClaimTarget(null)   // close claim panel when hood panel opens
     setTab(0)
     setSelectedProp(null)
   }
@@ -71,8 +76,13 @@ export default function App() {
   function handleSelectProperty(p: Property) {
     setSelectedProp(p)
     setTab(0)
-    // Also open the neighbourhood panel for that property's hood
-    // (find the hood via the property's neighborhood+city)
+  }
+
+  function handleMapClick(info: MapClickInfo) {
+    // Show claim panel for whatever was clicked on the Mapbox map
+    // (non-empty name preferred; fallback shows coordinates)
+    setClaimTarget(info)
+    setSelectedHood(null)  // close hood panel while claim panel is open
   }
 
   // ── Desktop ─────────────────────────────────────────────────────────────────
@@ -89,6 +99,7 @@ export default function App() {
             selectedProperty={selectedProp}
             onSelectProperty={handleSelectProperty}
             onSelectNeighborhood={handleSelectHood}
+            onMapClick={handleMapClick}
             flyToCity={flyToCity}
             highlightHood={selectedHood?.key ?? null}
           />
@@ -138,9 +149,14 @@ export default function App() {
           </div>
         </div>
 
-        {/* Right: neighbourhood panel OR screen panel */}
-        {isMap ? (
-          // On map tab: show NeighborhoodPanel if hood selected
+        {/* Right: claim panel > neighbourhood panel > screen panel */}
+        {isMap && claimTarget ? (
+          <PlaceClaimPanel
+            info={claimTarget}
+            onClose={() => setClaimTarget(null)}
+            isDesktop
+          />
+        ) : isMap ? (
           <NeighborhoodPanel
             hood={selectedHood}
             onClose={() => setSelectedHood(null)}
@@ -201,6 +217,7 @@ export default function App() {
         selectedProperty={selectedProp}
         onSelectProperty={handleSelectProperty}
         onSelectNeighborhood={handleSelectHood}
+        onMapClick={handleMapClick}
         flyToCity={flyToCity}
         highlightHood={selectedHood?.key ?? null}
       />
@@ -270,8 +287,15 @@ export default function App() {
         )}
       </div>
 
-      {/* Neighbourhood panel (bottom sheet, mobile) */}
-      {isMap && selectedHood && (
+      {/* Mobile: claim panel (top priority) or neighbourhood panel */}
+      {isMap && claimTarget && (
+        <PlaceClaimPanel
+          info={claimTarget}
+          onClose={() => setClaimTarget(null)}
+          isDesktop={false}
+        />
+      )}
+      {isMap && selectedHood && !claimTarget && (
         <NeighborhoodPanel
           hood={selectedHood}
           onClose={() => setSelectedHood(null)}

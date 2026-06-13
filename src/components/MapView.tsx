@@ -7,12 +7,21 @@ import {
 } from '../data'
 import { formatPrice } from '../data'
 
+export interface MapClickInfo {
+  name:     string
+  address:  string
+  placeType: string
+  lat:      number
+  lng:      number
+}
+
 interface Props {
   selectedProperty:      Property | null
   onSelectProperty:      (p: Property) => void
   onSelectNeighborhood:  (h: HoodGroup) => void
+  onMapClick?:           (info: MapClickInfo) => void
   flyToCity:             City | null
-  highlightHood?:        string | null   // HoodGroup.key to highlight
+  highlightHood?:        string | null
 }
 
 // ── Zoom thresholds ────────────────────────────────────────────────────────────
@@ -118,17 +127,22 @@ function makePropEl(prop: Property, isOwned: boolean): HTMLElement {
 // ── Component ──────────────────────────────────────────────────────────────────
 
 export default function MapView({
-  selectedProperty, onSelectProperty, onSelectNeighborhood, flyToCity, highlightHood,
+  selectedProperty, onSelectProperty, onSelectNeighborhood, onMapClick, flyToCity, highlightHood,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef       = useRef<mapboxgl.Map | null>(null)
   const initialized  = useRef(false)
 
   // Stable refs for callbacks (avoid stale closures without re-running effect)
-  const cbSelect    = useRef(onSelectProperty)
-  const cbHood      = useRef(onSelectNeighborhood)
-  cbSelect.current  = onSelectProperty
-  cbHood.current    = onSelectNeighborhood
+  const cbSelect      = useRef(onSelectProperty)
+  const cbHood        = useRef(onSelectNeighborhood)
+  const cbMapClick    = useRef(onMapClick)
+  cbSelect.current    = onSelectProperty
+  cbHood.current      = onSelectNeighborhood
+  cbMapClick.current  = onMapClick
+
+  // Flag: suppress map click when a marker was just clicked
+  const markerClicked = useRef(false)
 
   // Marker buckets
   const cityMkrs  = useRef<Map<string, mapboxgl.Marker>>(new Map())
@@ -190,6 +204,7 @@ export default function MapView({
         const el = makeHoodEl(h, 0, false)
         el.addEventListener('click', e => {
           e.stopPropagation()
+          markerClicked.current = true
           map.flyTo({ center: [h.lng, h.lat], zoom: 14, pitch: 58, duration: 1100 })
           cbHood.current(h)
         })
@@ -203,26 +218,57 @@ export default function MapView({
         const el = makePropEl(prop, false)
         el.addEventListener('click', e => {
           e.stopPropagation()
+          markerClicked.current = true
           cbSelect.current(prop)
+          // Also open neighbourhood panel so user can buy
+          const hood = hoods.find(h => h.key === `${prop.city}::${prop.neighborhood}`)
+          if (hood) cbHood.current(hood)
         })
         const mk = new mapboxgl.Marker({ element: el, anchor: 'bottom' })
           .setLngLat([prop.lng, prop.lat]).addTo(map)
         propMkrs.current.set(prop.id, mk)
       })
 
-      // ── Click anywhere → zoom + show nearest hood ─────────────────────────
+      // ── Click anywhere → zoom + query Mapbox features ─────────────────────
       map.on('click', (e) => {
+        // Skip if a marker was just clicked
+        if (markerClicked.current) { markerClicked.current = false; return }
+
         const z = map.getZoom()
-        const nextZ = Math.min(z + 3.5, 17)
+        const nextZ = Math.min(z + 2.5, 17)
         map.flyTo({
           center: [e.lngLat.lng, e.lngLat.lat],
-          zoom: nextZ, pitch: Math.min(60, 48 + nextZ),
-          duration: 1000,
+          zoom: nextZ, pitch: Math.min(62, 48 + nextZ),
+          duration: 900,
         })
-        // Show nearest neighbourhood's properties
-        const { hoods: h2 } = buildGroups()
-        const nearest = nearestHood(h2, e.lngLat.lat, e.lngLat.lng)
-        if (nearest) cbHood.current(nearest)
+
+        // Query what was clicked on the Mapbox map
+        const features = map.queryRenderedFeatures(e.point)
+        const priorityOrder = ['poi-label','road-label','natural-label','place-label','building','transit-label']
+        let bestFeature: mapboxgl.GeoJSONFeature | undefined
+        for (const layerId of priorityOrder) {
+          bestFeature = features.find(f => f.layer?.id === layerId || f.layer?.id?.startsWith(layerId))
+          if (bestFeature) break
+        }
+
+        const rawName    = (bestFeature?.properties?.name_en ?? bestFeature?.properties?.name ?? '') as string
+        const rawAddress = (bestFeature?.properties?.address ?? '') as string
+        const rawType    = ((bestFeature?.layer?.id ?? 'land') as string).replace('-label','').replace('-symbol','')
+
+        cbMapClick.current?.({
+          name:      rawName,
+          address:   rawAddress,
+          placeType: rawType,
+          lat:       e.lngLat.lat,
+          lng:       e.lngLat.lng,
+        })
+
+        // Also show nearest hood panel if below Z_PROP zoom
+        if (z < Z_PROP) {
+          const { hoods: h2 } = buildGroups()
+          const nearest = nearestHood(h2, e.lngLat.lat, e.lngLat.lng)
+          if (nearest) cbHood.current(nearest)
+        }
       })
 
       // ── Zoom → toggle visibility ──────────────────────────────────────────

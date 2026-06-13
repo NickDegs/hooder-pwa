@@ -8,14 +8,27 @@ export interface OwnedProperty {
   totalEarned: number
 }
 
+export interface ClaimedPlace {
+  id:           string   // "place_<lat4>_<lng4>"
+  name:         string
+  address:      string
+  placeType:    string   // 'poi' | 'building' | 'road' | 'park' | 'land' | ...
+  lat:          number
+  lng:          number
+  price:        number
+  incomePerDay: number
+  purchasedAt:  number
+}
+
 interface GameState {
   playerName:    string
   cash:          number
   level:         number
   xp:            number
   owned:         OwnedProperty[]
+  claimed:       ClaimedPlace[]
   lastCollect:   number
-  serverId:      string   // active server id (empty = guest/local)
+  serverId:      string
 
   // computed
   netWorth:      number
@@ -23,14 +36,17 @@ interface GameState {
   pendingIncome: number
 
   // actions
-  load:          (userId: string, serverId?: string, token?: string) => void
-  setPlayerName: (name: string) => void
-  buy:           (property: Property) => boolean
-  sell:          (id: string) => void
-  collectIncome: () => number
-  addCash:       (amount: number) => void
-  reset:         () => void
-  isOwned:       (id: string) => boolean
+  load:            (userId: string, serverId?: string, token?: string) => void
+  setPlayerName:   (name: string) => void
+  buy:             (property: Property) => boolean
+  sell:            (id: string) => void
+  claimPlace:      (place: ClaimedPlace) => boolean
+  unclaimPlace:    (id: string) => void
+  isPlaceClaimed:  (id: string) => boolean
+  collectIncome:   () => number
+  addCash:         (amount: number) => void
+  reset:           () => void
+  isOwned:         (id: string) => boolean
 }
 
 let currentUserId  = ''
@@ -60,7 +76,8 @@ function parseState(raw: Record<string, unknown>) {
     return { id: entry.id, property: prop, purchasedAt: entry.purchasedAt, totalEarned: entry.totalEarned ?? 0 }
   }).filter(Boolean) as OwnedProperty[]
 
-  const cash        = (raw.cash        as number)  ?? 50_000
+  const claimed: ClaimedPlace[] = (raw.claimedPlaces as ClaimedPlace[]) ?? []
+  const cash        = (raw.cash        as number)  ?? 5_000_000
   const lastCollect = (raw.lastCollect as number)  ?? Date.now()
   return {
     playerName:    (raw.playerName as string) ?? 'Oyuncu',
@@ -69,6 +86,7 @@ function parseState(raw: Record<string, unknown>) {
     xp:            (raw.xp        as number)  ?? 0,
     lastCollect,
     owned,
+    claimed,
     netWorth:      computeNetWorth(cash, owned),
     dailyIncome:   computeDailyIncome(owned),
     pendingIncome: computePendingIncome(owned, lastCollect),
@@ -77,13 +95,14 @@ function parseState(raw: Record<string, unknown>) {
 
 export const useGame = create<GameState>((set, get) => ({
   playerName:    'Oyuncu',
-  cash:          50_000,
+  cash:          5_000_000,
   level:         1,
   xp:            0,
   owned:         [],
+  claimed:       [],
   lastCollect:   Date.now(),
   serverId:      '',
-  netWorth:      50_000,
+  netWorth:      5_000_000,
   dailyIncome:   0,
   pendingIncome: 0,
 
@@ -145,6 +164,30 @@ export const useGame = create<GameState>((set, get) => ({
     persist()
   },
 
+  claimPlace(place: ClaimedPlace) {
+    const st = get()
+    if (st.cash < place.price || st.isPlaceClaimed(place.id)) return false
+    const claimed = [...st.claimed, place]
+    const cash    = st.cash - place.price
+    set({ claimed, cash, netWorth: computeNetWorth(cash, st.owned) })
+    persist()
+    return true
+  },
+
+  unclaimPlace(id: string) {
+    const st = get()
+    const cp = st.claimed.find(c => c.id === id)
+    if (!cp) return
+    const claimed = st.claimed.filter(c => c.id !== id)
+    const cash    = st.cash + Math.floor(cp.price * 1.15)
+    set({ claimed, cash, netWorth: computeNetWorth(cash, st.owned) })
+    persist()
+  },
+
+  isPlaceClaimed(id: string) {
+    return get().claimed.some(c => c.id === id)
+  },
+
   collectIncome() {
     const st     = get()
     const earned = computePendingIncome(st.owned, st.lastCollect)
@@ -171,12 +214,13 @@ export const useGame = create<GameState>((set, get) => ({
   reset() {
     set({
       playerName:    'Oyuncu',
-      cash:          50_000,
+      cash:          5_000_000,
       level:         1,
       xp:            0,
       owned:         [],
+      claimed:       [],
       lastCollect:   Date.now(),
-      netWorth:      50_000,
+      netWorth:      5_000_000,
       dailyIncome:   0,
       pendingIncome: 0,
     })
@@ -189,10 +233,11 @@ export const useGame = create<GameState>((set, get) => ({
 }))
 
 function persist() {
-  const { playerName, cash, level, xp, owned, lastCollect, netWorth } = useGame.getState()
+  const { playerName, cash, level, xp, owned, lastCollect, netWorth, claimed } = useGame.getState()
   const data = {
     playerName, cash, level, xp, lastCollect, netWorth,
     ownedPropertyIDs: owned.map(o => ({ id: o.id, purchasedAt: o.purchasedAt, totalEarned: o.totalEarned })),
+    claimedPlaces: claimed,
   }
 
   // Always save locally as backup
