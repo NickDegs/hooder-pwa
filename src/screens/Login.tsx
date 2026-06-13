@@ -6,7 +6,7 @@ type Tab    = 'email' | 'apple' | 'google' | 'guest'
 type Mode   = 'login' | 'register'
 
 export default function Login() {
-  const { loginEmail, registerEmail, loginGoogle, loginApple, loginGuest, loading, firebaseAvailable } = useAuth()
+  const { loginEmail, registerEmail, loginGoogle, loginApple, loginGuest, loading } = useAuth()
   const [tab,      setTab]      = useState<Tab>('email')
   const [mode,     setMode]     = useState<Mode>('login')
   const [username, setUsername] = useState('')
@@ -139,10 +139,8 @@ export default function Login() {
           }}>
             {[
               { id: 'email',  label: '📧 E-posta' },
-              ...(firebaseAvailable ? [
-                { id: 'apple',  label: '🍎 Apple' },
-                { id: 'google', label: '🔵 Google' },
-              ] : []),
+              { id: 'apple',  label: '🍎 Apple' },
+              { id: 'google', label: '🔵 Google' },
               { id: 'guest',  label: '👤 Misafir' },
             ].map(t => (
               <button
@@ -244,8 +242,9 @@ export default function Login() {
           )}
 
           {/* Apple tab */}
-          {tab === 'apple' && firebaseAvailable && (
+          {tab === 'apple' && (
             <button
+              type="button"
               onClick={handleApple}
               disabled={loading}
               style={{
@@ -265,8 +264,9 @@ export default function Login() {
           )}
 
           {/* Google tab */}
-          {tab === 'google' && firebaseAvailable && (
+          {tab === 'google' && (
             <button
+              type="button"
               onClick={handleGoogle}
               disabled={loading}
               style={{
@@ -290,9 +290,10 @@ export default function Login() {
           {tab === 'guest' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }}>
               <p className="t-caption" style={{ color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.5 }}>
-                Misafir modunda oyun ilerlemen yalnızca bu cihaza kaydedilir. Sunucu seçimi, liderlik tablosu ve satın alma için hesap oluştur.
+                Misafir modunda oyun ilerlemen yalnızca bu cihaza kaydedilir. Liderlik tablosu ve satın alma için hesap oluştur.
               </p>
               <button
+                type="button"
                 onClick={loginGuest}
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,

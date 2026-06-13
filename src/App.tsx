@@ -9,7 +9,6 @@ import TabBar          from './components/TabBar'
 import DesktopSidebar  from './components/DesktopSidebar'
 import PropertyPanel   from './components/PropertyPanel'
 import Login           from './screens/Login'
-import ServerSelect    from './screens/ServerSelect'
 import Market          from './screens/Market'
 import Portfolio       from './screens/Portfolio'
 import Rankings        from './screens/Rankings'
@@ -17,7 +16,6 @@ import Store           from './screens/Store'
 import Settings        from './screens/Settings'
 
 const SCREEN_TITLES = ['Harita', 'Piyasa', 'Portföyüm', 'Sıralama', 'Mağaza', 'Ayarlar']
-const SERVER_KEY    = 'hooder_selected_server'
 
 function useIsDesktop() {
   const [desktop, setDesktop] = useState(() => window.innerWidth >= 768)
@@ -39,39 +37,20 @@ export default function App() {
   const [selectedProp,   setSelectedProp]   = useState<Property | null>(null)
   const [flyToCity,      setFlyToCity]      = useState<City | null>(allCities[0])
   const [showCityPicker, setShowCityPicker] = useState(false)
-  const [selectedServer, setSelectedServer] = useState<string | null>(() => {
-    // Guests skip server selection
-    const saved = localStorage.getItem(SERVER_KEY)
-    return saved ?? null
-  })
 
   // When user changes, load game state
   useEffect(() => {
     if (!user) return
     if (user.provider === 'guest') {
       load(user.uid, '', '')
-    } else if (selectedServer) {
-      load(user.uid, selectedServer, user.token ?? '')
+    } else {
+      load(user.uid, user.assignedServer ?? '', user.token ?? '')
     }
-    // If email user without server → wait for ServerSelect
-  }, [user?.uid, selectedServer])
+  }, [user?.uid])
 
   useEffect(() => { if (tab !== 0) setSelectedProp(null) }, [tab])
 
   if (!user) return <Login />
-
-  // Email/non-guest users must select a server before playing
-  if (user.provider !== 'guest' && !selectedServer) {
-    return (
-      <ServerSelect
-        displayName={user.displayName}
-        onSelect={id => {
-          localStorage.setItem(SERVER_KEY, id)
-          setSelectedServer(id)
-        }}
-      />
-    )
-  }
 
   const isMap = tab === 0
 
@@ -169,10 +148,7 @@ export default function App() {
               {tab === 2 && <Portfolio />}
               {tab === 3 && <Rankings />}
               {tab === 4 && <Store />}
-              {tab === 5 && <Settings onChangeServer={() => {
-                localStorage.removeItem(SERVER_KEY)
-                setSelectedServer(null)
-              }} />}
+              {tab === 5 && <Settings />}
             </div>
           </div>
         )}
@@ -288,10 +264,7 @@ export default function App() {
           {tab === 2 && <Portfolio />}
           {tab === 3 && <Rankings />}
           {tab === 4 && <Store />}
-          {tab === 5 && <Settings onChangeServer={() => {
-            localStorage.removeItem(SERVER_KEY)
-            setSelectedServer(null)
-          }} />}
+          {tab === 5 && <Settings />}
         </div>
       </div>
 

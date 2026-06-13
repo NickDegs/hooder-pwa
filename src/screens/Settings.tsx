@@ -4,11 +4,7 @@ import { useAuth } from '../services/auth'
 import { formatPrice, formatIncome } from '../data'
 import GlassCard from '../components/GlassCard'
 
-interface Props {
-  onChangeServer?: () => void
-}
-
-export default function Settings({ onChangeServer }: Props) {
+export default function Settings() {
   const { playerName, cash, netWorth, owned, dailyIncome, level, setPlayerName, addCash, reset, serverId } = useGame()
   const { user, signOut } = useAuth()
   const [editingName,      setEditingName]      = useState(false)
@@ -105,32 +101,15 @@ export default function Settings({ onChangeServer }: Props) {
           </>
         )}
 
-        {/* Server change */}
-        {user && user.provider !== 'guest' && onChangeServer && (
+        {/* Wave / cohort info */}
+        {user && user.provider !== 'guest' && serverId && (
           <>
-            <SectionLabel>SUNUCU</SectionLabel>
+            <SectionLabel>OYUNCU GRUBU</SectionLabel>
             <GlassCard style={{ marginBottom: 'var(--sp-lg)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div>
-                  <div className="t-bold" style={{ color: 'var(--text)' }}>
-                    {serverId === 'srv-hizli' ? '⚡ Hızlı Arena' :
-                     serverId === 'srv-hafta' ? '🗓 Haftalık Ligi' :
-                     serverId === 'srv-sezon' ? '🏆 Aylık Sezon' :
-                     serverId === 'srv-kalici' ? '🌍 Kalıcı Dünya' : 'Seçilmedi'}
-                  </div>
-                  <div className="t-caption" style={{ color: 'var(--text-muted)' }}>Aktif sunucu</div>
-                </div>
-                <button
-                  onClick={onChangeServer}
-                  style={{
-                    padding: '8px 14px',
-                    background: 'rgba(52,148,255,0.12)',
-                    border: '0.5px solid rgba(52,148,255,0.3)',
-                    borderRadius: 'var(--r-lg)',
-                  }}
-                >
-                  <span className="t-caption" style={{ color: 'var(--primary)' }}>Değiştir</span>
-                </button>
+              <StatRow label="Grup" value={`🌊 ${serverId.replace('wave_', 'Dalga ')}`} accent="var(--primary)" />
+              <Divider />
+              <div className="t-caption" style={{ color: 'var(--text-muted)', lineHeight: 1.5, paddingTop: 4 }}>
+                Aynı grup oyuncularla rekabet ediyorsun. Denge için yeni üyeler otomatik farklı gruplara atanır.
               </div>
             </GlassCard>
           </>

@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 
 export interface AuthUser {
-  uid:         string
-  displayName: string
-  email:       string
-  provider:    'google' | 'apple' | 'guest' | 'email'
-  token?:      string
+  uid:             string
+  displayName:     string
+  email:           string
+  provider:        'google' | 'apple' | 'guest' | 'email'
+  token?:          string
+  assignedServer?: string
 }
 
 const API = '/hooder-api'
@@ -48,11 +49,12 @@ export async function registerWithEmail(
   const data = await res.json()
   if (!res.ok) throw new Error(data.error || 'Kayıt başarısız')
   return {
-    uid:         data.user.id,
-    displayName: data.user.username,
-    email:       data.user.email,
-    provider:    'email',
-    token:       data.token,
+    uid:             data.user.uid ?? data.user.id,
+    displayName:     data.user.username,
+    email:           data.user.email,
+    provider:        'email',
+    token:           data.token,
+    assignedServer:  data.assigned_server,
   }
 }
 
@@ -68,11 +70,12 @@ export async function loginWithEmail(
   const data = await res.json()
   if (!res.ok) throw new Error(data.error || 'E-posta veya şifre hatalı')
   return {
-    uid:         data.user.id,
-    displayName: data.user.username,
-    email:       data.user.email,
-    provider:    'email',
-    token:       data.token,
+    uid:             data.user.uid ?? data.user.id,
+    displayName:     data.user.username,
+    email:           data.user.email,
+    provider:        'email',
+    token:           data.token,
+    assignedServer:  data.assigned_server,
   }
 }
 

@@ -59,7 +59,10 @@ export default function PropertyPanel({ property, onClose }: Props) {
                 </span>
               </div>
               <div className="t-h3" style={{ color: 'var(--text)', marginBottom: 2 }}>{property.name}</div>
-              <div className="t-caption" style={{ color: 'var(--text-sub)' }}>
+              <div className="t-caption" style={{ color: 'var(--text-sub)', marginBottom: 1 }}>
+                {property.address}
+              </div>
+              <div className="t-caption" style={{ color: 'var(--text-muted)' }}>
                 {property.neighborhood} · {property.city}
               </div>
             </div>
