@@ -1,19 +1,19 @@
-import { useState, useEffect, useRef, type CSSProperties } from 'react'
+import { useState, useEffect, type CSSProperties } from 'react'
 import { useAuth } from './services/auth'
 import { useGame } from './store/useGame'
-import { allCities, type City, type Property } from './data'
+import { allCities, type City, type Property, type HoodGroup } from './data'
 import { formatPrice } from './data'
 
-import MapView         from './components/MapView'
-import TabBar          from './components/TabBar'
-import DesktopSidebar  from './components/DesktopSidebar'
-import PropertyPanel   from './components/PropertyPanel'
-import Login           from './screens/Login'
-import Market          from './screens/Market'
-import Portfolio       from './screens/Portfolio'
-import Rankings        from './screens/Rankings'
-import Store           from './screens/Store'
-import Settings        from './screens/Settings'
+import MapView            from './components/MapView'
+import TabBar             from './components/TabBar'
+import DesktopSidebar     from './components/DesktopSidebar'
+import NeighborhoodPanel  from './components/NeighborhoodPanel'
+import Login              from './screens/Login'
+import Market             from './screens/Market'
+import Portfolio          from './screens/Portfolio'
+import Rankings           from './screens/Rankings'
+import Store              from './screens/Store'
+import Settings           from './screens/Settings'
 
 const SCREEN_TITLES = ['Harita', 'Piyasa', 'Portföyüm', 'Sıralama', 'Mağaza', 'Ayarlar']
 
@@ -21,9 +21,9 @@ function useIsDesktop() {
   const [desktop, setDesktop] = useState(() => window.innerWidth >= 768)
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 768px)')
-    const handler = (e: MediaQueryListEvent) => setDesktop(e.matches)
-    mq.addEventListener('change', handler)
-    return () => mq.removeEventListener('change', handler)
+    const h  = (e: MediaQueryListEvent) => setDesktop(e.matches)
+    mq.addEventListener('change', h)
+    return () => mq.removeEventListener('change', h)
   }, [])
   return desktop
 }
@@ -35,10 +35,10 @@ export default function App() {
 
   const [tab,            setTab]            = useState(0)
   const [selectedProp,   setSelectedProp]   = useState<Property | null>(null)
+  const [selectedHood,   setSelectedHood]   = useState<HoodGroup | null>(null)
   const [flyToCity,      setFlyToCity]      = useState<City | null>(allCities[0])
   const [showCityPicker, setShowCityPicker] = useState(false)
 
-  // When user changes, load game state
   useEffect(() => {
     if (!user) return
     if (user.provider === 'guest') {
@@ -46,9 +46,11 @@ export default function App() {
     } else {
       load(user.uid, user.assignedServer ?? '', user.token ?? '')
     }
-  }, [user?.uid])
+  }, [user?.uid]) // eslint-disable-line
 
-  useEffect(() => { if (tab !== 0) setSelectedProp(null) }, [tab])
+  useEffect(() => {
+    if (tab !== 0) { setSelectedProp(null); setSelectedHood(null) }
+  }, [tab])
 
   if (!user) return <Login />
 
@@ -57,9 +59,23 @@ export default function App() {
   function handleTabChange(i: number) {
     setTab(i)
     setSelectedProp(null)
+    setSelectedHood(null)
   }
 
-  // ── Desktop layout ──────────────────────────────────────────────────────────
+  function handleSelectHood(h: HoodGroup) {
+    setSelectedHood(h)
+    setTab(0)
+    setSelectedProp(null)
+  }
+
+  function handleSelectProperty(p: Property) {
+    setSelectedProp(p)
+    setTab(0)
+    // Also open the neighbourhood panel for that property's hood
+    // (find the hood via the property's neighborhood+city)
+  }
+
+  // ── Desktop ─────────────────────────────────────────────────────────────────
   if (isDesktop) {
     return (
       <div style={{ position: 'fixed', inset: 0, display: 'flex', background: 'var(--bg)' }}>
@@ -67,45 +83,52 @@ export default function App() {
         {/* Left sidebar */}
         <DesktopSidebar tab={tab} onChange={handleTabChange} />
 
-        {/* Map (always visible) */}
+        {/* Map always visible */}
         <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
           <MapView
             selectedProperty={selectedProp}
-            onSelectProperty={p => { setSelectedProp(p); setTab(0) }}
+            onSelectProperty={handleSelectProperty}
+            onSelectNeighborhood={handleSelectHood}
             flyToCity={flyToCity}
+            highlightHood={selectedHood?.key ?? null}
           />
 
-          {/* Map HUD — city picker */}
+          {/* HUD top bar */}
           <div style={{
-            position: 'absolute', top: 20, left: 20, right: 20,
-            zIndex: 20, display: 'flex', gap: 10, flexWrap: 'wrap',
+            position: 'absolute', top: 16, left: 16, right: 16,
+            zIndex: 20, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap',
+            pointerEvents: 'none',
           }}>
-            {/* Cash badge */}
             <div style={{
+              pointerEvents: 'auto',
               display: 'flex', alignItems: 'center', gap: 6,
               padding: '8px 16px',
-              background: 'rgba(12,18,32,0.8)',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-              border: '0.5px solid var(--specular)',
-              borderRadius: 'var(--r-full)',
+              background: 'rgba(8,12,24,0.78)',
+              backdropFilter: 'blur(24px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+              border: '0.5px solid rgba(255,255,255,0.18)',
+              borderRadius: 99,
+              boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
             }}>
               <span style={{ fontSize: 14 }}>💰</span>
               <span className="t-bold" style={{ color: 'var(--gold)' }}>{formatPrice(cash)}</span>
             </div>
 
-            {/* City chips */}
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <div style={{ pointerEvents: 'auto', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {allCities.map(city => (
                 <button
                   key={city.id}
-                  className="chip"
                   onClick={() => setFlyToCity(city)}
                   style={{
-                    background: 'rgba(12,18,32,0.75)',
-                    backdropFilter: 'blur(20px)',
-                    WebkitBackdropFilter: 'blur(20px)',
-                    fontSize: 12,
+                    padding: '7px 13px',
+                    background: 'rgba(8,12,24,0.72)',
+                    backdropFilter: 'blur(24px) saturate(180%)',
+                    WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+                    border: '0.5px solid rgba(255,255,255,0.16)',
+                    borderRadius: 99,
+                    color: '#fff',
+                    fontSize: 11, fontWeight: 700,
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
                   }}
                 >
                   {city.flag} {city.name}
@@ -113,23 +136,20 @@ export default function App() {
               ))}
             </div>
           </div>
-
-          {/* Property detail */}
-          {isMap && selectedProp && (
-            <div style={{ position: 'absolute', bottom: 20, left: 20, right: 20, zIndex: 50 }}>
-              <PropertyPanel property={selectedProp} onClose={() => setSelectedProp(null)} />
-            </div>
-          )}
         </div>
 
-        {/* Right content panel */}
-        {!isMap && (
+        {/* Right: neighbourhood panel OR screen panel */}
+        {isMap ? (
+          // On map tab: show NeighborhoodPanel if hood selected
+          <NeighborhoodPanel
+            hood={selectedHood}
+            onClose={() => setSelectedHood(null)}
+            isDesktop
+          />
+        ) : (
           <div style={{
-            width: 440,
-            height: '100dvh',
-            flexShrink: 0,
-            display: 'flex',
-            flexDirection: 'column',
+            width: 440, height: '100dvh', flexShrink: 0,
+            display: 'flex', flexDirection: 'column',
             background: 'rgba(4,8,15,0.82)',
             backdropFilter: 'blur(32px) saturate(160%)',
             WebkitBackdropFilter: 'blur(32px) saturate(160%)',
@@ -156,16 +176,11 @@ export default function App() {
     )
   }
 
-  // ── Mobile layout ───────────────────────────────────────────────────────────
+  // ── Mobile ───────────────────────────────────────────────────────────────────
   const panelStyle: CSSProperties = {
-    position: 'fixed',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 'var(--panel-h)',
-    zIndex: 50,
-    display: 'flex',
-    flexDirection: 'column',
+    position: 'fixed', bottom: 0, left: 0, right: 0,
+    height: 'var(--panel-h)', zIndex: 50,
+    display: 'flex', flexDirection: 'column',
     background: 'rgba(4,8,15,0.82)',
     backdropFilter: 'blur(32px) saturate(160%)',
     WebkitBackdropFilter: 'blur(32px) saturate(160%)',
@@ -184,8 +199,10 @@ export default function App() {
       {/* Map always in background */}
       <MapView
         selectedProperty={selectedProp}
-        onSelectProperty={p => { setSelectedProp(p); setTab(0) }}
+        onSelectProperty={handleSelectProperty}
+        onSelectNeighborhood={handleSelectHood}
         flyToCity={flyToCity}
+        highlightHood={selectedHood?.key ?? null}
       />
 
       {/* Map HUD */}
@@ -200,10 +217,10 @@ export default function App() {
           <div style={{
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '8px 14px',
-            background: 'rgba(12,18,32,0.75)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            border: '0.5px solid var(--specular)',
+            background: 'rgba(8,12,24,0.78)',
+            backdropFilter: 'blur(24px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+            border: '0.5px solid rgba(255,255,255,0.18)',
             borderRadius: 'var(--r-full)',
           }}>
             <span style={{ fontSize: 14 }}>💰</span>
@@ -211,14 +228,15 @@ export default function App() {
           </div>
 
           <button
+            type="button"
             onClick={() => setShowCityPicker(s => !s)}
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
               padding: '8px 14px',
-              background: 'rgba(12,18,32,0.75)',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-              border: '0.5px solid var(--specular)',
+              background: 'rgba(8,12,24,0.78)',
+              backdropFilter: 'blur(24px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+              border: '0.5px solid rgba(255,255,255,0.18)',
               borderRadius: 'var(--r-full)',
             }}
           >
@@ -237,9 +255,13 @@ export default function App() {
             {allCities.map(city => (
               <button
                 key={city.id}
+                type="button"
                 className="chip"
                 onClick={() => { setFlyToCity(city); setShowCityPicker(false) }}
-                style={{ background: 'rgba(12,18,32,0.8)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}
+                style={{
+                  background: 'rgba(8,12,24,0.8)',
+                  backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+                }}
               >
                 {city.flag} {city.name}
               </button>
@@ -248,12 +270,16 @@ export default function App() {
         )}
       </div>
 
-      {/* Property panel */}
-      {isMap && selectedProp && (
-        <PropertyPanel property={selectedProp} onClose={() => setSelectedProp(null)} />
+      {/* Neighbourhood panel (bottom sheet, mobile) */}
+      {isMap && selectedHood && (
+        <NeighborhoodPanel
+          hood={selectedHood}
+          onClose={() => setSelectedHood(null)}
+          isDesktop={false}
+        />
       )}
 
-      {/* Slide-up content panel */}
+      {/* Screen panel (non-map tabs) */}
       <div style={panelStyle}>
         <div style={{ flexShrink: 0, textAlign: 'center', padding: 'var(--sp-sm) 0 var(--sp-xs)' }}>
           <div style={{ width: 36, height: 4, borderRadius: 99, background: 'rgba(255,255,255,0.22)', margin: '0 auto var(--sp-sm)' }} />
@@ -268,7 +294,6 @@ export default function App() {
         </div>
       </div>
 
-      {/* Bottom tab bar */}
       <TabBar tab={tab} onChange={handleTabChange} />
     </div>
   )

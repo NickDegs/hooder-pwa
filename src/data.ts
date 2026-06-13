@@ -297,6 +297,78 @@ export const allCities: City[] = [
   { id: 'baku',     name: 'Baku',      country: 'AZ', flag: '🇦🇿', lat: 40.4093, lng:  49.8671, zoom: 13 },
 ]
 
+// ── Grouping helpers ──────────────────────────────────────────────────────────
+
+export interface HoodGroup {
+  key:          string   // "Istanbul::Beşiktaş"
+  neighborhood: string
+  city:         string
+  country:      string
+  flag:         string
+  lat:          number
+  lng:          number
+  properties:   Property[]
+}
+
+export interface CityGroup {
+  city:       string
+  country:    string
+  flag:       string
+  lat:        number
+  lng:        number
+  properties: Property[]
+}
+
+export function buildGroups(): { hoods: HoodGroup[]; cities: CityGroup[] } {
+  const flagMap: Record<string, string> = {}
+  allCities.forEach(c => { flagMap[c.name] = c.flag })
+
+  const hoodMap = new Map<string, HoodGroup>()
+  const cityMap = new Map<string, CityGroup>()
+
+  allProperties.forEach(prop => {
+    const hk = `${prop.city}::${prop.neighborhood}`
+    if (!hoodMap.has(hk)) {
+      hoodMap.set(hk, {
+        key: hk, neighborhood: prop.neighborhood,
+        city: prop.city, country: prop.country,
+        flag: flagMap[prop.city] ?? '🌍',
+        lat: prop.lat, lng: prop.lng, properties: [],
+      })
+    }
+    hoodMap.get(hk)!.properties.push(prop)
+
+    if (!cityMap.has(prop.city)) {
+      const cd = allCities.find(c => c.name === prop.city)
+      cityMap.set(prop.city, {
+        city: prop.city, country: prop.country,
+        flag: flagMap[prop.city] ?? '🌍',
+        lat: cd?.lat ?? prop.lat, lng: cd?.lng ?? prop.lng, properties: [],
+      })
+    }
+    cityMap.get(prop.city)!.properties.push(prop)
+  })
+
+  hoodMap.forEach(h => {
+    if (h.properties.length > 1) {
+      h.lat = h.properties.reduce((s, p) => s + p.lat, 0) / h.properties.length
+      h.lng = h.properties.reduce((s, p) => s + p.lng, 0) / h.properties.length
+    }
+  })
+
+  return { hoods: Array.from(hoodMap.values()), cities: Array.from(cityMap.values()) }
+}
+
+export function nearestHood(hoods: HoodGroup[], lat: number, lng: number): HoodGroup | null {
+  if (!hoods.length) return null
+  let best = hoods[0], bestDist = Infinity
+  for (const h of hoods) {
+    const d = Math.hypot(h.lat - lat, h.lng - lng)
+    if (d < bestDist) { bestDist = d; best = h }
+  }
+  return best
+}
+
 // ── Formatters ────────────────────────────────────────────────────────────────
 
 export function formatPrice(n: number): string {
