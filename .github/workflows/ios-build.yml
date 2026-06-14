@@ -34,7 +34,15 @@ jobs:
 
       # ── CocoaPods — xcworkspace bu adımda oluşur ─────────────────────────────
       - name: CocoaPods install
-        run: cd ios/App && pod install
+        run: |
+          find ios -name "Podfile" 2>/dev/null || echo "Podfile yok"
+          ls ios/ && ls ios/App/ 2>/dev/null || true
+          PODFILE=$(find ios -name "Podfile" -maxdepth 3 | head -1)
+          if [ -n "$PODFILE" ]; then
+            cd "$(dirname "$PODFILE")" && pod install
+          else
+            echo "Podfile bulunamadı!" && exit 1
+          fi
 
       # ── Build numarası güncelle ──────────────────────────────────────────────
       - name: Set build number
