@@ -32,6 +32,10 @@ jobs:
           npx cap add ios
           npx cap sync ios
 
+      # ── CocoaPods — xcworkspace bu adımda oluşur ─────────────────────────────
+      - name: CocoaPods install
+        run: cd ios/App && pod install
+
       # ── Build numarası güncelle ──────────────────────────────────────────────
       - name: Set build number
         run: |
