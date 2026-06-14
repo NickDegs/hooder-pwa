@@ -36,21 +36,44 @@ async function scanDevice(browser, dev) {
   })
   const page = await ctx.newPage()
 
+  // Geçici/ortam kaynaklı ağ hataları — uygulama hatası değil, yanlış alarm üretmesin
+  const TRANSIENT = /ERR_NETWORK_CHANGED|ERR_NETWORK_IO_SUSPENDED|ERR_INTERNET_DISCONNECTED|ERR_CONNECTION_RESET|ERR_CONNECTION_CLOSED|ERR_TIMED_OUT|ERR_ABORTED|ERR_NAME_NOT_RESOLVED/
+
   page.on('console', m => {
-    if (m.type() === 'error') issues.push({ type: 'console', text: m.text().slice(0, 300) })
+    if (m.type() !== 'error') return
+    const t = m.text()
+    // Geçici ağ hatasının yansıması olan "Failed to load resource" gürültüsünü ele
+    if (TRANSIENT.test(t)) return
+    if (/Failed to load resource/.test(t)) return
+    issues.push({ type: 'console', text: t.slice(0, 300) })
   })
   page.on('pageerror', e => issues.push({ type: 'exception', text: String(e).slice(0, 300) }))
   page.on('requestfailed', r => {
     const u = r.url()
-    // Mapbox tile iptalleri / analytics gürültüsünü ele
+    const err = r.failure()?.errorText ?? ''
+    // Mapbox tile iptalleri / analytics gürültüsünü ve geçici ağ hatalarını ele
     if (/events\.mapbox|analytics|favicon/.test(u)) return
-    issues.push({ type: 'netfail', text: `${r.failure()?.errorText} ${u}`.slice(0, 300) })
+    if (TRANSIENT.test(err)) return
+    issues.push({ type: 'netfail', text: `${err} ${u}`.slice(0, 300) })
   })
 
   const t0 = Date.now()
   let loadMs = -1
   try {
-    await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 30000 })
+    // Geçici ağ hatasında 2 kez yeniden dene (ERR_NETWORK_CHANGED vb.)
+    let lastErr
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 30000 })
+        lastErr = null
+        break
+      } catch (e) {
+        lastErr = e
+        if (!TRANSIENT.test(String(e)) && attempt > 1) break
+        await page.waitForTimeout(1500)
+      }
+    }
+    if (lastErr) throw lastErr
     // Misafir girişi → harita yüklensin
     await page.waitForTimeout(2500)
     const guest = page.getByText(/Misafir|Guest/i).first()
