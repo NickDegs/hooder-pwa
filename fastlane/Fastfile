@@ -18,6 +18,15 @@ platform :ios do
       output_path:    "/tmp",
     )
 
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      team_id:               "SZF4T3P583",
+      code_sign_identity:    "iPhone Distribution",
+      bundle_identifier:     "app.realvirtuality.landlord",
+      profile_name:          "Hooder Distribution",
+      path:                  "ios/App/App.xcodeproj",
+    )
+
     build_ios_app(
       project:        "ios/App/App.xcodeproj",
       scheme:         "App",
@@ -29,8 +38,9 @@ platform :ios do
         provisioningProfiles: {
           "app.realvirtuality.landlord" => "Hooder Distribution",
         },
+        signingStyle: "manual",
       },
-      xcargs:         "-clonedSourcePackagesDirPath /tmp/spm-cache",
+      xcargs: "-clonedSourcePackagesDirPath /tmp/spm-cache",
     )
 
     upload_to_testflight(

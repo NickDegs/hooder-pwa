@@ -61,8 +61,7 @@ jobs:
           sed -i '' "s/DevelopmentTeam = \"\";/DevelopmentTeam = SZF4T3P583;/g" "$PBXPROJ"
           # Manuel signing
           sed -i '' "s/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g" "$PBXPROJ"
-          # Provisioning profile
-          sed -i '' "s/PROVISIONING_PROFILE_SPECIFIER = \"\";/PROVISIONING_PROFILE_SPECIFIER = \"Hooder Distribution\";/g" "$PBXPROJ"
+          # Manuel signing — provisioning profile Fastlane update_code_signing_settings ile ayarlanır
 
       # ── Signing sertifikası ──────────────────────────────────────────────────
       - name: Import distribution certificate
