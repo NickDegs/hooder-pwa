@@ -19,7 +19,7 @@ platform :ios do
     )
 
     build_ios_app(
-      workspace:      "ios/App/App.xcworkspace",
+      project:        "ios/App/App.xcodeproj",
       scheme:         "App",
       configuration:  "Release",
       output_name:    "Hooder.ipa",
@@ -30,6 +30,7 @@ platform :ios do
           "app.realvirtuality.landlord" => "Hooder Distribution",
         },
       },
+      xcargs:         "-clonedSourcePackagesDirPath /tmp/spm-cache",
     )
 
     upload_to_testflight(

@@ -32,17 +32,14 @@ jobs:
           npx cap add ios
           npx cap sync ios
 
-      # ── CocoaPods — xcworkspace bu adımda oluşur ─────────────────────────────
-      - name: CocoaPods install
+      # ── SPM paket çözümü — Capacitor 8 CocoaPods yerine SPM kullanır ───────
+      - name: Resolve SPM packages
         run: |
-          find ios -name "Podfile" 2>/dev/null || echo "Podfile yok"
-          ls ios/ && ls ios/App/ 2>/dev/null || true
-          PODFILE=$(find ios -name "Podfile" -maxdepth 3 | head -1)
-          if [ -n "$PODFILE" ]; then
-            cd "$(dirname "$PODFILE")" && pod install
-          else
-            echo "Podfile bulunamadı!" && exit 1
-          fi
+          xcodebuild -resolvePackageDependencies \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -clonedSourcePackagesDirPath /tmp/spm-cache \
+            2>&1 | tail -20
 
       # ── Build numarası güncelle ──────────────────────────────────────────────
       - name: Set build number
