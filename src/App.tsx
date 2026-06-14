@@ -93,8 +93,8 @@ export default function App() {
         {/* Left sidebar */}
         <DesktopSidebar tab={tab} onChange={handleTabChange} />
 
-        {/* Map always visible */}
-        <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+        {/* Map always visible — isolation:isolate keeps GPU layer separate from backdrop-filter elements */}
+        <div style={{ flex: 1, position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
           <MapView
             selectedProperty={selectedProp}
             onSelectProperty={handleSelectProperty}
@@ -210,7 +210,7 @@ export default function App() {
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'var(--bg)' }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'var(--bg)', isolation: 'isolate' }}>
 
       {/* Map always in background */}
       <MapView

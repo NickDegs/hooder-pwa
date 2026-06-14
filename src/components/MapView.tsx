@@ -339,5 +339,10 @@ export default function MapView({
     mapRef.current.flyTo({ center: [selectedProperty.lng, selectedProperty.lat], zoom: 16, pitch: 60, duration: 1000 })
   }, [selectedProperty])
 
-  return <div ref={containerRef} style={{ position: 'fixed', inset: 0, zIndex: 0 }} />
+  return (
+    <div ref={containerRef} style={{
+      position: 'absolute', inset: 0, zIndex: 0,
+      willChange: 'transform',   // own GPU layer → prevents backdrop-filter stripe artifact
+    }} />
+  )
 }

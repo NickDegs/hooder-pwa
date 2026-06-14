@@ -77,7 +77,9 @@ function parseState(raw: Record<string, unknown>) {
   }).filter(Boolean) as OwnedProperty[]
 
   const claimed: ClaimedPlace[] = (raw.claimedPlaces as ClaimedPlace[]) ?? []
-  const cash        = (raw.cash        as number)  ?? 5_000_000
+  const rawCash     = (raw.cash as number) ?? 5_000_000
+  // Migrate: old default was $50K (couldn't buy anything) → bump to $5M if untouched
+  const cash        = (rawCash === 50_000 && owned.length === 0) ? 5_000_000 : rawCash
   const lastCollect = (raw.lastCollect as number)  ?? Date.now()
   return {
     playerName:    (raw.playerName as string) ?? 'Oyuncu',
