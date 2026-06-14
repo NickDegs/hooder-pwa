@@ -20,11 +20,13 @@ jobs:
           node-version: 22
           cache: npm
 
-      # ── Web derleme ──────────────────────────────────────────────────────────
-      - name: Web build
+      # ── Web derleme (Capacitor: base=/, PWA service worker kapalı) ──────────
+      # Web sunucusu /hooder/ altında çalışır; WKWebView kök '/' bekler
+      - name: Web build (Capacitor)
         run: npm ci && npm run build
         env:
           VITE_MAPBOX_TOKEN: ${{ secrets.VITE_MAPBOX_TOKEN }}
+          VITE_TARGET: capacitor
 
       # ── Capacitor iOS projesi oluştur ────────────────────────────────────────
       - name: Capacitor iOS setup
