@@ -207,7 +207,8 @@ export default function Market() {
           paddingBottom: 'calc(var(--sp-lg) + var(--safe-bottom))',
           animation: 'fadeIn 0.2s ease',
         }} onClick={() => setConfirm(null)}>
-          <GlassCard style={{ width: '100%', maxWidth: 480, margin: '0 auto' }} onClick={() => {}}>
+          <div style={{ width: '100%', maxWidth: 480, margin: '0 auto' }} onClick={e => e.stopPropagation()}>
+          <GlassCard>
             <div className="t-h3" style={{ color: 'var(--text)', marginBottom: 4 }}>Satın al: {confirm.name}</div>
             <div className="t-body" style={{ color: 'var(--text-muted)', marginBottom: 'var(--sp-lg)' }}>
               Mevcut nakit: {formatPrice(cash)}
@@ -227,6 +228,7 @@ export default function Market() {
               </button>
             </div>
           </GlassCard>
+          </div>
         </div>
       )}
 

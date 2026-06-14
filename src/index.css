@@ -31,7 +31,7 @@
   --r-2xl:  26px;
   --r-full: 9999px;
 
-  --tab-h: 82px;
+  --tab-h: 86px;
   --panel-h: 76dvh;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }

@@ -104,7 +104,7 @@ export default function PlaceClaimPanel({ info, onClose, isDesktop }: Props) {
     border: '0.5px solid rgba(255,255,255,0.18)', borderBottom: 'none',
     boxShadow: '0 -16px 60px rgba(0,0,0,0.6), inset 0 0.5px 0 rgba(255,255,255,0.2)',
     animation: 'slideUp 0.35s cubic-bezier(0.34,1.26,0.64,1) forwards',
-    paddingBottom: 'calc(82px + env(safe-area-inset-bottom, 0px))',
+    paddingBottom: 'calc(86px + env(safe-area-inset-bottom, 0px))',
   }
 
   return (

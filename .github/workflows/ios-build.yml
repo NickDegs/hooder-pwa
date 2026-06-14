@@ -1,0 +1,75 @@
+name: iOS → TestFlight
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  ios:
+    runs-on: macos-15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # ── Web derleme ──────────────────────────────────────────────────────────
+      - name: Web build
+        run: npm ci && npm run build
+        env:
+          VITE_MAPBOX_TOKEN: ${{ secrets.VITE_MAPBOX_TOKEN }}
+
+      # ── Capacitor iOS projesi oluştur ────────────────────────────────────────
+      - name: Capacitor iOS setup
+        run: |
+          npx cap add ios
+          npx cap sync ios
+
+      # ── Build numarası güncelle ──────────────────────────────────────────────
+      - name: Set build number
+        run: |
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${{ github.run_number }}" ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.${{ github.run_number }}" ios/App/App/Info.plist
+
+      # ── Xcode 16 deployment target tutarsızlık düzeltmesi ────────────────────
+      - name: Fix deployment target
+        run: |
+          sed -i '' -E "s/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]+;/IPHONEOS_DEPLOYMENT_TARGET = 16.4;/g" \
+            ios/App/App.xcodeproj/project.pbxproj
+
+      # ── Signing sertifikası ──────────────────────────────────────────────────
+      - name: Import distribution certificate
+        env:
+          CERT_BASE64:  ${{ secrets.IOS_DIST_CERT_BASE64 }}
+          CERT_PASS:    ${{ secrets.IOS_DIST_CERT_PASSWORD }}
+        run: |
+          echo "$CERT_BASE64" | base64 --decode -o /tmp/dist.p12
+          security create-keychain -p "build_pass" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain  -p "build_pass" build.keychain
+          security import /tmp/dist.p12 -k build.keychain -P "$CERT_PASS" \
+            -T /usr/bin/codesign -T /usr/bin/productbuild
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: -s -k "build_pass" build.keychain
+          security set-keychain-settings -lut 7200 build.keychain
+
+      # ── Ruby + Fastlane ──────────────────────────────────────────────────────
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+
+      # ── TestFlight yükleme ───────────────────────────────────────────────────
+      - name: Fastlane beta
+        env:
+          ASC_KEY_ID:     ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID:  ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: bundle exec fastlane beta

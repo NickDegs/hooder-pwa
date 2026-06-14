@@ -128,7 +128,8 @@ export default function Portfolio() {
           paddingBottom: 'calc(var(--sp-lg) + var(--safe-bottom))',
           animation: 'fadeIn 0.2s ease',
         }} onClick={() => setSellTarget(null)}>
-          <GlassCard style={{ width: '100%', maxWidth: 480, margin: '0 auto' }}>
+          <div style={{ width: '100%', maxWidth: 480, margin: '0 auto' }} onClick={e => e.stopPropagation()}>
+          <GlassCard>
             <div className="t-h3" style={{ color: 'var(--text)', marginBottom: 4 }}>Sat: {sellOp.property.name}</div>
             <div className="t-body" style={{ color: 'var(--text-muted)', marginBottom: 'var(--sp-lg)' }}>
               Satış fiyatı: {formatPrice(Math.floor(sellOp.property.price * 1.15))} (+%15)
@@ -151,6 +152,7 @@ export default function Portfolio() {
               </button>
             </div>
           </GlassCard>
+          </div>
         </div>
       )}
 

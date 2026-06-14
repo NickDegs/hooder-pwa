@@ -133,6 +133,14 @@ export default function Store() {
           <div style={{ textAlign: 'center', padding: 'var(--sp-4x)', color: 'var(--text-muted)' }}>
             Yükleniyor...
           </div>
+        ) : packages.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: 'var(--sp-4x)' }}>
+            <div style={{ fontSize: 44, marginBottom: 12 }}>📡</div>
+            <div className="t-h4" style={{ color: 'var(--text-sub)', marginBottom: 8 }}>Mağaza geçici olarak kapalı</div>
+            <div className="t-caption" style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>
+              Sunucuya bağlanılamadı. Lütfen birazdan tekrar dene.
+            </div>
+          </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }}>
             {packages.map(pkg => (

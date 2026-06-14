@@ -127,21 +127,44 @@ export async function doSignOut(): Promise<void> {
   }
 }
 
-// ── useAuth hook ──────────────────────────────────────────────────────────────
+// ── Shared auth state (module-level) ─────────────────────────────────────────
+// useAuth() is called in both App.tsx and Login.tsx — they must share the same
+// user object. A plain useState in the hook creates separate instances, so we
+// use a module-level store + subscriber list instead.
 
 const USER_KEY = 'hooder_auth_user'
 
-export function useAuth() {
-  const [user, setUser] = useState<AuthUser | null>(() => {
+let _currentUser: AuthUser | null = (() => {
+  try {
     const raw = localStorage.getItem(USER_KEY)
     return raw ? (JSON.parse(raw) as AuthUser) : null
-  })
-  const [loading, setLoading] = useState(false)
+  } catch { return null }
+})()
 
-  const saveUser = (u: AuthUser | null) => {
+const _listeners = new Set<(u: AuthUser | null) => void>()
+
+function setGlobalUser(u: AuthUser | null) {
+  _currentUser = u
+  try {
     if (u) localStorage.setItem(USER_KEY, JSON.stringify(u))
     else    localStorage.removeItem(USER_KEY)
-    setUser(u)
+  } catch { /* ignore */ }
+  _listeners.forEach(l => l(u))
+}
+
+export function useAuth() {
+  const [user, setUser] = useState<AuthUser | null>(() => _currentUser)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    // Sync with any changes that happened while unmounted
+    setUser(_currentUser)
+    _listeners.add(setUser)
+    return () => { _listeners.delete(setUser) }
+  }, [])
+
+  const saveUser = (u: AuthUser | null) => {
+    setGlobalUser(u)
   }
 
   const loginEmail = async (email: string, password: string) => {

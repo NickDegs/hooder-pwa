@@ -1,4 +1,4 @@
-import { useState, useEffect, type CSSProperties } from 'react'
+import { useState, useEffect, useMemo, type CSSProperties } from 'react'
 import { useAuth } from './services/auth'
 import { useGame } from './store/useGame'
 import { allCities, type City, type Property, type HoodGroup } from './data'
@@ -32,12 +32,14 @@ function useIsDesktop() {
 
 export default function App() {
   const { user }       = useAuth()
-  const { load, cash } = useGame()
+  const { load, cash, level, pendingIncome, owned } = useGame()
+  const ownedIds = useMemo(() => owned.map(o => o.id), [owned])
   const isDesktop      = useIsDesktop()
 
   const [tab,            setTab]            = useState(0)
   const [selectedProp,   setSelectedProp]   = useState<Property | null>(null)
   const [selectedHood,   setSelectedHood]   = useState<HoodGroup | null>(null)
+  const [liveHood,       setLiveHood]       = useState<HoodGroup | null>(null) // pan tracking → mini kart
   const [claimTarget,    setClaimTarget]    = useState<MapClickInfo | null>(null)
   const [flyToCity,      setFlyToCity]      = useState<City | null>(allCities[0])
   const [showCityPicker, setShowCityPicker] = useState(false)
@@ -52,7 +54,7 @@ export default function App() {
   }, [user?.uid]) // eslint-disable-line
 
   useEffect(() => {
-    if (tab !== 0) { setSelectedProp(null); setSelectedHood(null); setClaimTarget(null) }
+    if (tab !== 0) { setSelectedProp(null); setSelectedHood(null); setClaimTarget(null); setLiveHood(null) }
   }, [tab])
 
   if (!user) return <Login />
@@ -63,6 +65,7 @@ export default function App() {
     setTab(i)
     setSelectedProp(null)
     setSelectedHood(null)
+    setLiveHood(null)
     setClaimTarget(null)
   }
 
@@ -100,8 +103,11 @@ export default function App() {
             onSelectProperty={handleSelectProperty}
             onSelectNeighborhood={handleSelectHood}
             onMapClick={handleMapClick}
+            onMapCenter={h => { if (h) setSelectedHood(h) }}
             flyToCity={flyToCity}
             highlightHood={selectedHood?.key ?? null}
+            ownedIds={ownedIds}
+            isDesktop
           />
 
           {/* HUD top bar */}
@@ -193,16 +199,18 @@ export default function App() {
   }
 
   // ── Mobile ───────────────────────────────────────────────────────────────────
-  const panelStyle: CSSProperties = {
+
+  // Panel içerik alanı: haritadan çıkıldığında alta kayarak açılır
+  const screenPanelStyle: CSSProperties = {
     position: 'fixed', bottom: 0, left: 0, right: 0,
     height: 'var(--panel-h)', zIndex: 50,
     display: 'flex', flexDirection: 'column',
-    background: 'rgba(4,8,15,0.82)',
-    backdropFilter: 'blur(32px) saturate(160%)',
-    WebkitBackdropFilter: 'blur(32px) saturate(160%)',
-    borderTop: '0.5px solid var(--specular)',
+    background: 'rgba(4,8,18,0.92)',
+    backdropFilter: 'blur(40px) saturate(180%)',
+    WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+    borderTop: '0.5px solid rgba(255,255,255,0.18)',
     borderRadius: 'var(--r-2xl) var(--r-2xl) 0 0',
-    boxShadow: '0 -8px 48px rgba(0,0,0,0.55)',
+    boxShadow: '0 -12px 60px rgba(0,0,0,0.65), inset 0 0.5px 0 rgba(255,255,255,0.2)',
     transform: isMap ? 'translateY(100%)' : 'translateY(0)',
     transition: 'transform 0.42s cubic-bezier(0.34,1.26,0.64,1)',
     paddingBottom: 'var(--tab-h)',
@@ -212,72 +220,135 @@ export default function App() {
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'var(--bg)', isolation: 'isolate' }}>
 
-      {/* Map always in background */}
+      {/* ── Harita (her zaman arka planda) ────────────────────────── */}
       <MapView
         selectedProperty={selectedProp}
         onSelectProperty={handleSelectProperty}
         onSelectNeighborhood={handleSelectHood}
         onMapClick={handleMapClick}
+        onMapCenter={h => setLiveHood(h)}
         flyToCity={flyToCity}
-        highlightHood={selectedHood?.key ?? null}
+        highlightHood={(selectedHood ?? liveHood)?.key ?? null}
+        ownedIds={ownedIds}
       />
 
-      {/* Map HUD */}
+      {/* ── Üst HUD çubuğu (masaüstü kenar çubuğu gibi, yatay) ─── */}
       <div style={{
-        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 20,
-        padding: 'calc(var(--sp-lg) + env(safe-area-inset-top, 44px)) var(--sp-lg) 0',
-        pointerEvents: 'none',
-        opacity: isMap ? 1 : 0,
-        transition: 'opacity 0.2s',
+        position: 'fixed',
+        top: 0, left: 0, right: 0,
+        zIndex: 30,
+        paddingTop: 'env(safe-area-inset-top, 44px)',
+        background: 'rgba(4,8,18,0.85)',
+        backdropFilter: 'blur(32px) saturate(200%)',
+        WebkitBackdropFilter: 'blur(32px) saturate(200%)',
+        borderBottom: '0.5px solid rgba(255,255,255,0.12)',
+        boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pointerEvents: 'auto' }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            padding: '8px 14px',
-            background: 'rgba(8,12,24,0.78)',
-            backdropFilter: 'blur(24px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-            border: '0.5px solid rgba(255,255,255,0.18)',
-            borderRadius: 'var(--r-full)',
-          }}>
-            <span style={{ fontSize: 14 }}>💰</span>
-            <span className="t-bold" style={{ color: 'var(--gold)' }}>{formatPrice(cash)}</span>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '10px 14px 10px',
+        }}>
+
+          {/* Sol: Logo + Oyuncu */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+            <div style={{
+              width: 34, height: 34, borderRadius: 10,
+              background: 'linear-gradient(135deg, rgba(52,148,255,0.35), rgba(191,90,242,0.2))',
+              border: '0.5px solid rgba(255,255,255,0.18)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 18, flexShrink: 0,
+            }}>🏙️</div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 900, color: 'var(--text)', lineHeight: 1.1, letterSpacing: -0.3 }}>
+                Hooder
+              </div>
+              <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: 0.2, lineHeight: 1 }}>
+                Sv.{level} Yatırımcı
+              </div>
+            </div>
           </div>
 
+          {/* Orta: Nakit + Net değer */}
+          <div style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            padding: '5px 12px',
+            background: 'rgba(255,196,52,0.1)',
+            border: '0.5px solid rgba(255,196,52,0.25)',
+            borderRadius: 12,
+          }}>
+            <div style={{ fontSize: 13, fontWeight: 900, color: 'var(--gold)', lineHeight: 1.1 }}>
+              {formatPrice(cash)}
+            </div>
+            <div style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,196,52,0.5)', letterSpacing: 0.3 }}>
+              NAKİT
+            </div>
+          </div>
+
+          {pendingIncome > 0 && (
+            <div style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+              padding: '5px 10px',
+              background: 'rgba(48,209,88,0.1)',
+              border: '0.5px solid rgba(48,209,88,0.25)',
+              borderRadius: 12,
+            }}>
+              <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--green)', lineHeight: 1.1 }}>
+                +{formatPrice(pendingIncome)}
+              </div>
+              <div style={{ fontSize: 8, fontWeight: 600, color: 'rgba(48,209,88,0.5)', letterSpacing: 0.3 }}>
+                BEKLEYEN
+              </div>
+            </div>
+          )}
+
+          {/* Sağ: Şehir seçici */}
           <button
             type="button"
             onClick={() => setShowCityPicker(s => !s)}
             style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              padding: '8px 14px',
-              background: 'rgba(8,12,24,0.78)',
-              backdropFilter: 'blur(24px) saturate(180%)',
-              WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-              border: '0.5px solid rgba(255,255,255,0.18)',
-              borderRadius: 'var(--r-full)',
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '7px 11px',
+              background: showCityPicker ? 'rgba(52,148,255,0.18)' : 'rgba(255,255,255,0.07)',
+              border: showCityPicker ? '0.5px solid rgba(52,148,255,0.4)' : '0.5px solid rgba(255,255,255,0.14)',
+              borderRadius: 12,
+              transition: 'all 0.18s',
+              flexShrink: 0,
             }}
           >
-            <span className="t-bold" style={{ color: 'var(--text)' }}>🌍 Şehir</span>
-            <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{showCityPicker ? '▲' : '▼'}</span>
+            <span style={{ fontSize: 15 }}>{flyToCity?.flag ?? '🌍'}</span>
+            <span style={{
+              fontSize: 11, fontWeight: 700,
+              color: showCityPicker ? 'var(--primary)' : 'var(--text)',
+              maxWidth: 48, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>{flyToCity?.name ?? 'Şehir'}</span>
+            <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>{showCityPicker ? '▲' : '▼'}</span>
           </button>
         </div>
 
+        {/* Şehir seçici açılır menü */}
         {showCityPicker && (
           <div style={{
-            marginTop: 'var(--sp-sm)',
-            display: 'flex', gap: 'var(--sp-sm)',
-            overflowX: 'auto', paddingBottom: 4,
-            animation: 'slideUp 0.25s ease forwards',
+            display: 'flex', gap: 6,
+            overflowX: 'auto',
+            padding: '0 14px 10px',
+            scrollbarWidth: 'none',
+            animation: 'slideUp 0.22s ease forwards',
           }}>
             {allCities.map(city => (
               <button
                 key={city.id}
                 type="button"
-                className="chip"
                 onClick={() => { setFlyToCity(city); setShowCityPicker(false) }}
                 style={{
-                  background: 'rgba(8,12,24,0.8)',
-                  backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '6px 12px',
+                  background: flyToCity?.id === city.id ? 'rgba(52,148,255,0.2)' : 'rgba(255,255,255,0.07)',
+                  border: flyToCity?.id === city.id ? '0.5px solid rgba(52,148,255,0.45)' : '0.5px solid rgba(255,255,255,0.12)',
+                  borderRadius: 10,
+                  color: flyToCity?.id === city.id ? 'var(--primary)' : 'var(--text-sub)',
+                  fontSize: 11, fontWeight: 700,
+                  whiteSpace: 'nowrap', flexShrink: 0,
+                  transition: 'all 0.15s',
                 }}
               >
                 {city.flag} {city.name}
@@ -287,7 +358,23 @@ export default function App() {
         )}
       </div>
 
-      {/* Mobile: claim panel (top priority) or neighbourhood panel */}
+      {/* ── Harita üst gradyanı ─────────────────────────────────── */}
+      <div style={{
+        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 25,
+        height: 120,
+        background: 'linear-gradient(to bottom, rgba(4,8,18,0.4) 0%, transparent 100%)',
+        pointerEvents: 'none',
+      }} />
+
+      {/* ── Alt gradyan (tab bar geçişi) ────────────────────────── */}
+      <div style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 90,
+        height: 120,
+        background: 'linear-gradient(to top, rgba(4,8,18,0.7) 0%, transparent 100%)',
+        pointerEvents: 'none',
+      }} />
+
+      {/* ── Talep paneli (haritaya tıklanınca) ─────────────────── */}
       {isMap && claimTarget && (
         <PlaceClaimPanel
           info={claimTarget}
@@ -295,6 +382,8 @@ export default function App() {
           isDesktop={false}
         />
       )}
+
+      {/* ── Mahalle paneli (sadece marker/pin tıklamasında açılır) */}
       {isMap && selectedHood && !claimTarget && (
         <NeighborhoodPanel
           hood={selectedHood}
@@ -303,11 +392,49 @@ export default function App() {
         />
       )}
 
-      {/* Screen panel (non-map tabs) */}
-      <div style={panelStyle}>
-        <div style={{ flexShrink: 0, textAlign: 'center', padding: 'var(--sp-sm) 0 var(--sp-xs)' }}>
-          <div style={{ width: 36, height: 4, borderRadius: 99, background: 'rgba(255,255,255,0.22)', margin: '0 auto var(--sp-sm)' }} />
-          <span className="t-h4" style={{ color: 'var(--text)' }}>{SCREEN_TITLES[tab]}</span>
+      {/* ── Live pan mini-kart (tam panel açmadan mahalle bilgisi) */}
+      {isMap && !selectedHood && !claimTarget && liveHood && (
+        <button
+          type="button"
+          onClick={() => setSelectedHood(liveHood)}
+          style={{
+            position: 'fixed',
+            bottom: 'calc(86px + env(safe-area-inset-bottom, 0px))',
+            left: 16, right: 16, zIndex: 80,
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: '10px 16px',
+            background: 'rgba(8,12,24,0.88)',
+            backdropFilter: 'blur(32px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(32px) saturate(180%)',
+            border: '0.5px solid rgba(255,255,255,0.16)',
+            borderRadius: 16,
+            boxShadow: '0 4px 24px rgba(0,0,0,0.45)',
+            animation: 'slideUp 0.3s cubic-bezier(0.34,1.56,0.64,1)',
+            textAlign: 'left',
+          }}
+        >
+          <span style={{ fontSize: 16 }}>{liveHood.flag}</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ color: '#fff', fontSize: 13, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {liveHood.neighborhood}
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10 }}>
+              {liveHood.city} · {liveHood.properties.length} mülk
+            </div>
+          </div>
+          <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14, fontWeight: 700 }}>›</span>
+        </button>
+      )}
+
+      {/* ── Ekran paneli (harita dışı sekmeler) ─────────────────── */}
+      <div style={screenPanelStyle}>
+        {/* Çekme tutacağı */}
+        <div style={{ flexShrink: 0, padding: '10px 0 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 36, height: 4, borderRadius: 99, background: 'rgba(255,255,255,0.2)' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 15, fontWeight: 900, color: 'var(--text)' }}>{SCREEN_TITLES[tab]}</span>
+          </div>
+          <div style={{ width: '100%', height: '0.5px', background: 'rgba(255,255,255,0.1)' }} />
         </div>
         <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
           {tab === 1 && <Market />}

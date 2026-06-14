@@ -20,14 +20,20 @@ interface Props {
   onSelectProperty:      (p: Property) => void
   onSelectNeighborhood:  (h: HoodGroup) => void
   onMapClick?:           (info: MapClickInfo) => void
+  onMapCenter?:          (hood: HoodGroup | null) => void
   flyToCity:             City | null
   highlightHood?:        string | null
+  ownedIds?:             string[]  // güncel sahiplik listesi → markerleri renklendir
+  isDesktop?:            boolean
 }
 
 // ── Zoom thresholds ────────────────────────────────────────────────────────────
-const Z_CITY = 8
-const Z_HOOD = 13
-const Z_PROP = 15   // property dots visible but UX is via panel
+// Desktop (macOS): geniş ekran, markerlar daha az çakışır
+const Z_HOOD_DSK = 13
+const Z_PROP_DSK = 15
+// Mobile (iOS): dar ekran, markerlar çok çabuk çakışır → daha geç göster
+const Z_HOOD_MOB = 14
+const Z_PROP_MOB = 16
 
 // ── iOS 26 Liquid Glass helpers ───────────────────────────────────────────────
 const lg = (extra = '') => `
@@ -127,7 +133,7 @@ function makePropEl(prop: Property, isOwned: boolean): HTMLElement {
 // ── Component ──────────────────────────────────────────────────────────────────
 
 export default function MapView({
-  selectedProperty, onSelectProperty, onSelectNeighborhood, onMapClick, flyToCity, highlightHood,
+  selectedProperty, onSelectProperty, onSelectNeighborhood, onMapClick, onMapCenter, flyToCity, highlightHood, ownedIds = [], isDesktop = false,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef       = useRef<mapboxgl.Map | null>(null)
@@ -137,9 +143,13 @@ export default function MapView({
   const cbSelect      = useRef(onSelectProperty)
   const cbHood        = useRef(onSelectNeighborhood)
   const cbMapClick    = useRef(onMapClick)
+  const cbMapCenter   = useRef(onMapCenter)
   cbSelect.current    = onSelectProperty
   cbHood.current      = onSelectNeighborhood
   cbMapClick.current  = onMapClick
+  cbMapCenter.current = onMapCenter
+  const ownedIdsRef   = useRef(ownedIds)
+  ownedIdsRef.current = ownedIds
 
   // Flag: suppress map click when a marker was just clicked
   const markerClicked = useRef(false)
@@ -152,11 +162,15 @@ export default function MapView({
   // Current zoom level cached in ref
   const zoomRef  = useRef(11)
 
+  // Platforma göre eşikler: masaüstü geniş ekran, mobil dar ekran
+  const zHood = isDesktop ? Z_HOOD_DSK : Z_HOOD_MOB
+  const zProp = isDesktop ? Z_PROP_DSK : Z_PROP_MOB
+
   function applyVisibility(zoom: number) {
     zoomRef.current = zoom
-    const showCity = zoom < Z_CITY
-    const showHood = zoom >= Z_CITY && zoom < Z_PROP
-    const showProp = zoom >= Z_PROP
+    const showCity = zoom < zHood
+    const showHood = zoom >= zHood && zoom < zProp
+    const showProp = zoom >= zProp
     cityMkrs.current.forEach(m => { (m.getElement() as HTMLElement).style.display = showCity ? '' : 'none' })
     hoodMkrs.current.forEach(m => { (m.getElement() as HTMLElement).style.display = showHood ? '' : 'none' })
     propMkrs.current.forEach(m => { (m.getElement() as HTMLElement).style.display = showProp ? '' : 'none' })
@@ -263,10 +277,9 @@ export default function MapView({
           lng:       e.lngLat.lng,
         })
 
-        // Also show nearest hood panel if below Z_PROP zoom
-        if (z < Z_PROP) {
-          const { hoods: h2 } = buildGroups()
-          const nearest = nearestHood(h2, e.lngLat.lat, e.lngLat.lng)
+        // Tıklama → yakın mahalle panelini aç (sadece mülk zoomuna ulaşmamışsa)
+        if (z < zProp) {
+          const nearest = nearestHood(hoods, e.lngLat.lat, e.lngLat.lng)
           if (nearest) cbHood.current(nearest)
         }
       })
@@ -274,6 +287,25 @@ export default function MapView({
       // ── Zoom → toggle visibility ──────────────────────────────────────────
       map.on('zoom', () => applyVisibility(map.getZoom()))
       applyVisibility(map.getZoom())
+
+      // ── Live pan → panel güncelle ─────────────────────────────────────────
+      // Masaüstü: hood zoom eşiğinde (Z_HOOD_DSK=13) tam panel açılır
+      // Mobil: hood zoom eşiğinde (Z_HOOD_MOB=14) mini-kart gösterilir; debounce daha uzun
+      const moveDebouce = isDesktop ? 120 : 200
+      let lastMoveTime = 0
+      map.on('move', () => {
+        const now = Date.now()
+        if (now - lastMoveTime < moveDebouce) return
+        lastMoveTime = now
+        const z = map.getZoom()
+        if (z >= zHood) {
+          const c = map.getCenter()
+          const nearest = nearestHood(hoods, c.lat, c.lng)
+          cbMapCenter.current?.(nearest)
+        } else {
+          cbMapCenter.current?.(null)
+        }
+      })
     })
 
     return () => {
@@ -291,21 +323,19 @@ export default function MapView({
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
-    // rebuild prop markers to reflect ownership
+    const ownedSet = new Set(ownedIdsRef.current)
     propMkrs.current.forEach(m => m.remove())
     propMkrs.current.clear()
-    const owned = JSON.parse(localStorage.getItem(`hooder_game_${localStorage.getItem('hooder_auth_user') ? JSON.parse(localStorage.getItem('hooder_auth_user')!).uid : ''}_${JSON.parse(localStorage.getItem('hooder_auth_user') || '{}').assignedServer ?? ''}`) || '{"ownedPropertyIDs":[]}').ownedPropertyIDs as {id:string}[] | undefined
-    const ownedSet = new Set((owned ?? []).map(o => o.id))
     allProperties.forEach(prop => {
-      const isOwned = ownedSet.has(prop.id)
-      const el = makePropEl(prop, isOwned)
+      const owned = ownedSet.has(prop.id)
+      const el = makePropEl(prop, owned)
       el.addEventListener('click', e => { e.stopPropagation(); cbSelect.current(prop) })
       const mk = new mapboxgl.Marker({ element: el, anchor: 'bottom' })
         .setLngLat([prop.lng, prop.lat]).addTo(map)
       propMkrs.current.set(prop.id, mk)
     })
     applyVisibility(zoomRef.current)
-  }, [selectedProperty]) // refresh when something is bought
+  }, [ownedIds]) // eslint-disable-line — sahiplik listesi değiştiğinde markerleri yenile
 
   // Highlight selected hood marker
   useEffect(() => {
