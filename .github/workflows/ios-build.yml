@@ -44,14 +44,25 @@ jobs:
       # ── Build numarası güncelle ──────────────────────────────────────────────
       - name: Set build number
         run: |
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${{ github.run_number }}" ios/App/App/Info.plist
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.${{ github.run_number }}" ios/App/App/Info.plist
+          PLIST="ios/App/App/Info.plist"
+          [ -f "$PLIST" ] && \
+            /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${{ github.run_number }}" "$PLIST" && \
+            /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.${{ github.run_number }}" "$PLIST" || \
+            echo "Info.plist bulunamadı, atlıyorum"
 
-      # ── Xcode 16 deployment target tutarsızlık düzeltmesi ────────────────────
-      - name: Fix deployment target
+      # ── Xcode signing + deployment target ────────────────────────────────────
+      - name: Fix signing & deployment target
         run: |
-          sed -i '' -E "s/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]+;/IPHONEOS_DEPLOYMENT_TARGET = 16.4;/g" \
-            ios/App/App.xcodeproj/project.pbxproj
+          PBXPROJ="ios/App/App.xcodeproj/project.pbxproj"
+          # Deployment target
+          sed -i '' -E "s/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]+;/IPHONEOS_DEPLOYMENT_TARGET = 16.4;/g" "$PBXPROJ"
+          # Development team
+          sed -i '' "s/DEVELOPMENT_TEAM = \"\";/DEVELOPMENT_TEAM = SZF4T3P583;/g" "$PBXPROJ"
+          sed -i '' "s/DevelopmentTeam = \"\";/DevelopmentTeam = SZF4T3P583;/g" "$PBXPROJ"
+          # Manuel signing
+          sed -i '' "s/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g" "$PBXPROJ"
+          # Provisioning profile
+          sed -i '' "s/PROVISIONING_PROFILE_SPECIFIER = \"\";/PROVISIONING_PROFILE_SPECIFIER = \"Hooder Distribution\";/g" "$PBXPROJ"
 
       # ── Signing sertifikası ──────────────────────────────────────────────────
       - name: Import distribution certificate
