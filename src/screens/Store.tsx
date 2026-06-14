@@ -3,7 +3,15 @@ import { useGame } from '../store/useGame'
 import { formatPrice } from '../data'
 import GlassCard from '../components/GlassCard'
 
-const API = '/hooder-api'
+import { API_BASE as API } from '../services/apiBase'
+
+// localStorage'dan güvenli kullanıcı kimliği (bozuk JSON → 'guest')
+function getUserId(): string {
+  try {
+    const raw = localStorage.getItem('hooder_auth_user')
+    return raw ? (JSON.parse(raw).uid ?? 'guest') : 'guest'
+  } catch { return 'guest' }
+}
 
 interface Package {
   id:        string
@@ -40,9 +48,7 @@ export default function Store() {
 
     if (status === 'success' && session) {
       // Verify payment server-side
-      const userId = localStorage.getItem('hooder_auth_user')
-        ? JSON.parse(localStorage.getItem('hooder_auth_user')!).uid
-        : 'guest'
+      const userId = getUserId()
 
       fetch(`${API}/verify`, {
         method:  'POST',
@@ -77,9 +83,7 @@ export default function Store() {
 
   async function handleBuy(pkg: Package) {
     setBuying(pkg.id)
-    const userId = localStorage.getItem('hooder_auth_user')
-      ? JSON.parse(localStorage.getItem('hooder_auth_user')!).uid
-      : 'guest'
+    const userId = getUserId()
 
     try {
       const res  = await fetch(`${API}/checkout`, {

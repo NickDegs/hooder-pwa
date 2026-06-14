@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { formatPrice } from '../data'
-
-const API = '/hooder-api'
+import { API_BASE as API } from '../services/apiBase'
 
 interface Server {
   id:          string

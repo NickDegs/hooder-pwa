@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useGame } from '../store/useGame'
 import { useAuth } from '../services/auth'
 import { leaderBots, formatPrice } from '../data'
+import { API_BASE } from '../services/apiBase'
 import GlassCard from '../components/GlassCard'
 import StatBadge from '../components/StatBadge'
 
@@ -29,7 +30,7 @@ export default function Rankings() {
 
   useEffect(() => {
     if (!serverId || !user?.token) { setApiEntries(null); return }
-    fetch(`/hooder-api/game/${serverId}/leaderboard`, {
+    fetch(`${API_BASE}/game/${serverId}/leaderboard`, {
       headers: { Authorization: `Bearer ${user.token}` },
     })
       .then(r => r.json())

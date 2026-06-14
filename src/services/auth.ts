@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { API_BASE as API } from './apiBase'
 
 export interface AuthUser {
   uid:             string
@@ -8,8 +9,6 @@ export interface AuthUser {
   token?:          string
   assignedServer?: string
 }
-
-const API = '/hooder-api'
 
 // ── Firebase lazy init ────────────────────────────────────────────────────────
 

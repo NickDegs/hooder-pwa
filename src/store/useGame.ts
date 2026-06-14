@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { allProperties, type Property } from '../data'
+import { API_BASE } from '../services/apiBase'
 
 export interface OwnedProperty {
   id:          string
@@ -116,7 +117,7 @@ export const useGame = create<GameState>((set, get) => ({
 
     if (token && serverId) {
       // Authenticated + server: load from API, fallback to localStorage
-      fetch(`/hooder-api/game/${serverId}`, {
+      fetch(`${API_BASE}/game/${serverId}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
         .then(r => r.json())
@@ -249,7 +250,7 @@ function persist() {
 
   // Sync to API for authenticated users
   if (currentToken && currentServer) {
-    fetch(`/hooder-api/game/${currentServer}`, {
+    fetch(`${API_BASE}/game/${currentServer}`, {
       method:  'PUT',
       headers: {
         'Content-Type': 'application/json',
