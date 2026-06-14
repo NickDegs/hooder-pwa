@@ -198,6 +198,18 @@ export default function MapView({
 
     map.on('load', () => {
       map.resize()
+
+      // ── Mapbox POI / yer imi noktalarını gizle (her ikisi için: mobil + masaüstü) ──
+      ;[
+        'poi-label',
+        'airport-label',
+        'transit-label',
+        'settlement-minor-label',
+        'settlement-subdivision-label',
+      ].forEach(id => {
+        if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'none')
+      })
+
       const { hoods, cities } = buildGroups()
 
       // ── City markers ─────────────────────────────────────────────────────
