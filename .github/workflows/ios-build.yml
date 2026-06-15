@@ -44,12 +44,17 @@ jobs:
             2>&1 | tail -20
 
       # ── Build numarası güncelle ──────────────────────────────────────────────
+      # NOT: Aynı App Store Connect uygulaması (app.realvirtuality.landlord) altına
+      # eski Swift/RN build'leri de yüklenmişti (build ~33). TestFlight en yüksek
+      # build numarasını "en güncel" gösterir. Capacitor PWA'yı her zaman en üstte
+      # tutmak için 9000+ ofset kullanılır → bu wrapper kanonik native sürüm.
       - name: Set build number
         run: |
           PLIST="ios/App/App/Info.plist"
+          BUILD=$(( 9000 + ${{ github.run_number }} ))
           [ -f "$PLIST" ] && \
-            /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${{ github.run_number }}" "$PLIST" && \
-            /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.${{ github.run_number }}" "$PLIST" || \
+            /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD" "$PLIST" && \
+            /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 2.0.${{ github.run_number }}" "$PLIST" || \
             echo "Info.plist bulunamadı, atlıyorum"
 
       # ── Xcode signing + deployment target ────────────────────────────────────
