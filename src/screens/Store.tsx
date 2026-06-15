@@ -4,6 +4,8 @@ import { formatPrice } from '../data'
 import GlassCard from '../components/GlassCard'
 
 import { API_BASE as API } from '../services/apiBase'
+import { isNativeIOS } from '../services/platform'
+import { initIAP, purchase as iapPurchase } from '../services/iap'
 
 // localStorage'dan güvenli kullanıcı kimliği (bozuk JSON → 'guest')
 function getUserId(): string {
@@ -35,13 +37,20 @@ export default function Store() {
   useEffect(() => {
     fetch(`${API}/packages`)
       .then(r => r.json())
-      .then(setPackages)
+      .then((pkgs: Package[]) => {
+        setPackages(pkgs)
+        // Native iOS: paketleri Apple IAP (StoreKit) ürünleri olarak kaydet
+        if (isNativeIOS && Array.isArray(pkgs) && pkgs.length) {
+          initIAP(pkgs.map(p => p.id)).catch(() => {})
+        }
+      })
       .catch(() => setPackages([]))
       .finally(() => setLoading(false))
   }, [])
 
-  // Handle Stripe redirect back (success or cancel)
+  // Handle Stripe redirect back (success or cancel) — yalnız web
   useEffect(() => {
+    if (isNativeIOS) return
     const params  = new URLSearchParams(window.location.search)
     const status  = params.get('purchase')
     const session = params.get('session_id')
@@ -83,8 +92,25 @@ export default function Store() {
 
   async function handleBuy(pkg: Package) {
     setBuying(pkg.id)
-    const userId = getUserId()
 
+    // ── Native iOS: yalnızca Apple In-App Purchase (App Store kuralı) ──
+    if (isNativeIOS) {
+      try {
+        await iapPurchase(pkg.id)
+        addCash(pkg.cash)
+        showToast(`🎉 ${pkg.name} eklendi! +${formatPrice(pkg.cash)}`, true)
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Satın alma başarısız'
+        // Kullanıcı iptali sessiz geçilir
+        if (!/cancel|iptal/i.test(msg)) showToast(msg, false)
+      } finally {
+        setBuying(null)
+      }
+      return
+    }
+
+    // ── Web: Stripe checkout ──
+    const userId = getUserId()
     try {
       const res  = await fetch(`${API}/checkout`, {
         method:  'POST',
@@ -117,20 +143,36 @@ export default function Store() {
           </div>
         </div>
 
-        {/* Test mode banner */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          padding: '8px 14px',
-          background: 'rgba(255,196,52,0.12)',
-          border: '0.5px solid rgba(255,196,52,0.4)',
-          borderRadius: 'var(--r-md)',
-          marginBottom: 'var(--sp-lg)',
-        }}>
-          <span style={{ fontSize: 14 }}>🧪</span>
-          <span className="t-caption" style={{ color: 'var(--gold)' }}>
-            Test modu — gerçek ödeme alınmaz. Kart: 4242 4242 4242 4242
-          </span>
-        </div>
+        {/* Ödeme bilgi banner'ı — native iOS: App Store / web: Stripe test */}
+        {isNativeIOS ? (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '8px 14px',
+            background: 'rgba(52,148,255,0.12)',
+            border: '0.5px solid rgba(52,148,255,0.4)',
+            borderRadius: 'var(--r-md)',
+            marginBottom: 'var(--sp-lg)',
+          }}>
+            <span style={{ fontSize: 14 }}></span>
+            <span className="t-caption" style={{ color: 'var(--primary)' }}>
+              Ödemeler App Store üzerinden güvenle yapılır.
+            </span>
+          </div>
+        ) : (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '8px 14px',
+            background: 'rgba(255,196,52,0.12)',
+            border: '0.5px solid rgba(255,196,52,0.4)',
+            borderRadius: 'var(--r-md)',
+            marginBottom: 'var(--sp-lg)',
+          }}>
+            <span style={{ fontSize: 14 }}>🧪</span>
+            <span className="t-caption" style={{ color: 'var(--gold)' }}>
+              Test modu — gerçek ödeme alınmaz. Kart: 4242 4242 4242 4242
+            </span>
+          </div>
+        )}
 
         {/* Packages */}
         {loading ? (
@@ -225,8 +267,9 @@ export default function Store() {
             ÖDEME BİLGİSİ
           </div>
           <div className="t-caption" style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>
-            Ödemeler Stripe ile güvenli şekilde işlenir. Satın alınan oyun parası anında hesabına eklenir.
-            Sanal para gerçek değer taşımaz. İade yapılmaz.
+            {isNativeIOS
+              ? 'Ödemeler App Store üzerinden Apple tarafından güvenle işlenir. Satın alınan oyun parası anında hesabına eklenir. Sanal para gerçek değer taşımaz.'
+              : 'Ödemeler Stripe ile güvenli şekilde işlenir. Satın alınan oyun parası anında hesabına eklenir. Sanal para gerçek değer taşımaz. İade yapılmaz.'}
           </div>
         </div>
       </div>
