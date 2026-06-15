@@ -29,10 +29,12 @@ const DEVICES = [
   { id: 'iPhone-12-13-mini',     w: 375,  h: 812,  dpr: 3, plat: 'phone' },
   { id: 'iPhone-12-13-14',       w: 390,  h: 844,  dpr: 3, plat: 'phone' },
   { id: 'iPhone-15-16',          w: 393,  h: 852,  dpr: 3, plat: 'phone' },
-  { id: 'iPhone-16-Pro',         w: 402,  h: 874,  dpr: 3, plat: 'phone' },
+  { id: 'iPhone-16-17-Pro',      w: 402,  h: 874,  dpr: 3, plat: 'phone' },  // 6.3" — 16 Pro + 17 base/Pro
+  { id: 'iPhone-17-Air',         w: 420,  h: 912,  dpr: 3, plat: 'phone' },  // 2025 ince model (Plus yerine)
   { id: 'iPhone-14-15-Plus',     w: 428,  h: 926,  dpr: 3, plat: 'phone' },
   { id: 'iPhone-15-16-Pro-Max',  w: 430,  h: 932,  dpr: 3, plat: 'phone' },
-  { id: 'iPhone-16-Pro-Max',     w: 440,  h: 956,  dpr: 3, plat: 'phone' },
+  { id: 'iPhone-16-17-Pro-Max',  w: 440,  h: 956,  dpr: 3, plat: 'phone' },  // 6.9" — 16 + 17 Pro Max
+  { id: 'iPhone-18-beklenen',    w: 402,  h: 874,  dpr: 3, plat: 'phone' },  // 2026 beklenen (17 soyunu izler)
 
   // ── iPad (masaüstü layout, dokunmatik) — dikey + yatay ──
   { id: 'iPad-mini-portrait',    w: 768,  h: 1024, dpr: 2, plat: 'tablet' },
