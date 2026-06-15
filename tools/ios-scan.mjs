@@ -164,6 +164,36 @@ async function scanDevice(browser, dev) {
     issues.push({ type: 'nav', text: `navigasyon viewport dışında: bottom=${nav.bottom}/vh=${nav.vh} right=${nav.right}/vw=${nav.vw}` })
   }
 
+  // ── Her ekranı tek tek gez: Piyasa, Portföy, Sıralama, Mağaza, Ayarlar ──
+  // Her sekmede yeni konsol/exception hatası + yatay taşma yakalanır.
+  const TABS = ['Piyasa', 'Portföy', 'Sıralama', 'Mağaza', 'Ayarlar', 'Harita']
+  for (const label of TABS) {
+    const before = issues.length
+    const btn = page.getByText(new RegExp(`^${label}`)).last()
+    const ok = await btn.count().catch(() => 0)
+    if (!ok) continue
+    await btn.click({ timeout: 3000 }).catch(() => {})
+    await page.waitForTimeout(900)
+    // Sekmede yatay taşma
+    const ov = await page.evaluate(() => {
+      const de = document.documentElement
+      return { sw: de.scrollWidth, cw: de.clientWidth }
+    }).catch(() => null)
+    if (ov && ov.sw > ov.cw + 2) {
+      issues.push({ type: 'overflow', text: `[${label}] yatay taşma: scrollW=${ov.sw} > clientW=${ov.cw}` })
+    }
+    // Sekmede içerik mount oldu mu (boş panel = bozuk ekran)
+    const empty = await page.evaluate(() => {
+      const root = document.getElementById('root')
+      return (root?.innerText || '').trim().length < 5
+    }).catch(() => false)
+    if (empty) issues.push({ type: 'emptyscreen', text: `[${label}] ekran boş render oldu` })
+    // Bu sekmede yeni hata çıktıysa etiketle
+    for (let k = before; k < issues.length; k++) {
+      if (!issues[k].screen) issues[k].screen = label
+    }
+  }
+
   // ── Performans ──
   const perf = await page.evaluate(() => {
     const n = performance.getEntriesByType('navigation')[0]
