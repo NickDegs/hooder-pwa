@@ -223,7 +223,14 @@ async function main() {
   let lastPlat = ''
   for (const dev of list) {
     if (dev.plat !== lastPlat) { console.log(`\n── ${dev.plat.toUpperCase()} ──`); lastPlat = dev.plat }
-    const r = await scanDevice(browser, dev)
+    let r = await scanDevice(browser, dev)
+    // Geçici yükleme kopması koruması: beyaz ekran/nomap + anormal düşük load süresi
+    // (eksik yükleme işareti) → bir kez yeniden tara, gerçek hata değilse elenir.
+    const transientLoad = r.issues.some(i => i.type === 'whitescreen' || i.type === 'nomap') && r.loadMs >= 0 && r.loadMs < 5000
+    if (transientLoad) {
+      console.log(`${dev.id.padEnd(24)} (geçici yükleme şüphesi, yeniden taranıyor…)`)
+      r = await scanDevice(browser, dev)
+    }
     results.push(r)
     const tag = r.issues.length ? `⚠️ ${r.issues.length} sorun` : '✓ temiz'
     console.log(`${dev.id.padEnd(24)} ${r.viewport.padEnd(14)} ${tag}  (${r.loadMs}ms)`)
