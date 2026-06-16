@@ -51,7 +51,9 @@ jobs:
       - name: Set build number
         run: |
           PLIST="ios/App/App/Info.plist"
-          BUILD=$(( 9000 + ${{ github.run_number }} ))
+          # Tarih-damgalı build numarası (YYYYMMDDHHMM) → eski Swift/RN tarih-damgalı
+          # build'lerini de geçer, hep en üstte kalır. Marketing sürümü 2.0.<run>.
+          BUILD=$(date -u +%Y%m%d%H%M)
           [ -f "$PLIST" ] && \
             /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD" "$PLIST" && \
             /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 2.0.${{ github.run_number }}" "$PLIST" || \
