@@ -138,6 +138,8 @@ input {
 
 /* ── Mapbox ornaments ── */
 .mapboxgl-ctrl-logo, .mapboxgl-ctrl-attrib { display: none !important; }
+/* Marker'lar asla tam genişliğe uzamasın (CSS yüklenmese bile içerik genişliği) */
+.mapboxgl-marker { width: max-content !important; max-width: 220px; }
 
 /* ── Desktop sidebar layout ── */
 @media (min-width: 768px) {

@@ -50,11 +50,11 @@ const lg = (extra = '') => `
 // City glass pill
 function makeCityEl(g: CityGroup, count: number): HTMLElement {
   const wrap = document.createElement('div')
-  wrap.style.cssText = 'cursor:pointer;padding:5px;'
+  wrap.style.cssText = 'cursor:pointer;padding:5px;width:max-content;'
   const el = document.createElement('div')
   el.style.cssText = `
     display:flex;flex-direction:column;align-items:center;
-    padding:9px 16px;border-radius:18px;
+    padding:9px 16px;border-radius:18px;width:max-content;
     transition:transform 0.22s cubic-bezier(0.34,1.56,0.64,1);
     ${lg()} white-space:nowrap;
   `
@@ -74,13 +74,13 @@ function makeCityEl(g: CityGroup, count: number): HTMLElement {
 // Neighbourhood card
 function makeHoodEl(h: HoodGroup, ownedCount: number, isSelected: boolean): HTMLElement {
   const wrap = document.createElement('div')
-  wrap.style.cssText = 'cursor:pointer;padding:4px;'
+  wrap.style.cssText = 'cursor:pointer;padding:4px;width:max-content;'
   const accent = ownedCount > 0 ? 'rgba(48,209,88,0.45)' : 'rgba(255,255,255,0.18)'
   const pct = Math.round((ownedCount / h.properties.length) * 100)
 
   const el = document.createElement('div')
   el.style.cssText = `
-    padding:9px 13px;border-radius:14px;min-width:115px;
+    padding:9px 13px;border-radius:14px;min-width:115px;width:max-content;
     transition:transform 0.22s cubic-bezier(0.34,1.56,0.64,1),
                border-color 0.15s;
     ${lg(`border-color:${isSelected ? 'rgba(52,148,255,0.7)' : accent};`)}
@@ -108,11 +108,11 @@ function makeHoodEl(h: HoodGroup, ownedCount: number, isSelected: boolean): HTML
 function makePropEl(prop: Property, isOwned: boolean): HTMLElement {
   const meta = categoryMeta[prop.category]
   const wrap = document.createElement('div')
-  wrap.style.cssText = 'cursor:pointer;padding:5px;'
+  wrap.style.cssText = 'cursor:pointer;padding:5px;width:max-content;'
   const el = document.createElement('div')
   el.style.cssText = `
     display:flex;align-items:center;gap:5px;
-    padding:5px 9px;border-radius:10px;
+    padding:5px 9px;border-radius:10px;width:max-content;
     transition:transform 0.22s cubic-bezier(0.34,1.56,0.64,1);
     ${lg(`border-color:${isOwned ? 'rgba(48,209,88,0.55)' : `${prop.accentHex}55`};`)}
     white-space:nowrap;max-width:150px;
