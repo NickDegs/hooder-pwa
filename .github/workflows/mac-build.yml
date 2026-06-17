@@ -1,0 +1,83 @@
+name: macOS (Catalyst) → TestFlight
+
+on:
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  mac:
+    runs-on: macos-26
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # ── Web derleme (Capacitor: base=/) ──────────────────────────────────────
+      - name: Web build (Capacitor)
+        run: npm ci && npm run build
+        env:
+          VITE_MAPBOX_TOKEN: ${{ secrets.VITE_MAPBOX_TOKEN }}
+          VITE_TARGET: capacitor
+
+      - name: Capacitor iOS setup
+        run: |
+          npx cap add ios
+          npx cap sync ios
+
+      - name: Resolve SPM packages
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project ios/App/App.xcodeproj -scheme App \
+            -clonedSourcePackagesDirPath /tmp/spm-cache 2>&1 | tail -20
+
+      # ── Mac Catalyst desteği + build numarası + deployment target ────────────
+      - name: Enable Mac Catalyst & build number
+        run: |
+          PBXPROJ="ios/App/App.xcodeproj/project.pbxproj"
+          PLIST="ios/App/App/Info.plist"
+          # iOS deployment target tutarlılığı
+          sed -i '' -E "s/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]+;/IPHONEOS_DEPLOYMENT_TARGET = 16.4;/g" "$PBXPROJ"
+          # Mac Catalyst aç (tüm build config'lere)
+          sed -i '' "s/PRODUCT_NAME = /SUPPORTS_MACCATALYST = YES;\n\t\t\t\tMARKETING_VERSION = 2.0.${{ github.run_number }};\n\t\t\t\tPRODUCT_NAME = /g" "$PBXPROJ" || true
+          BUILD=$(date -u +%Y%m%d%H%M)
+          [ -f "$PLIST" ] && \
+            /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD" "$PLIST" && \
+            /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 2.0.${{ github.run_number }}" "$PLIST" || true
+
+      # ── Apple Distribution sertifikası (iOS+macOS ortak) ─────────────────────
+      - name: Import distribution certificate
+        env:
+          CERT_BASE64: ${{ secrets.IOS_DIST_CERT_BASE64 }}
+          CERT_PASS:   ${{ secrets.IOS_DIST_CERT_PASSWORD }}
+        run: |
+          echo "$CERT_BASE64" | base64 --decode -o /tmp/dist.p12
+          security create-keychain -p "build_pass" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain  -p "build_pass" build.keychain
+          security import /tmp/dist.p12 -k build.keychain -P "$CERT_PASS" \
+            -T /usr/bin/codesign -T /usr/bin/productbuild -T /usr/bin/productsign
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: -s -k "build_pass" build.keychain
+          security set-keychain-settings -lut 7200 build.keychain
+
+      # ── ASC API anahtarını dosyaya yaz (xcodebuild otomatik profil üretimi) ──
+      - name: Write ASC API key
+        run: printf '%s' "${{ secrets.ASC_PRIVATE_KEY }}" > /tmp/asc_key.p8
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+
+      - name: Fastlane mac
+        env:
+          ASC_KEY_ID:     ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID:  ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: bundle exec fastlane mac
