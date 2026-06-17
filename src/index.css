@@ -150,15 +150,24 @@ input {
   }
 }
 
-/* ── Animations ── */
+/* ── Animations (iOS 26 Liquid Glass — en yumuşak easing) ──
+   --ease-glass: yumuşak easeOutQuint · --spring: hafif overshoot yay */
+:root {
+  --ease-glass: cubic-bezier(0.22, 1, 0.36, 1);
+  --spring:     cubic-bezier(0.34, 1.30, 0.5, 1);
+}
 @keyframes fadeIn   { from { opacity: 0 } to { opacity: 1 } }
-@keyframes slideUp  { from { transform: translateY(60px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
+/* Yumuşak yükseliş: hafif kayma + ölçek + saydamlık, blur ile akışkan */
+@keyframes slideUp  { from { transform: translateY(48px) scale(0.985); opacity: 0 } to { transform: translateY(0) scale(1); opacity: 1 } }
 @keyframes pulse    { 0%,100% { transform: scale(1) } 50% { transform: scale(1.08) } }
 @keyframes glow           { 0%,100% { opacity: 0.35; transform: scale(1) } 50% { opacity: 0.6; transform: scale(1.15) } }
-@keyframes slideFromRight { from { transform: translateX(60px); opacity: 0 } to { transform: translateX(0); opacity: 1 } }
+@keyframes slideFromRight { from { transform: translateX(48px); opacity: 0 } to { transform: translateX(0); opacity: 1 } }
+/* Liquid giriş: saydamlıktan + hafif blur'dan akışkan beliriş */
+@keyframes glassIn  { from { opacity: 0; transform: translateY(14px) scale(0.99); filter: blur(6px) } to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0) } }
 
-.fade-in   { animation: fadeIn 0.3s ease forwards; }
-.slide-up  { animation: slideUp 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+.fade-in   { animation: fadeIn 0.45s var(--ease-glass) forwards; }
+.slide-up  { animation: slideUp 0.55s var(--ease-glass) forwards; }
+.glass-in  { animation: glassIn 0.5s var(--ease-glass) forwards; }
 
 /* ── Divider ── */
 .divider {

@@ -93,7 +93,7 @@ export default function PlaceClaimPanel({ info, onClose, isDesktop }: Props) {
     WebkitBackdropFilter: 'blur(40px) saturate(200%)',
     border: '0.5px solid rgba(255,255,255,0.18)',
     boxShadow: '0 24px 80px rgba(0,0,0,0.65), inset 0 0.5px 0 rgba(255,255,255,0.2)',
-    animation: 'slideFromRight 0.35s cubic-bezier(0.34,1.26,0.64,1) forwards',
+    animation: 'slideFromRight 0.55s cubic-bezier(0.22,1,0.36,1) forwards',
   } : {
     position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 61,
     height: '50dvh',
@@ -103,7 +103,7 @@ export default function PlaceClaimPanel({ info, onClose, isDesktop }: Props) {
     WebkitBackdropFilter: 'blur(40px) saturate(200%)',
     border: '0.5px solid rgba(255,255,255,0.18)', borderBottom: 'none',
     boxShadow: '0 -16px 60px rgba(0,0,0,0.6), inset 0 0.5px 0 rgba(255,255,255,0.2)',
-    animation: 'slideUp 0.35s cubic-bezier(0.34,1.26,0.64,1) forwards',
+    animation: 'slideUp 0.55s cubic-bezier(0.22,1,0.36,1) forwards',
     paddingBottom: 'calc(86px + env(safe-area-inset-bottom, 0px))',
   }
 
