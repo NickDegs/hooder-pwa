@@ -34,6 +34,10 @@ jobs:
           npx cap add ios
           npx cap sync ios
 
+      # ── App ikonu üret (assets/icon.png 1024 → AppIcon set) ──────────────────
+      - name: Generate app icons
+        run: npx @capacitor/assets@3 generate --ios --assetPath assets || echo "ikon üretimi atlandı"
+
       # ── SPM paket çözümü — Capacitor 8 CocoaPods yerine SPM kullanır ───────
       - name: Resolve SPM packages
         run: |
