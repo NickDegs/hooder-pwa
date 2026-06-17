@@ -22,9 +22,9 @@ export default function GlassCard({ children, style, radius = 'var(--r-lg)', pad
       style={{
         position: 'relative',
         background: 'linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02))',
-        backdropFilter: 'blur(40px) saturate(200%)',
-        WebkitBackdropFilter: 'blur(40px) saturate(200%)',
-        border: '0.5px solid rgba(255,255,255,0.14)',
+        backdropFilter: 'blur(48px) saturate(205%)',
+        WebkitBackdropFilter: 'blur(48px) saturate(205%)',
+        border: '0.5px solid rgba(255,255,255,0.20)',
         borderRadius: radius,
         padding,
         boxShadow: '0 10px 34px rgba(0,0,0,0.30), inset 0 0.5px 0 rgba(255,255,255,0.30), inset 0 -0.5px 0 rgba(0,0,0,0.18)',
