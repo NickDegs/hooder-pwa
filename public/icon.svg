@@ -1,11 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="120" fill="#04080f"/>
-  <circle cx="256" cy="256" r="200" fill="#3494ff" opacity="0.15"/>
-  <!-- House -->
-  <polygon points="256,120 370,220 370,380 142,380 142,220" fill="#3494ff" opacity="0.9"/>
-  <polygon points="256,100 390,215 122,215" fill="white" opacity="0.95"/>
-  <!-- Door -->
-  <rect x="220" y="300" width="72" height="80" rx="8" fill="#04080f" opacity="0.8"/>
-  <!-- Chart line -->
-  <polyline points="150,360 210,310 270,330 330,270 380,240" stroke="#ffc434" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" fill="#04080f" rx="120"/><circle cx="256" cy="256" r="200" fill="#3494ff" opacity=".15"/><polygon fill="#3494ff" points="256 120 370 220 370 380 142 380 142 220" opacity=".9"/><polygon fill="#fff" points="256 100 390 215 122 215" opacity=".95"/><rect width="72" height="80" x="220" y="300" fill="#04080f" opacity=".8" rx="8"/><polyline fill="none" stroke="#ffc434" stroke-linecap="round" stroke-linejoin="round" stroke-width="12" points="150 360 210 310 270 330 330 270 380 240"/></svg>
