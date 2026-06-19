@@ -86,6 +86,29 @@ input {
   border: 0.5px solid var(--specular);
 }
 
+/* ── iOS 26 Liquid Glass — kırılma/mercek kenarı (additive katman) ──
+   Base cam blur'a DOKUNMAZ. Destekleyen tarayıcıda (Chromium) cam kenarı
+   arkadaki haritayı büker; WebKit'te sessizce yok sayılır (blur kalır). */
+.lg-refract { position: relative; isolation: isolate; }
+.lg-refract > * { position: relative; z-index: 1; }
+@supports (backdrop-filter: url(#liquidGlass)) or (-webkit-backdrop-filter: url(#liquidGlass)) {
+  .lg-refract::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    z-index: 0;
+    pointer-events: none;
+    -webkit-backdrop-filter: url(#liquidGlass);
+    backdrop-filter: url(#liquidGlass);
+    /* kırılmayı kenara yoğunlaştır — ortası berrak kalsın */
+    -webkit-mask: linear-gradient(#000,#000) padding-box, linear-gradient(#000,#000);
+    -webkit-mask-composite: destination-out;
+    mask-composite: exclude;
+    padding: 14px;
+  }
+}
+
 /* ── Scrollable area inside panels ── */
 .scroll-y {
   overflow-y: auto;

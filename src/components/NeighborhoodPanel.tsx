@@ -78,7 +78,7 @@ export default function NeighborhoodPanel({ hood, onClose, isDesktop }: Props) {
         <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 55, background: 'rgba(0,0,0,0.15)' }} />
       )}
 
-      <div style={panelStyle}>
+      <div className="lg-refract" style={panelStyle}>
 
         {/* ── Header: hierarchical breadcrumb ─────────────────────────────── */}
         <div style={{ padding: '14px 18px 14px', borderBottom: '0.5px solid rgba(255,255,255,0.1)', flexShrink: 0 }}>

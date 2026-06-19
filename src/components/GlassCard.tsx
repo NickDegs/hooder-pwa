@@ -15,6 +15,7 @@ export default function GlassCard({ children, style, radius = 'var(--r-lg)', pad
   const interactive = !!onClick
   return (
     <div
+      className="lg-refract"
       onClick={onClick}
       onPointerDown={interactive ? () => setPressed(true) : undefined}
       onPointerUp={interactive ? () => setPressed(false) : undefined}
