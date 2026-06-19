@@ -6,11 +6,12 @@ import GlassCard from '../components/GlassCard'
 
 export default function Settings() {
   const { playerName, cash, netWorth, owned, dailyIncome, level, setPlayerName, addCash, reset, serverId } = useGame()
-  const { user, signOut } = useAuth()
+  const { user, signOut, deleteAccount } = useAuth()
   const [editingName,      setEditingName]      = useState(false)
   const [nameInput,        setNameInput]        = useState('')
   const [showReset,        setShowReset]        = useState(false)
   const [showSignOut,      setShowSignOut]      = useState(false)
+  const [showDelete,       setShowDelete]       = useState(false)
 
   function saveName() {
     const t = nameInput.trim()
@@ -97,6 +98,14 @@ export default function Settings() {
                 <span style={{ fontSize: 16 }}>🚪</span>
                 <span className="t-bold" style={{ color: 'var(--red)' }}>Çıkış Yap</span>
               </button>
+              <Divider />
+              <button
+                onClick={() => setShowDelete(true)}
+                style={{ marginTop: 'var(--sp-md)', display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}
+              >
+                <span style={{ fontSize: 16 }}>🗑️</span>
+                <span className="t-bold" style={{ color: 'var(--red)' }}>Hesabı Sil</span>
+              </button>
             </GlassCard>
           </>
         )}
@@ -174,6 +183,16 @@ export default function Settings() {
           confirmColor="var(--red)"
           onConfirm={() => { signOut(); setShowSignOut(false) }}
           onCancel={() => setShowSignOut(false)}
+        />
+      )}
+      {showDelete && (
+        <ConfirmDialog
+          title="Hesabı Sil"
+          body="Hesabın ve tüm oyun verilerin (mülkler, para, ilerleme) kalıcı olarak silinir. Bu işlem geri alınamaz."
+          confirmLabel="Hesabımı Sil"
+          confirmColor="var(--red)"
+          onConfirm={() => { deleteAccount(); setShowDelete(false) }}
+          onCancel={() => setShowDelete(false)}
         />
       )}
     </div>

@@ -126,6 +126,34 @@ export async function doSignOut(): Promise<void> {
   }
 }
 
+// Apple App Store Guideline 5.1.1(v): uygulama içinden hesap + veri silme zorunlu.
+// Firebase kullanıcısını kalıcı siler; ardından tüm yerel oyun verisi temizlenir.
+export async function doDeleteAccount(): Promise<void> {
+  const auth = await getFirebaseAuth()
+  if (auth && auth.currentUser) {
+    try {
+      const { deleteUser } = await import('firebase/auth')
+      await deleteUser(auth.currentUser)
+    } catch {
+      // Yeniden kimlik doğrulama gerekebilir (requires-recent-login) — yine de
+      // oturumu kapat ve yerel veriyi temizle; kullanıcı tekrar giriş yapıp silebilir.
+      try {
+        const { signOut } = await import('firebase/auth')
+        await signOut(auth)
+      } catch { /* ignore */ }
+    }
+  }
+  // Tüm yerel Hooder verisini sil (oyun durumu, oturum, sunucu seçimi, misafir id)
+  try {
+    const keys: string[] = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i)
+      if (k && (k.startsWith('hooder') || k.startsWith('game_') || k.startsWith('owned_'))) keys.push(k)
+    }
+    keys.forEach(k => localStorage.removeItem(k))
+  } catch { /* ignore */ }
+}
+
 // ── Shared auth state (module-level) ─────────────────────────────────────────
 // useAuth() is called in both App.tsx and Login.tsx — they must share the same
 // user object. A plain useState in the hook creates separate instances, so we
@@ -208,6 +236,11 @@ export function useAuth() {
     saveUser(null)
   }
 
+  const deleteAccount = async () => {
+    await doDeleteAccount()
+    saveUser(null)
+  }
+
   // Refresh token on mount for email users (optional future enhancement)
   useEffect(() => {}, [])
 
@@ -222,6 +255,7 @@ export function useAuth() {
     loginApple,
     loginGuest,
     signOut,
+    deleteAccount,
     firebaseAvailable,
   }
 }
