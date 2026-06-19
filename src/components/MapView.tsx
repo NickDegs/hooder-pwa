@@ -35,15 +35,18 @@ const Z_PROP_DSK = 15
 const Z_HOOD_MOB = 14
 const Z_PROP_MOB = 16
 
-// ── iOS 26 Liquid Glass helpers ───────────────────────────────────────────────
+// ── Marker arka planı ───────────────────────────────────────────────────────
+// NOT: Marker'larda backdrop-filter:blur KULLANILMAZ. Haritada aynı anda yüzlerce
+// marker olabilir; her birine canlı blur uygulamak iOS Safari/WKWebView'de
+// kompozisyon katmanı + GPU belleğini patlatır → sekme/uygulama ÇÖKER. Bunun
+// yerine katı yarı-saydam koyu arka plan kullanılır (görsel olarak neredeyse
+// aynı, blur maliyeti yok). Gerçek cam efekti yalnız büyük panellerde/HUD'da
+// (az sayıda eleman) kalır.
 const lg = (extra = '') => `
-  background: rgba(8,12,24,0.72);
-  backdrop-filter: blur(28px) saturate(180%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  background: rgba(8,12,24,0.92);
   border: 0.5px solid rgba(255,255,255,0.18);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.5),
-              inset 0 0.5px 0 rgba(255,255,255,0.2),
-              inset 0 -0.5px 0 rgba(0,0,0,0.2);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.5),
+              inset 0 0.5px 0 rgba(255,255,255,0.18);
   ${extra}
 `
 

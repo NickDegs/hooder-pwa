@@ -3,6 +3,18 @@ import { allProperties, allCities, categoryMeta, type PropertyCategory, formatPr
 import { useGame } from '../store/useGame'
 import GlassCard from '../components/GlassCard'
 
+// Ülke kodu → aranabilir adlar (TR + EN). Property.country kod tutar ('TR'),
+// kullanıcı "türkiye"/"japonya" yazar → eşleştirebilmek için.
+const COUNTRY_TERMS: Record<string, string[]> = {
+  TR: ['türkiye', 'turkiye', 'turkey', 'tr'],
+  AE: ['birleşik arap emirlikleri', 'bae', 'dubai', 'uae', 'emirates', 'emirlikleri'],
+  US: ['amerika', 'abd', 'usa', 'united states', 'america'],
+  GB: ['ingiltere', 'birleşik krallık', 'uk', 'england', 'britain', 'london', 'londra'],
+  JP: ['japonya', 'japan', 'jp', 'tokyo', 'tokyo'],
+  FR: ['fransa', 'france', 'fr', 'paris'],
+  AZ: ['azerbaycan', 'azerbaijan', 'az', 'baku', 'bakü'],
+}
+
 type SortKey = 'price' | 'income' | 'roi' | 'prestige'
 const SORTS: { key: SortKey; label: string }[] = [
   { key: 'price',    label: 'Fiyat'       },
@@ -26,11 +38,14 @@ export default function Market() {
     if (cat)  list = list.filter(p => p.category === cat)
     if (city) list = list.filter(p => p.city === city)
     if (search) {
-      const q = search.toLowerCase()
+      const q = search.toLowerCase().trim()
       list = list.filter(p =>
         p.name.toLowerCase().includes(q) ||
         p.city.toLowerCase().includes(q) ||
-        p.neighborhood.toLowerCase().includes(q)
+        p.neighborhood.toLowerCase().includes(q) ||
+        // ülke: hem kod ('tr') hem tam ad ('türkiye'/'turkey')
+        p.country.toLowerCase().includes(q) ||
+        (COUNTRY_TERMS[p.country] ?? []).some(t => t.includes(q) || q.includes(t))
       )
     }
     list.sort((a, b) => {
@@ -75,7 +90,7 @@ export default function Market() {
         }}>
           <span style={{ color: 'var(--text-muted)' }}>🔍</span>
           <input
-            placeholder="Mülk veya şehir ara..."
+            placeholder="Mülk, şehir veya ülke ara..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             style={{ flex: 1, color: 'var(--text)' }}

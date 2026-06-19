@@ -40,6 +40,7 @@ export default function App() {
   const [selectedProp,   setSelectedProp]   = useState<Property | null>(null)
   const [selectedHood,   setSelectedHood]   = useState<HoodGroup | null>(null)
   const [liveHood,       setLiveHood]       = useState<HoodGroup | null>(null) // pan tracking → mini kart
+  const [liveOff,        setLiveOff]        = useState(false) // mini kart kapatıldı → pan'de tekrar açma
   const [claimTarget,    setClaimTarget]    = useState<MapClickInfo | null>(null)
   const [flyToCity,      setFlyToCity]      = useState<City | null>(allCities[0])
   const [showCityPicker, setShowCityPicker] = useState(false)
@@ -338,7 +339,7 @@ export default function App() {
               <button
                 key={city.id}
                 type="button"
-                onClick={() => { setFlyToCity(city); setShowCityPicker(false) }}
+                onClick={() => { setFlyToCity(city); setShowCityPicker(false); setLiveOff(false) }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 5,
                   padding: '6px 12px',
@@ -393,16 +394,15 @@ export default function App() {
       )}
 
       {/* ── Live pan mini-kart (tam panel açmadan mahalle bilgisi) */}
-      {isMap && !selectedHood && !claimTarget && liveHood && (
-        <button
-          type="button"
-          onClick={() => setSelectedHood(liveHood)}
+      {/* Kapatılınca (liveOff) pan'de tekrar açılmaz; yeni şehre gidince geri gelir. */}
+      {isMap && !selectedHood && !claimTarget && liveHood && !liveOff && (
+        <div
           style={{
             position: 'fixed',
             bottom: 'calc(86px + env(safe-area-inset-bottom, 0px))',
             left: 16, right: 16, zIndex: 80,
             display: 'flex', alignItems: 'center', gap: 10,
-            padding: '10px 16px',
+            padding: '10px 12px 10px 16px',
             background: 'rgba(8,12,24,0.30)',
             backdropFilter: 'blur(32px) saturate(180%)',
             WebkitBackdropFilter: 'blur(32px) saturate(180%)',
@@ -410,20 +410,37 @@ export default function App() {
             borderRadius: 16,
             boxShadow: '0 4px 24px rgba(0,0,0,0.45)',
             animation: 'slideUp 0.3s cubic-bezier(0.34,1.56,0.64,1)',
-            textAlign: 'left',
           }}
         >
-          <span style={{ fontSize: 16 }}>{liveHood.flag}</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ color: '#fff', fontSize: 13, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {liveHood.neighborhood}
+          <button
+            type="button"
+            onClick={() => setSelectedHood(liveHood)}
+            style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0, textAlign: 'left', background: 'none', border: 'none', padding: 0 }}
+          >
+            <span style={{ fontSize: 16 }}>{liveHood.flag}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ color: '#fff', fontSize: 13, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {liveHood.neighborhood}
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10 }}>
+                {liveHood.city} · {liveHood.properties.length} mülk
+              </div>
             </div>
-            <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10 }}>
-              {liveHood.city} · {liveHood.properties.length} mülk
-            </div>
-          </div>
-          <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14, fontWeight: 700 }}>›</span>
-        </button>
+            <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14, fontWeight: 700 }}>›</span>
+          </button>
+          {/* Kapat */}
+          <button
+            type="button"
+            aria-label="Kapat"
+            onClick={() => setLiveOff(true)}
+            style={{
+              flexShrink: 0, width: 30, height: 30, borderRadius: 99,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'rgba(255,255,255,0.10)', border: '0.5px solid rgba(255,255,255,0.16)',
+              color: 'rgba(255,255,255,0.7)', fontSize: 15, lineHeight: 1,
+            }}
+          >✕</button>
+        </div>
       )}
 
       {/* ── Ekran paneli (harita dışı sekmeler) ─────────────────── */}
