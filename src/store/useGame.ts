@@ -78,9 +78,9 @@ function parseState(raw: Record<string, unknown>) {
   }).filter(Boolean) as OwnedProperty[]
 
   const claimed: ClaimedPlace[] = (raw.claimedPlaces as ClaimedPlace[]) ?? []
-  const rawCash     = (raw.cash as number) ?? 5_000_000
+  const rawCash     = (raw.cash as number) ?? 15_000_000
   // Migrate: old default was $50K (couldn't buy anything) → bump to $5M if untouched
-  const cash        = (rawCash === 50_000 && owned.length === 0) ? 5_000_000 : rawCash
+  const cash        = (rawCash === 50_000 && owned.length === 0) ? 15_000_000 : rawCash
   const lastCollect = (raw.lastCollect as number)  ?? Date.now()
   return {
     playerName:    (raw.playerName as string) ?? 'Oyuncu',
@@ -98,14 +98,14 @@ function parseState(raw: Record<string, unknown>) {
 
 export const useGame = create<GameState>((set, get) => ({
   playerName:    'Oyuncu',
-  cash:          5_000_000,
+  cash:          15_000_000,
   level:         1,
   xp:            0,
   owned:         [],
   claimed:       [],
   lastCollect:   Date.now(),
   serverId:      '',
-  netWorth:      5_000_000,
+  netWorth:      15_000_000,
   dailyIncome:   0,
   pendingIncome: 0,
 
@@ -217,13 +217,13 @@ export const useGame = create<GameState>((set, get) => ({
   reset() {
     set({
       playerName:    'Oyuncu',
-      cash:          5_000_000,
+      cash:          15_000_000,
       level:         1,
       xp:            0,
       owned:         [],
       claimed:       [],
       lastCollect:   Date.now(),
-      netWorth:      5_000_000,
+      netWorth:      15_000_000,
       dailyIncome:   0,
       pendingIncome: 0,
     })
