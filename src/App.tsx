@@ -77,6 +77,9 @@ export default function App() {
   // Push bildirimleri (yalnız native iOS) — izin + APNs kayıt + token backend'e
   useEffect(() => { if (user) initPush(user.token) }, [user?.uid]) // eslint-disable-line
 
+  // Kabul edilen tekliflerin nakit/mülk transferlerini uygula (girişli oyuncular)
+  useEffect(() => { if (user?.token) useGame.getState().claimTransfers() }, [user?.uid]) // eslint-disable-line
+
   // Tab ekran paneli (Piyasa/Portföy/Sıralama/Mağaza/Ayarlar) için sürüklenebilir
   // alt-sayfa: yukarı çek → tam ekran, aşağı çek → haritaya dön.
   const screenSheet = useDragSheet(0.76, 0.97, 0.55, () => handleTabChange(0))

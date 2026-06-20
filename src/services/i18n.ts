@@ -218,6 +218,11 @@ const EXTRA: Record<string, Record<string, string>> = {
   rw_weekly:   { tr:'Haftalık Ödül', en:'Weekly Reward', es:'Recompensa Semanal', fr:'Récompense Hebdo', de:'Wöchentliche Belohnung', it:'Ricompensa Settimanale', pt:'Recompensa Semanal', ru:'Еженедельная награда', ar:'مكافأة أسبوعية', zh:'每周奖励', ja:'週間報酬', ko:'주간 보상', az:'Həftəlik Mükafat', uk:'Щотижнева винагорода', fa:'پاداش هفتگی', hi:'साप्ताहिक इनाम' },
   rw_monthly:  { tr:'Aylık Ödül', en:'Monthly Reward', es:'Recompensa Mensual', fr:'Récompense Mensuelle', de:'Monatliche Belohnung', it:'Ricompensa Mensile', pt:'Recompensa Mensal', ru:'Ежемесячная награда', ar:'مكافأة شهرية', zh:'每月奖励', ja:'月間報酬', ko:'월간 보상', az:'Aylıq Mükafat', uk:'Щомісячна винагорода', fa:'پاداش ماهانه', hi:'मासिक इनाम' },
   rw_soon:     { tr:'sonra', en:'left', es:'restante', fr:'restant', de:'übrig', it:'rimasto', pt:'restante', ru:'осталось', ar:'متبقٍ', zh:'后', ja:'後', ko:'후', az:'sonra', uk:'залишилось', fa:'مانده', hi:'शेष' },
+  offer:       { tr:'Teklif', en:'Offer', es:'Oferta', fr:'Offre', de:'Angebot', it:'Offerta', pt:'Oferta', ru:'Предложить', ar:'عرض', zh:'出价', ja:'オファー', ko:'제안', az:'Təklif', uk:'Пропозиція', fa:'پیشنهاد', hi:'ऑफ़र' },
+  offers_title:{ tr:'GELEN TEKLİFLER', en:'INCOMING OFFERS', es:'OFERTAS RECIBIDAS', fr:'OFFRES REÇUES', de:'EINGEHENDE ANGEBOTE', it:'OFFERTE RICEVUTE', pt:'OFERTAS RECEBIDAS', ru:'ВХОДЯЩИЕ ПРЕДЛОЖЕНИЯ', ar:'العروض الواردة', zh:'收到的出价', ja:'受信オファー', ko:'받은 제안', az:'GƏLƏN TƏKLİFLƏR', uk:'ВХІДНІ ПРОПОЗИЦІЇ', fa:'پیشنهادهای دریافتی', hi:'प्राप्त ऑफ़र' },
+  accept:      { tr:'Kabul', en:'Accept', es:'Aceptar', fr:'Accepter', de:'Annehmen', it:'Accetta', pt:'Aceitar', ru:'Принять', ar:'قبول', zh:'接受', ja:'承認', ko:'수락', az:'Qəbul', uk:'Прийняти', fa:'پذیرفتن', hi:'स्वीकार' },
+  reject:      { tr:'Reddet', en:'Reject', es:'Rechazar', fr:'Refuser', de:'Ablehnen', it:'Rifiuta', pt:'Recusar', ru:'Отклонить', ar:'رفض', zh:'拒绝', ja:'拒否', ko:'거절', az:'Rədd et', uk:'Відхилити', fa:'رد', hi:'अस्वीकार' },
+  offer_amount:{ tr:'Teklif tutarı ($):', en:'Offer amount ($):', es:'Importe ($):', fr:'Montant ($) :', de:'Betrag ($):', it:'Importo ($):', pt:'Valor ($):', ru:'Сумма ($):', ar:'المبلغ ($):', zh:'出价金额 ($):', ja:'金額 ($):', ko:'금액 ($):', az:'Məbləğ ($):', uk:'Сума ($):', fa:'مبلغ ($):', hi:'राशि ($):' },
 }
 
 export function t(key: string): string {

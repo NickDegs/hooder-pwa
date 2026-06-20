@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { allProperties, ownershipPremium, type Property } from '../data'
 import { getRegisteredProperty, registerProperties } from '../services/localProperties'
 import { pushState as cloudPush, pullState as cloudPull, isCloudOn } from '../services/cloudBackup'
+import { getTransfers } from '../services/market'
 import { API_BASE } from '../services/apiBase'
 
 export interface OwnedProperty {
@@ -73,6 +74,7 @@ interface GameState {
   sellFx:          (code: string, currentRate: number) => number   // gerçekleşen K/Z (USD)
   dailyStatus:     () => { available: boolean; amount: number; day: number; inWeek: number; isSeventh: boolean }
   claimDaily:      () => number
+  claimTransfers:  () => Promise<void>   // kabul edilen tekliflerin nakit/mülk transferi
   extraRewards:    () => { key: string; emoji: string; titleKey: string; amount: number; available: boolean; remainingMs: number }[]
   claimExtra:      (key: string) => number
 }
@@ -319,6 +321,27 @@ export const useGame = create<GameState>((set, get) => ({
     set({ pending, cash, netWorth: computeNetWorth(cash, st.owned) })
     persist()
     return true
+  },
+
+  async claimTransfers() {
+    if (!currentToken) return
+    const list = await getTransfers(currentToken)
+    if (!list.length) return
+    const st = get()
+    let cash = st.cash
+    let owned = [...st.owned]
+    for (const tr of list) {
+      if (tr.kind === 'cash') cash += Number(tr.payload?.amount || 0)
+      else if (tr.kind === 'prop') {
+        const pid = tr.payload?.property_id
+        const prop = allProperties.find(p => p.id === pid) ?? getRegisteredProperty(pid)
+        if (prop && !owned.some(o => o.id === pid)) {
+          owned = [...owned, { id: pid, property: prop, purchasedAt: Date.now(), totalEarned: 0 }]
+        }
+      }
+    }
+    set({ cash, owned, netWorth: computeNetWorth(cash, owned), dailyIncome: computeDailyIncome(owned) })
+    persist()
   },
 
   dailyStatus() { return computeDaily() },

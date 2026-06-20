@@ -5,6 +5,8 @@ import { useDragSheet } from '../services/useDragSheet'
 import { livePrice, liveIncome } from '../services/economy'
 import { ownershipPremium } from '../data'
 import { useLang } from '../services/i18n'
+import { useAuth } from '../services/auth'
+import { makeOffer } from '../services/market'
 
 // Alt-sayfa snap noktaları (ekran yüksekliği oranı)
 const SNAP_FULL = 0.94   // yukarı çek → neredeyse tam ekran liste
@@ -19,12 +21,22 @@ interface Props {
 
 export default function NeighborhoodPanel({ hood, onClose, isDesktop }: Props) {
   const { cash, isOwned, buy, sell, areaStatus, sendAgent, owned, isPending, pendingInfo } = useGame()
+  const { user } = useAuth()
   const premium = ownershipPremium(owned.length)
   const [, forceTick] = useState(0)
   useEffect(() => { const id = setInterval(() => forceTick(n => n + 1), 1000); return () => clearInterval(id) }, [])
   const { t } = useLang()
   const [toast, setToast]             = useState<string | null>(null)
   const [collapsed, setCollapsed]     = useState<Set<string>>(new Set())
+
+  async function handleOffer(prop: Property) {
+    const input = window.prompt(t('offer_amount'), String(prop.price))
+    const amount = Number((input || '').replace(/[^\d]/g, ''))
+    if (!amount || amount <= 0) return
+    const r = await makeOffer(prop.id, prop.name, amount, user?.token)
+    setToast(r.ok ? `💰 ${prop.name} → teklif gönderildi` : (r.error || 'Teklif gönderilemedi'))
+    setTimeout(() => setToast(null), 2800)
+  }
 
   function handleAgent(prop: Property) {
     const st = areaStatus(prop)
@@ -281,7 +293,15 @@ export default function NeighborhoodPanel({ hood, onClose, isDesktop }: Props) {
                               </div>
 
                               {/* Buy / Sell */}
-                              <div style={{ flexShrink: 0, paddingTop: 2 }}>
+                              <div style={{ flexShrink: 0, paddingTop: 2, display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
+                                {/* P2P teklif — girişli oyuncu, sahip olmadığı mülke */}
+                                {!owned && !pend && user && user.provider !== 'guest' && (
+                                  <button type="button" onClick={() => handleOffer(prop)} style={{
+                                    padding: '4px 9px', borderRadius: 9, whiteSpace: 'nowrap',
+                                    background: 'rgba(191,90,242,0.16)', border: '0.5px solid rgba(191,90,242,0.45)',
+                                    color: '#bf5af2', fontSize: 9, fontWeight: 800,
+                                  }}>💰 {t('offer')}</button>
+                                )}
                                 {owned ? (
                                   <button type="button" onClick={() => handleSell(prop)} style={{
                                     padding: '7px 12px', borderRadius: 10,

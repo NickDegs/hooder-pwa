@@ -5,6 +5,8 @@ import { formatPrice, formatIncome } from '../data'
 import GlassCard from '../components/GlassCard'
 import { getSavedPref, getMaxHz, detectMaxHz, applyFps } from '../services/fps'
 import { LANGS, useLang } from '../services/i18n'
+import { getOffers, actOffer, type Offer } from '../services/market'
+import { formatPrice as fmtP } from '../data'
 
 export default function Settings() {
   const { playerName, cash, netWorth, owned, dailyIncome, level, setPlayerName, addCash, reset, serverId } = useGame()
@@ -20,6 +22,14 @@ export default function Settings() {
   useEffect(() => { detectMaxHz().then(setMaxHz) }, [])
   function chooseFps(pref: string) { applyFps(pref); setFpsPref(pref) }
   const { lang, t, setLang } = useLang()
+
+  // Gelen P2P teklifler (girişli oyuncu)
+  const [offers, setOffers] = useState<Offer[]>([])
+  function loadOffers() { if (user?.token) getOffers(user.token).then(d => setOffers(d.incoming || [])) }
+  useEffect(() => { loadOffers() }, [user?.uid]) // eslint-disable-line
+  async function respondOffer(id: number, action: 'accept' | 'reject') {
+    await actOffer(id, action, user?.token); loadOffers()
+  }
 
   function saveName() {
     const t = nameInput.trim()
@@ -128,6 +138,26 @@ export default function Settings() {
               <div className="t-caption" style={{ color: 'var(--text-muted)', lineHeight: 1.5, paddingTop: 4 }}>
                 Aynı grup oyuncularla rekabet ediyorsun. Denge için yeni üyeler otomatik farklı gruplara atanır.
               </div>
+            </GlassCard>
+          </>
+        )}
+
+        {/* Gelen P2P teklifler */}
+        {offers.length > 0 && (
+          <>
+            <SectionLabel>{t('offers_title')}</SectionLabel>
+            <GlassCard style={{ marginBottom: 'var(--sp-lg)', padding: 0, overflow: 'hidden' }}>
+              {offers.map((o, i) => (
+                <div key={o.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--sp-md)', borderTop: i > 0 ? '0.5px solid rgba(255,255,255,0.08)' : 'none' }}>
+                  <span style={{ fontSize: 18 }}>💰</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="t-bold" style={{ color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.property_name}</div>
+                    <div className="t-caption" style={{ color: 'var(--text-muted)' }}>{o.from_name} · <span style={{ color: 'var(--green)' }}>{fmtP(o.amount)}</span></div>
+                  </div>
+                  <button type="button" onClick={() => respondOffer(o.id, 'accept')} style={{ padding: '6px 10px', borderRadius: 9, background: 'var(--green)', color: '#003312', fontSize: 11, fontWeight: 800, border: 'none' }}>{t('accept')}</button>
+                  <button type="button" onClick={() => respondOffer(o.id, 'reject')} style={{ padding: '6px 10px', borderRadius: 9, background: 'rgba(255,69,58,0.15)', color: 'var(--red)', fontSize: 11, fontWeight: 800, border: '0.5px solid rgba(255,69,58,0.3)' }}>{t('reject')}</button>
+                </div>
+              ))}
             </GlassCard>
           </>
         )}

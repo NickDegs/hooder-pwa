@@ -33,12 +33,12 @@ interface Props {
 // zoom < Z_COUNTRY: ülke (en büyük) · Z_COUNTRY..Z_HOOD: şehir/il
 // Z_HOOD..Z_PROP: ilçe/mahalle (artık İL GÖRÜNÜMÜNDE de görünür) · ≥ Z_PROP: mülk
 const Z_COUNTRY = 4.5
-// Desktop (macOS): geniş ekran
+// Desktop (macOS): geniş ekran. Mülk eşiği düşük → apartman dahil çok mülk haritada
 const Z_HOOD_DSK = 9.5
-const Z_PROP_DSK = 13
-// Mobile (iOS): dar ekran. İlçe/mahalle eşiği düşürüldü → il görünümünde ilçeler çıkar
+const Z_PROP_DSK = 11.5
+// Mobile (iOS): dar ekran. Mülk eşiği düşürüldü → haritada daha çok satın alınabilir mülk
 const Z_HOOD_MOB = 10.5
-const Z_PROP_MOB = 13.5
+const Z_PROP_MOB = 12.3
 
 // ── Marker arka planı ───────────────────────────────────────────────────────
 // NOT: Marker'larda backdrop-filter:blur KULLANILMAZ. Haritada aynı anda yüzlerce
