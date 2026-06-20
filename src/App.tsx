@@ -7,6 +7,7 @@ import { fetchLocalProperties, allDynamicProperties } from './services/localProp
 import { useDragSheet } from './services/useDragSheet'
 import { useLang } from './services/i18n'
 import { initEconomy } from './services/economy'
+import { initPush } from './services/push'
 
 import MapView            from './components/MapView'
 import TabBar             from './components/TabBar'
@@ -64,6 +65,9 @@ export default function App() {
 
   // Sanal ekonomiyi başlat (gerçek dünyadan tohumla → oyun-içi drift/işlem belirler)
   useEffect(() => { initEconomy() }, [])
+
+  // Push bildirimleri (yalnız native iOS) — izin + APNs kayıt + token backend'e
+  useEffect(() => { if (user) initPush(user.token) }, [user?.uid]) // eslint-disable-line
 
   // Tab ekran paneli (Piyasa/Portföy/Sıralama/Mağaza/Ayarlar) için sürüklenebilir
   // alt-sayfa: yukarı çek → tam ekran, aşağı çek → haritaya dön.
