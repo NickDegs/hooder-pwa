@@ -3,7 +3,7 @@ import { useGame } from '../store/useGame'
 import { formatPrice } from '../data'
 import GlassCard from '../components/GlassCard'
 import {
-  initEconomy, allCurrencyCodes, currencyName, currencyFlag, rateOf,
+  initEconomy, allCurrencyCodes, currencyName, currencyNativeName, currencyFlag, rateOf,
   recordTrade, marketIndex, marketDeltaPct, hasEcon,
 } from '../services/economy'
 
@@ -112,8 +112,10 @@ export default function Forex() {
                   {!q && <span style={{ width: 22, fontSize: 11, fontWeight: 800, color: 'var(--text-muted)' }}>#{i + 1}</span>}
                   <span style={{ fontSize: 22 }}>{currencyFlag(code)}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="t-bold" style={{ color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{code} · {currencyName(code)}</div>
-                    <div className="t-caption" style={{ color: 'var(--text-muted)' }}>1 USD = {rate.toLocaleString('tr', { maximumFractionDigits: 4 })} {code}</div>
+                    <div className="t-bold" style={{ color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{code} · {currencyNativeName(code)}</div>
+                    <div className="t-caption" style={{ color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {currencyName(code)} · 1 USD = {rate.toLocaleString('tr', { maximumFractionDigits: 4 })} {code}
+                    </div>
                   </div>
                   {pos ? (
                     <div style={{ textAlign: 'right' }}>

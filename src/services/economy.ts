@@ -33,6 +33,39 @@ export function currencyName(code: string): string {
   try { return _curNames?.of(code) ?? code } catch { return code }
 }
 
+// ── Para biriminin ÜLKESİNİN DİLİ → o dilde isim ──────────────────────────────
+// Para kodunun ilk 2 harfi = ülke (USD→US, JPY→JP). Ülke → ana dil (BCP47).
+const COUNTRY_LANG: Record<string, string> = {
+  US: 'en', GB: 'en', AU: 'en', NZ: 'en', CA: 'en', IE: 'en', ZA: 'en', NG: 'en',
+  KE: 'sw', GH: 'en', UG: 'en', TZ: 'sw', ZM: 'en', ZW: 'en', BW: 'en', NA: 'en',
+  TR: 'tr', DE: 'de', AT: 'de', CH: 'de', FR: 'fr', BE: 'fr', LU: 'fr', MC: 'fr',
+  ES: 'es', MX: 'es', AR: 'es', CO: 'es', CL: 'es', PE: 'es', UY: 'es', VE: 'es',
+  BO: 'es', PY: 'es', DO: 'es', GT: 'es', CR: 'es', PA: 'es', HN: 'es', NI: 'es',
+  IT: 'it', PT: 'pt', BR: 'pt', AO: 'pt', MZ: 'pt', NL: 'nl', RU: 'ru', UA: 'uk',
+  BY: 'be', KZ: 'kk', UZ: 'uz', GE: 'ka', AM: 'hy', AZ: 'az', MD: 'ro', RO: 'ro',
+  PL: 'pl', CZ: 'cs', SK: 'sk', HU: 'hu', BG: 'bg', RS: 'sr', HR: 'hr', SI: 'sl',
+  GR: 'el', SE: 'sv', NO: 'no', DK: 'da', FI: 'fi', IS: 'is', EE: 'et', LV: 'lv', LT: 'lt',
+  JP: 'ja', CN: 'zh', HK: 'zh', TW: 'zh', MO: 'zh', KR: 'ko', KP: 'ko',
+  IN: 'hi', PK: 'ur', BD: 'bn', LK: 'si', NP: 'ne', MM: 'my', TH: 'th', LA: 'lo',
+  KH: 'km', VN: 'vi', ID: 'id', MY: 'ms', SG: 'en', PH: 'fil', BN: 'ms', MN: 'mn',
+  SA: 'ar', AE: 'ar', QA: 'ar', KW: 'ar', BH: 'ar', OM: 'ar', JO: 'ar', LB: 'ar',
+  SY: 'ar', IQ: 'ar', YE: 'ar', EG: 'ar', LY: 'ar', TN: 'ar', DZ: 'ar', MA: 'ar',
+  SD: 'ar', IL: 'he', IR: 'fa', AF: 'fa', ET: 'am', SO: 'so', RW: 'rw',
+}
+const _nativeCache = new Map<string, string>()
+export function currencyNativeName(code: string): string {
+  if (_nativeCache.has(code)) return _nativeCache.get(code)!
+  const cc = code.slice(0, 2)
+  const lang = code === 'EUR' ? 'en' : (COUNTRY_LANG[cc] || 'en')
+  let out = code
+  try {
+    const dn = new Intl.DisplayNames([lang], { type: 'currency' })
+    out = dn.of(code) ?? code
+  } catch { out = code }
+  _nativeCache.set(code, out)
+  return out
+}
+
 // ── Tohumlama: gerçek dünyadan bir kez ────────────────────────────────────────
 export async function initEconomy(): Promise<void> {
   if (econ && econ.seed && Object.keys(econ.seed).length > 5) { tick(); return }
