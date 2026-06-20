@@ -6,7 +6,7 @@ import { livePrice, liveIncome } from '../services/economy'
 import { ownershipPremium } from '../data'
 import { useLang } from '../services/i18n'
 import { useAuth } from '../services/auth'
-import { makeOffer } from '../services/market'
+import { makeOffer, makeAuction } from '../services/market'
 
 // Alt-sayfa snap noktaları (ekran yüksekliği oranı)
 const SNAP_FULL = 0.94   // yukarı çek → neredeyse tam ekran liste
@@ -35,6 +35,15 @@ export default function NeighborhoodPanel({ hood, onClose, isDesktop }: Props) {
     if (!amount || amount <= 0) return
     const r = await makeOffer(prop.id, prop.name, amount, user?.token)
     setToast(r.ok ? `💰 ${prop.name} → teklif gönderildi` : (r.error || 'Teklif gönderilemedi'))
+    setTimeout(() => setToast(null), 2800)
+  }
+
+  async function handleAuction(prop: Property) {
+    const input = window.prompt(t('auction_start'), String(prop.price))
+    const start = Number((input || '').replace(/[^\d]/g, ''))
+    if (!start || start <= 0) return
+    const r = await makeAuction(prop.id, prop.name, start, 24, user?.token)
+    setToast(r.ok ? `🔨 ${prop.name} açık artırmada (24s)` : (r.error || 'Açık artırma açılamadı'))
     setTimeout(() => setToast(null), 2800)
   }
 
@@ -303,11 +312,20 @@ export default function NeighborhoodPanel({ hood, onClose, isDesktop }: Props) {
                                   }}>💰 {t('offer')}</button>
                                 )}
                                 {owned ? (
-                                  <button type="button" onClick={() => handleSell(prop)} style={{
-                                    padding: '7px 12px', borderRadius: 10,
-                                    background: 'rgba(255,69,58,0.12)', border: '0.5px solid rgba(255,69,58,0.3)',
-                                    color: '#ff453a', fontSize: 10, fontWeight: 700,
-                                  }}>{t('sell')}</button>
+                                  <>
+                                    {user && user.provider !== 'guest' && (
+                                      <button type="button" onClick={() => handleAuction(prop)} style={{
+                                        padding: '6px 10px', borderRadius: 9, whiteSpace: 'nowrap',
+                                        background: 'rgba(255,196,52,0.16)', border: '0.5px solid rgba(255,196,52,0.45)',
+                                        color: '#ffc434', fontSize: 9, fontWeight: 800,
+                                      }}>🔨 {t('auction')}</button>
+                                    )}
+                                    <button type="button" onClick={() => handleSell(prop)} style={{
+                                      padding: '7px 12px', borderRadius: 10,
+                                      background: 'rgba(255,69,58,0.12)', border: '0.5px solid rgba(255,69,58,0.3)',
+                                      color: '#ff453a', fontSize: 10, fontWeight: 700,
+                                    }}>{t('sell')}</button>
+                                  </>
                                 ) : pend ? (
                                   <div style={{
                                     padding: '6px 10px', borderRadius: 10, whiteSpace: 'nowrap',

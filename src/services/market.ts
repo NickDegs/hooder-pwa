@@ -29,6 +29,23 @@ export async function getTransfers(token?: string): Promise<{ kind: string; payl
   const h = auth(token); if (!h) return []
   try { const r = await fetch(`${API_BASE}/transfers`, { headers: h }); const j = await r.json(); return Array.isArray(j) ? j : [] } catch { return [] }
 }
+// ── Açık artırma ──────────────────────────────────────────────────────────────
+export interface Auction {
+  id: number; seller_id: string; seller_name: string; property_id: string; property_name: string
+  start_price: number; current_bid: number; bidder_id: string; bidder_name: string; ends_at: number
+}
+export async function listAuctions(): Promise<Auction[]> {
+  try { const r = await fetch(`${API_BASE}/auctions`); const j = await r.json(); return Array.isArray(j) ? j : [] } catch { return [] }
+}
+export async function makeAuction(propertyId: string, propertyName: string, startPrice: number, hours: number, token?: string): Promise<{ ok?: boolean; error?: string }> {
+  const h = auth(token); if (!h) return { error: 'Giriş gerekli' }
+  try { const r = await fetch(`${API_BASE}/auctions`, { method: 'POST', headers: h, body: JSON.stringify({ property_id: propertyId, property_name: propertyName, start_price: startPrice, hours }) }); return await r.json() } catch { return { error: 'Bağlantı hatası' } }
+}
+export async function bidAuction(id: number, amount: number, token?: string): Promise<{ ok?: boolean; error?: string }> {
+  const h = auth(token); if (!h) return { error: 'Giriş gerekli' }
+  try { const r = await fetch(`${API_BASE}/auctions/${id}/bid`, { method: 'POST', headers: h, body: JSON.stringify({ amount }) }); return await r.json() } catch { return { error: 'Bağlantı hatası' } }
+}
+
 export async function getOwners(ids: string[]): Promise<Record<string, { user_id: string; username: string }>> {
   if (!ids.length) return {}
   try { const r = await fetch(`${API_BASE}/owners`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids }) }); return await r.json() } catch { return {} }

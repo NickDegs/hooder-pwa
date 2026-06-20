@@ -223,6 +223,10 @@ const EXTRA: Record<string, Record<string, string>> = {
   accept:      { tr:'Kabul', en:'Accept', es:'Aceptar', fr:'Accepter', de:'Annehmen', it:'Accetta', pt:'Aceitar', ru:'Принять', ar:'قبول', zh:'接受', ja:'承認', ko:'수락', az:'Qəbul', uk:'Прийняти', fa:'پذیرفتن', hi:'स्वीकार' },
   reject:      { tr:'Reddet', en:'Reject', es:'Rechazar', fr:'Refuser', de:'Ablehnen', it:'Rifiuta', pt:'Recusar', ru:'Отклонить', ar:'رفض', zh:'拒绝', ja:'拒否', ko:'거절', az:'Rədd et', uk:'Відхилити', fa:'رد', hi:'अस्वीकार' },
   offer_amount:{ tr:'Teklif tutarı ($):', en:'Offer amount ($):', es:'Importe ($):', fr:'Montant ($) :', de:'Betrag ($):', it:'Importo ($):', pt:'Valor ($):', ru:'Сумма ($):', ar:'المبلغ ($):', zh:'出价金额 ($):', ja:'金額 ($):', ko:'금액 ($):', az:'Məbləğ ($):', uk:'Сума ($):', fa:'مبلغ ($):', hi:'राशि ($):' },
+  auction:     { tr:'Açık Artırma', en:'Auction', es:'Subasta', fr:'Enchère', de:'Auktion', it:'Asta', pt:'Leilão', ru:'Аукцион', ar:'مزاد', zh:'拍卖', ja:'オークション', ko:'경매', az:'Hərrac', uk:'Аукціон', fa:'مزایده', hi:'नीलामी' },
+  auctions_title:{ tr:'AÇIK ARTIRMALAR', en:'AUCTIONS', es:'SUBASTAS', fr:'ENCHÈRES', de:'AUKTIONEN', it:'ASTE', pt:'LEILÕES', ru:'АУКЦИОНЫ', ar:'المزادات', zh:'拍卖会', ja:'オークション', ko:'경매', az:'HƏRRACLAR', uk:'АУКЦІОНИ', fa:'مزایده‌ها', hi:'नीलामी' },
+  bid:         { tr:'Artır', en:'Bid', es:'Pujar', fr:'Enchérir', de:'Bieten', it:'Offri', pt:'Dar Lance', ru:'Ставка', ar:'مزايدة', zh:'出价', ja:'入札', ko:'입찰', az:'Artır', uk:'Ставка', fa:'پیشنهاد', hi:'बोली' },
+  auction_start:{ tr:'Başlangıç fiyatı ($):', en:'Starting price ($):', es:'Precio inicial ($):', fr:'Prix de départ ($) :', de:'Startpreis ($):', it:'Prezzo iniziale ($):', pt:'Preço inicial ($):', ru:'Стартовая цена ($):', ar:'السعر الابتدائي ($):', zh:'起拍价 ($):', ja:'開始価格 ($):', ko:'시작가 ($):', az:'Başlanğıc qiymət ($):', uk:'Стартова ціна ($):', fa:'قیمت شروع ($):', hi:'शुरुआती मूल्य ($):' },
 }
 
 export function t(key: string): string {

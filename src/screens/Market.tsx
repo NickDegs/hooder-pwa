@@ -1,9 +1,11 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { allProperties, allCities, categoryMeta, type PropertyCategory, formatPrice, formatIncome } from '../data'
 import { livePrice, liveIncome } from '../services/economy'
 import { ownershipPremium } from '../data'
 import { useLang } from '../services/i18n'
 import { useGame } from '../store/useGame'
+import { useAuth } from '../services/auth'
+import { listAuctions, bidAuction, type Auction } from '../services/market'
 import GlassCard from '../components/GlassCard'
 
 // Ülke kodu → aranabilir adlar (TR + EN). Property.country kod tutar ('TR'),
@@ -30,6 +32,17 @@ export default function Market() {
   const { t } = useLang()
   const { cash, isOwned, buy, owned } = useGame()
   const premium = ownershipPremium(owned.length)
+  const { user } = useAuth()
+  const [auctions, setAuctions] = useState<Auction[]>([])
+  function loadAuctions() { listAuctions().then(setAuctions) }
+  useEffect(() => { loadAuctions(); const id = setInterval(loadAuctions, 15000); return () => clearInterval(id) }, [])
+  async function placeBid(a: Auction) {
+    const floor = Math.max(a.start_price, a.current_bid)
+    const inp = window.prompt(t('offer_amount'), String(Math.round(floor * 1.1)))
+    const amt = Number((inp || '').replace(/[^\d]/g, '')); if (!amt) return
+    const r = await bidAuction(a.id, amt, user?.token)
+    setToast(r.ok ? `🔨 +${formatPrice(amt)}` : (r.error || 'Artırılamadı')); setTimeout(() => setToast(null), 2500); loadAuctions()
+  }
   const [search,  setSearch]  = useState('')
   const [cat,     setCat]     = useState<PropertyCategory | null>(null)
   const [city,    setCity]    = useState<string | null>(null)
@@ -153,6 +166,34 @@ export default function Market() {
 
       {/* List */}
       <div className="scroll-y" style={{ flex: 1, padding: 'var(--sp-md) var(--sp-lg) var(--sp-4x)' }}>
+        {/* Açık artırmalar (oyuncuların açtığı) */}
+        {auctions.length > 0 && (
+          <div style={{ marginBottom: 'var(--sp-lg)' }}>
+            <div className="t-caption" style={{ color: 'var(--text-muted)', fontWeight: 700, letterSpacing: 0.5, margin: '0 4px 8px' }}>🔨 {t('auctions_title')}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-sm)' }}>
+              {auctions.map(a => {
+                const left = Math.max(0, a.ends_at * 1000 - Date.now())
+                const hL = Math.floor(left / 3600000), mL = Math.floor((left % 3600000) / 60000)
+                return (
+                  <GlassCard key={a.id} style={{ borderColor: 'rgba(255,196,52,0.35)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className="t-bold" style={{ color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.property_name}</div>
+                        <div className="t-caption" style={{ color: 'var(--text-muted)' }}>
+                          {a.current_bid > 0 ? `${a.bidder_name}: ${formatPrice(a.current_bid)}` : formatPrice(a.start_price)} · ⏳ {hL}s {mL}d
+                        </div>
+                      </div>
+                      <button type="button" onClick={() => placeBid(a)} disabled={!user || user.provider === 'guest' || a.seller_id === user?.uid}
+                        style={{ padding: '8px 14px', borderRadius: 11, fontSize: 12, fontWeight: 800, border: 'none', background: 'var(--gold)', color: '#2a1f00', opacity: (!user || user.provider === 'guest' || a.seller_id === user?.uid) ? 0.5 : 1 }}>
+                        {t('bid')}
+                      </button>
+                    </div>
+                  </GlassCard>
+                )
+              })}
+            </div>
+          </div>
+        )}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }}>
           {filtered.map(prop => {
             const owned     = isOwned(prop.id)

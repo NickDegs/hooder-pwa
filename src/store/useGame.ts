@@ -332,8 +332,9 @@ export const useGame = create<GameState>((set, get) => ({
     let owned = [...st.owned]
     for (const tr of list) {
       if (tr.kind === 'cash') cash += Number(tr.payload?.amount || 0)
-      else if (tr.kind === 'prop') {
+      else if (tr.kind === 'prop' || tr.kind === 'won') {
         const pid = tr.payload?.property_id
+        if (tr.kind === 'won') cash = Math.max(0, cash - Number(tr.payload?.amount || 0)) // açık artırma kazananı öder
         const prop = allProperties.find(p => p.id === pid) ?? getRegisteredProperty(pid)
         if (prop && !owned.some(o => o.id === pid)) {
           owned = [...owned, { id: pid, property: prop, purchasedAt: Date.now(), totalEarned: 0 }]
