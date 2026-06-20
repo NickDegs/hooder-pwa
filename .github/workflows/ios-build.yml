@@ -66,6 +66,10 @@ jobs:
           # olmaz, build doğrudan iç teste atanabilir hale gelir.
           /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" "$PLIST" 2>/dev/null || \
             /usr/libexec/PlistBuddy -c "Set :ITSAppUsesNonExemptEncryption false" "$PLIST" || true
+          # Konum izni açıklaması — geolocation (oto kendi konumuna uçma) iOS'ta
+          # bu anahtar olmadan sessizce reddedilir.
+          /usr/libexec/PlistBuddy -c "Add :NSLocationWhenInUseUsageDescription string 'Konumundaki gayrimenkulleri haritada göstermek için konumun kullanılır.'" "$PLIST" 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c "Set :NSLocationWhenInUseUsageDescription 'Konumundaki gayrimenkulleri haritada göstermek için konumun kullanılır.'" "$PLIST" || true
 
       # ── Xcode signing + deployment target ────────────────────────────────────
       - name: Fix signing & deployment target

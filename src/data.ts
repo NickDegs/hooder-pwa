@@ -728,14 +728,20 @@ export interface CityGroup {
   properties: Property[]
 }
 
+// Runtime konum-bazlı mülkler (kullanıcının gerçek konumundan üretilen). buildGroups
+// + MapView bunları statik mülklerle BİRLİKTE gösterir. Bkz services/localProperties.
+export let dynamicProperties: Property[] = []
+export function setDynamicProperties(props: Property[]) { dynamicProperties = props }
+
 export function buildGroups(): { hoods: HoodGroup[]; cities: CityGroup[] } {
   const flagMap: Record<string, string> = {}
   allCities.forEach(c => { flagMap[c.name] = c.flag })
+  dynamicProperties.forEach(p => { if (!flagMap[p.city]) flagMap[p.city] = '📍' })
 
   const hoodMap = new Map<string, HoodGroup>()
   const cityMap = new Map<string, CityGroup>()
 
-  allProperties.forEach(prop => {
+  allProperties.concat(dynamicProperties).forEach(prop => {
     const hk = `${prop.city}::${prop.neighborhood}`
     if (!hoodMap.has(hk)) {
       hoodMap.set(hk, {

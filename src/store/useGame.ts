@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { allProperties, type Property } from '../data'
+import { getRegisteredProperty, registerProperties } from '../services/localProperties'
 import { API_BASE } from '../services/apiBase'
 
 export interface OwnedProperty {
@@ -70,9 +71,11 @@ function computePendingIncome(owned: OwnedProperty[], lastCollect: number) {
 }
 
 function parseState(raw: Record<string, unknown>) {
-  const ownedRaw = (raw.ownedPropertyIDs as Array<{ id: string; purchasedAt: number; totalEarned: number }>) ?? []
+  const ownedRaw = (raw.ownedPropertyIDs as Array<{ id: string; purchasedAt: number; totalEarned: number; prop?: Property }>) ?? []
   const owned: OwnedProperty[] = ownedRaw.map(entry => {
-    const prop = allProperties.find(p => p.id === entry.id)
+    // Statik mülk → registry (dinamik) → kayıtta gömülü tam property (konum-bazlı)
+    let prop = allProperties.find(p => p.id === entry.id) ?? getRegisteredProperty(entry.id)
+    if (!prop && entry.prop) { prop = entry.prop; registerProperties([entry.prop]) }
     if (!prop) return null
     return { id: entry.id, property: prop, purchasedAt: entry.purchasedAt, totalEarned: entry.totalEarned ?? 0 }
   }).filter(Boolean) as OwnedProperty[]
@@ -239,7 +242,7 @@ function persist() {
   const { playerName, cash, level, xp, owned, lastCollect, netWorth, claimed } = useGame.getState()
   const data = {
     playerName, cash, level, xp, lastCollect, netWorth,
-    ownedPropertyIDs: owned.map(o => ({ id: o.id, purchasedAt: o.purchasedAt, totalEarned: o.totalEarned })),
+    ownedPropertyIDs: owned.map(o => ({ id: o.id, purchasedAt: o.purchasedAt, totalEarned: o.totalEarned, prop: o.property })),
     claimedPlaces: claimed,
   }
 

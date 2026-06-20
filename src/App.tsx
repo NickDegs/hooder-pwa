@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo, type CSSProperties } from 'react'
 import { useAuth } from './services/auth'
 import { useGame } from './store/useGame'
-import { allCities, type City, type Property, type HoodGroup } from './data'
+import { allCities, setDynamicProperties, type City, type Property, type HoodGroup } from './data'
 import { formatPrice } from './data'
+import { fetchLocalProperties, allDynamicProperties } from './services/localProperties'
 
 import MapView            from './components/MapView'
 import TabBar             from './components/TabBar'
@@ -41,6 +42,8 @@ export default function App() {
   const [selectedHood,   setSelectedHood]   = useState<HoodGroup | null>(null)
   const [liveHood,       setLiveHood]       = useState<HoodGroup | null>(null) // pan tracking → mini kart
   const [liveOff,        setLiveOff]        = useState(false) // mini kart kapatıldı → pan'de tekrar açma
+  const [localVersion,   setLocalVersion]   = useState(0)     // konum-bazlı mülkler değişince artar
+  const [userCity,       setUserCity]       = useState<City | null>(null) // gerçek konum (city picker'da "Konumum")
   const [claimTarget,    setClaimTarget]    = useState<MapClickInfo | null>(null)
   const [flyToCity,      setFlyToCity]      = useState<City | null>(allCities[0])
   const [showCityPicker, setShowCityPicker] = useState(false)
@@ -57,6 +60,30 @@ export default function App() {
   useEffect(() => {
     if (tab !== 0) { setSelectedProp(null); setSelectedHood(null); setClaimTarget(null); setLiveHood(null) }
   }, [tab])
+
+  // Konum izni verilirse: oto kendi konumuna uç + oradaki yüksek-değerli
+  // binaları/otelleri yükle (İstanbul'daki mülklerle aynı tasarımda).
+  useEffect(() => {
+    if (!user || userCity || typeof navigator === 'undefined' || !('geolocation' in navigator)) return
+    navigator.geolocation.getCurrentPosition(async pos => {
+      const { latitude: lat, longitude: lng } = pos.coords
+      try {
+        const res = await fetchLocalProperties(lat, lng)
+        if (res && res.props.length) {
+          setDynamicProperties(allDynamicProperties())
+          setLocalVersion(v => v + 1)
+        }
+        const ctx = res?.ctx
+        const city: City = {
+          id: 'me', name: ctx?.city || 'Konumum', country: ctx?.country || '',
+          flag: ctx?.flag || '📍', lat, lng, zoom: 14,
+        }
+        setUserCity(city)
+        setFlyToCity(city)
+        setLiveOff(false)
+      } catch { /* sessiz geç */ }
+    }, () => { /* izin yok → İstanbul'da kal */ }, { enableHighAccuracy: false, timeout: 9000, maximumAge: 600000 })
+  }, [user?.uid]) // eslint-disable-line
 
   if (!user) return <Login />
 
@@ -108,6 +135,7 @@ export default function App() {
             flyToCity={flyToCity}
             highlightHood={selectedHood?.key ?? null}
             ownedIds={ownedIds}
+            localVersion={localVersion}
             isDesktop
           />
 
@@ -231,6 +259,7 @@ export default function App() {
         flyToCity={flyToCity}
         highlightHood={(selectedHood ?? liveHood)?.key ?? null}
         ownedIds={ownedIds}
+        localVersion={localVersion}
       />
 
       {/* ── Üst HUD çubuğu (masaüstü kenar çubuğu gibi, yatay) ─── */}
@@ -335,7 +364,7 @@ export default function App() {
             scrollbarWidth: 'none',
             animation: 'slideUp 0.22s ease forwards',
           }}>
-            {allCities.map(city => (
+            {(userCity ? [userCity, ...allCities] : allCities).map(city => (
               <button
                 key={city.id}
                 type="button"

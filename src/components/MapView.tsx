@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import {
-  allProperties, allCities, categoryMeta, buildGroups, nearestHood,
+  allProperties, allCities, categoryMeta, buildGroups, nearestHood, dynamicProperties,
   type Property, type City, type HoodGroup, type CityGroup,
 } from '../data'
 import { formatPrice } from '../data'
@@ -25,6 +25,7 @@ interface Props {
   highlightHood?:        string | null
   ownedIds?:             string[]  // güncel sahiplik listesi → markerleri renklendir
   isDesktop?:            boolean
+  localVersion?:         number    // konum-bazlı dinamik mülkler değişince artar → markerleri yeniden kur
 }
 
 // ── Zoom thresholds ────────────────────────────────────────────────────────────
@@ -62,11 +63,11 @@ function makeCityEl(g: CityGroup, count: number): HTMLElement {
     ${lg()} white-space:nowrap;
   `
   el.innerHTML = `
-    <div style="display:flex;align-items:center;gap:7px">
-      <span style="font-size:20px">${g.flag}</span>
-      <span style="color:#fff;font-size:13px;font-weight:800;letter-spacing:-0.3px">${g.city}</span>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="font-size:24px">${g.flag}</span>
+      <span style="color:#fff;font-size:17px;font-weight:900;letter-spacing:-0.4px;text-shadow:0 1px 3px rgba(0,0,0,0.5)">${g.city}</span>
     </div>
-    <div style="color:rgba(255,255,255,0.5);font-size:10px;margin-top:2px">${count} mülk</div>
+    <div style="color:rgba(255,255,255,0.55);font-size:11px;font-weight:600;margin-top:2px">${count} mülk</div>
   `
   wrap.appendChild(el)
   wrap.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.07) translateY(-2px)' })
@@ -136,7 +137,7 @@ function makePropEl(prop: Property, isOwned: boolean): HTMLElement {
 // ── Component ──────────────────────────────────────────────────────────────────
 
 export default function MapView({
-  selectedProperty, onSelectProperty, onSelectNeighborhood, onMapClick, onMapCenter, flyToCity, highlightHood, ownedIds = [], isDesktop = false,
+  selectedProperty, onSelectProperty, onSelectNeighborhood, onMapClick, onMapCenter, flyToCity, highlightHood, ownedIds = [], isDesktop = false, localVersion = 0,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef       = useRef<mapboxgl.Map | null>(null)
@@ -161,6 +162,8 @@ export default function MapView({
   const cityMkrs  = useRef<Map<string, mapboxgl.Marker>>(new Map())
   const hoodMkrs  = useRef<Map<string, mapboxgl.Marker>>(new Map())
   const propMkrs  = useRef<Map<string, mapboxgl.Marker>>(new Map())
+  // Tıklama/pan için güncel mahalle listesi (statik + dinamik)
+  const hoodsRef  = useRef<HoodGroup[]>([])
 
   // Current zoom level cached in ref
   const zoomRef  = useRef(11)
@@ -177,6 +180,51 @@ export default function MapView({
     cityMkrs.current.forEach(m => { (m.getElement() as HTMLElement).style.display = showCity ? '' : 'none' })
     hoodMkrs.current.forEach(m => { (m.getElement() as HTMLElement).style.display = showHood ? '' : 'none' })
     propMkrs.current.forEach(m => { (m.getElement() as HTMLElement).style.display = showProp ? '' : 'none' })
+  }
+
+  // Şehir + mahalle markerlarını (statik + dinamik) sıfırdan kur
+  function buildCityHood(map: mapboxgl.Map) {
+    cityMkrs.current.forEach(m => m.remove()); cityMkrs.current.clear()
+    hoodMkrs.current.forEach(m => m.remove()); hoodMkrs.current.clear()
+    const { hoods, cities } = buildGroups()
+    hoodsRef.current = hoods
+    cities.forEach(g => {
+      const el = makeCityEl(g, g.properties.length)
+      el.addEventListener('click', e => {
+        e.stopPropagation()
+        const cd = allCities.find(c => c.name === g.city)
+        map.flyTo({ center: [g.lng, g.lat], zoom: cd?.zoom ?? 13, pitch: 52, duration: 1400 })
+      })
+      cityMkrs.current.set(g.city, new mapboxgl.Marker({ element: el, anchor: 'bottom' }).setLngLat([g.lng, g.lat]).addTo(map))
+    })
+    hoods.forEach(h => {
+      const el = makeHoodEl(h, 0, h.key === highlightHood)
+      el.addEventListener('click', e => {
+        e.stopPropagation()
+        markerClicked.current = true
+        map.flyTo({ center: [h.lng, h.lat], zoom: 14, pitch: 58, duration: 1100 })
+        cbHood.current(h)
+      })
+      hoodMkrs.current.set(h.key, new mapboxgl.Marker({ element: el, anchor: 'bottom' }).setLngLat([h.lng, h.lat]).addTo(map))
+    })
+  }
+
+  // Mülk markerlarını (statik + dinamik) sahiplik rengiyle kur
+  function buildProps(map: mapboxgl.Map) {
+    propMkrs.current.forEach(m => m.remove()); propMkrs.current.clear()
+    const ownedSet = new Set(ownedIdsRef.current)
+    allProperties.concat(dynamicProperties).forEach(prop => {
+      const owned = ownedSet.has(prop.id)
+      const el = makePropEl(prop, owned)
+      el.addEventListener('click', e => {
+        e.stopPropagation()
+        markerClicked.current = true
+        cbSelect.current(prop)
+        const hood = hoodsRef.current.find(h => h.key === `${prop.city}::${prop.neighborhood}`)
+        if (hood) cbHood.current(hood)
+      })
+      propMkrs.current.set(prop.id, new mapboxgl.Marker({ element: el, anchor: 'bottom' }).setLngLat([prop.lng, prop.lat]).addTo(map))
+    })
   }
 
   // Init
@@ -213,50 +261,9 @@ export default function MapView({
         if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'none')
       })
 
-      const { hoods, cities } = buildGroups()
-
-      // ── City markers ─────────────────────────────────────────────────────
-      cities.forEach(g => {
-        const el = makeCityEl(g, g.properties.length)
-        el.addEventListener('click', e => {
-          e.stopPropagation()
-          const cd = allCities.find(c => c.name === g.city)
-          map.flyTo({ center: [g.lng, g.lat], zoom: cd?.zoom ?? 10, pitch: 52, duration: 1400 })
-        })
-        const mk = new mapboxgl.Marker({ element: el, anchor: 'bottom' })
-          .setLngLat([g.lng, g.lat]).addTo(map)
-        cityMkrs.current.set(g.city, mk)
-      })
-
-      // ── Neighbourhood markers ─────────────────────────────────────────────
-      hoods.forEach(h => {
-        const el = makeHoodEl(h, 0, false)
-        el.addEventListener('click', e => {
-          e.stopPropagation()
-          markerClicked.current = true
-          map.flyTo({ center: [h.lng, h.lat], zoom: 14, pitch: 58, duration: 1100 })
-          cbHood.current(h)
-        })
-        const mk = new mapboxgl.Marker({ element: el, anchor: 'bottom' })
-          .setLngLat([h.lng, h.lat]).addTo(map)
-        hoodMkrs.current.set(h.key, mk)
-      })
-
-      // ── Property markers ─────────────────────────────────────────────────
-      allProperties.forEach(prop => {
-        const el = makePropEl(prop, false)
-        el.addEventListener('click', e => {
-          e.stopPropagation()
-          markerClicked.current = true
-          cbSelect.current(prop)
-          // Also open neighbourhood panel so user can buy
-          const hood = hoods.find(h => h.key === `${prop.city}::${prop.neighborhood}`)
-          if (hood) cbHood.current(hood)
-        })
-        const mk = new mapboxgl.Marker({ element: el, anchor: 'bottom' })
-          .setLngLat([prop.lng, prop.lat]).addTo(map)
-        propMkrs.current.set(prop.id, mk)
-      })
+      // ── Tüm markerlar (statik + dinamik) ──────────────────────────────────
+      buildCityHood(map)
+      buildProps(map)
 
       // ── Haritanın HERHANGİ bir yerine tıkla → yakınlaştır + en yakın mahalle
       //    listesini aç (cam panel). Eskiden "talep paneli" açılıyordu; kullanıcı
@@ -274,7 +281,7 @@ export default function MapView({
         })
 
         // En yakın mahalleyi bul → liste panelini aç (her zaman)
-        const nearest = nearestHood(hoods, e.lngLat.lat, e.lngLat.lng)
+        const nearest = nearestHood(hoodsRef.current, e.lngLat.lat, e.lngLat.lng)
         if (nearest) cbHood.current(nearest)
       })
 
@@ -294,7 +301,7 @@ export default function MapView({
         const z = map.getZoom()
         if (z >= zHood) {
           const c = map.getCenter()
-          const nearest = nearestHood(hoods, c.lat, c.lng)
+          const nearest = nearestHood(hoodsRef.current, c.lat, c.lng)
           cbMapCenter.current?.(nearest)
         } else {
           cbMapCenter.current?.(null)
@@ -313,23 +320,22 @@ export default function MapView({
     }
   }, []) // eslint-disable-line
 
-  // Update property marker styles when ownership changes
+  // Sahiplik değişince mülk markerlarını yenile
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
-    const ownedSet = new Set(ownedIdsRef.current)
-    propMkrs.current.forEach(m => m.remove())
-    propMkrs.current.clear()
-    allProperties.forEach(prop => {
-      const owned = ownedSet.has(prop.id)
-      const el = makePropEl(prop, owned)
-      el.addEventListener('click', e => { e.stopPropagation(); cbSelect.current(prop) })
-      const mk = new mapboxgl.Marker({ element: el, anchor: 'bottom' })
-        .setLngLat([prop.lng, prop.lat]).addTo(map)
-      propMkrs.current.set(prop.id, mk)
-    })
+    buildProps(map)
     applyVisibility(zoomRef.current)
-  }, [ownedIds]) // eslint-disable-line — sahiplik listesi değiştiğinde markerleri yenile
+  }, [ownedIds]) // eslint-disable-line
+
+  // Konum-bazlı dinamik mülkler gelince TÜM markerları (şehir+mahalle+mülk) yeniden kur
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !map.isStyleLoaded()) return
+    buildCityHood(map)
+    buildProps(map)
+    applyVisibility(zoomRef.current)
+  }, [localVersion]) // eslint-disable-line
 
   // Highlight selected hood marker
   useEffect(() => {
