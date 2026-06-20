@@ -29,9 +29,14 @@ interface Package {
 
 export default function Store() {
   const { t } = useLang()
-  const { addCash, dailyStatus, claimDaily } = useGame()
+  const { addCash, dailyStatus, claimDaily, extraRewards, claimExtra } = useGame()
   const [, forceD] = useState(0)
   const daily = dailyStatus()
+  const promos = extraRewards()
+  function fmtLeft(ms: number): string {
+    const h = Math.floor(ms / 3600000); const d = Math.floor(h / 24)
+    return d > 0 ? `${d}g` : `${h}s`
+  }
   const [packages,  setPackages]  = useState<Package[]>([])
   const [loading,   setLoading]   = useState(true)
   const [buying,    setBuying]    = useState<string | null>(null)
@@ -180,6 +185,35 @@ export default function Store() {
               }}
             >{t('daily_claim')}</button>
           </div>
+        </GlassCard>
+
+        {/* PROMOSYONLAR — bedava oyuncular dostumuz (haftalık/aylık/hoş geldin) */}
+        <div className="t-caption" style={{ color: 'var(--text-muted)', fontWeight: 700, letterSpacing: 0.5, margin: '0 4px 8px' }}>{t('promos_title')}</div>
+        <GlassCard style={{ marginBottom: 'var(--sp-lg)', padding: 0, overflow: 'hidden' }}>
+          {promos.map((r, i) => (
+            <div key={r.key} style={{
+              display: 'flex', alignItems: 'center', gap: 10, padding: 'var(--sp-md)',
+              borderTop: i > 0 ? '0.5px solid rgba(255,255,255,0.08)' : 'none',
+            }}>
+              <span style={{ fontSize: 22 }}>{r.emoji}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="t-bold" style={{ color: 'var(--text)' }}>{t(r.titleKey)}</div>
+                <div className="t-caption" style={{ color: r.available ? 'var(--green)' : 'var(--text-muted)' }}>
+                  +{formatPrice(r.amount)}{!r.available && r.remainingMs > 0 ? ` · ${fmtLeft(r.remainingMs)} ${t('rw_soon')}` : ''}
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={!r.available}
+                onClick={() => { const a = claimExtra(r.key); if (a > 0) { showToast(`${r.emoji} +${formatPrice(a)}`, true); forceD(n => n + 1) } }}
+                style={{
+                  padding: '8px 16px', borderRadius: 11, fontSize: 12, fontWeight: 800, border: 'none',
+                  background: r.available ? 'var(--green)' : 'rgba(255,255,255,0.06)',
+                  color: r.available ? '#003312' : 'var(--text-muted)', opacity: r.available ? 1 : 0.6,
+                }}
+              >{t('daily_claim')}</button>
+            </div>
+          ))}
         </GlassCard>
 
         {/* Ödeme bilgi banner'ı — native iOS: App Store / web: Stripe test */}

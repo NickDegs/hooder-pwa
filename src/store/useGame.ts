@@ -73,6 +73,8 @@ interface GameState {
   sellFx:          (code: string, currentRate: number) => number   // gerçekleşen K/Z (USD)
   dailyStatus:     () => { available: boolean; amount: number; day: number; inWeek: number; isSeventh: boolean }
   claimDaily:      () => number
+  extraRewards:    () => { key: string; emoji: string; titleKey: string; amount: number; available: boolean; remainingMs: number }[]
+  claimExtra:      (key: string) => number
 }
 
 // Bölge kilidi sabitleri
@@ -109,6 +111,19 @@ function computeDaily(): { available: boolean; amount: number; day: number; inWe
 function recordDaily(day: number): void {
   try { localStorage.setItem('hooder_daily', JSON.stringify({ ts: Date.now(), streak: day })) } catch { /* ignore */ }
 }
+
+// ── Ekstra promosyonlar (haftalık/aylık/hoş geldin) — bedava oyuncular dostumuz ─
+const EXTRA_REWARDS: { key: string; emoji: string; titleKey: string; amount: number; cdMs: number; once?: boolean }[] = [
+  { key: 'welcome', emoji: '🎊', titleKey: 'rw_welcome', amount: 10_000_000,  cdMs: 0, once: true },
+  { key: 'weekly',  emoji: '📅', titleKey: 'rw_weekly',  amount: 30_000_000,  cdMs: 7 * 24 * 3600 * 1000 },
+  { key: 'monthly', emoji: '🗓️', titleKey: 'rw_monthly', amount: 150_000_000, cdMs: 30 * 24 * 3600 * 1000 },
+]
+function rwAll(): Record<string, number> { try { return JSON.parse(localStorage.getItem('hooder_rw') || '{}') } catch { return {} } }
+function rwAvail(r: { key: string; cdMs: number; once?: boolean }): boolean {
+  const ts = rwAll()[r.key] || 0
+  return r.once ? ts === 0 : (Date.now() - ts >= r.cdMs)
+}
+function rwSet(key: string): void { try { const o = rwAll(); o[key] = Date.now(); localStorage.setItem('hooder_rw', JSON.stringify(o)) } catch { /* ignore */ } }
 
 // ── Günlük alım limiti (spam backstop) ────────────────────────────────────────
 const MAX_BUYS_PER_DAY = 50
@@ -315,6 +330,23 @@ export const useGame = create<GameState>((set, get) => ({
     set({ cash, netWorth: computeNetWorth(cash, st.owned) })
     persist()
     return s.amount
+  },
+
+  extraRewards() {
+    return EXTRA_REWARDS.map(r => ({
+      key: r.key, emoji: r.emoji, titleKey: r.titleKey, amount: r.amount,
+      available: rwAvail(r),
+      remainingMs: r.once ? 0 : Math.max(0, r.cdMs - (Date.now() - (rwAll()[r.key] || 0))),
+    }))
+  },
+  claimExtra(key: string) {
+    const r = EXTRA_REWARDS.find(x => x.key === key)
+    if (!r || !rwAvail(r)) return 0
+    rwSet(key)
+    const st = get(); const cash = st.cash + r.amount
+    set({ cash, netWorth: computeNetWorth(cash, st.owned) })
+    persist()
+    return r.amount
   },
 
   isPending(id: string) { return get().pending.some(p => p.id === id) },
