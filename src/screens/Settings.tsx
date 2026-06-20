@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useGame } from '../store/useGame'
 import { useAuth } from '../services/auth'
 import { formatPrice, formatIncome } from '../data'
 import GlassCard from '../components/GlassCard'
+import { getSavedPref, getMaxHz, detectMaxHz, applyFps } from '../services/fps'
 
 export default function Settings() {
   const { playerName, cash, netWorth, owned, dailyIncome, level, setPlayerName, addCash, reset, serverId } = useGame()
@@ -12,6 +13,11 @@ export default function Settings() {
   const [showReset,        setShowReset]        = useState(false)
   const [showSignOut,      setShowSignOut]      = useState(false)
   const [showDelete,       setShowDelete]       = useState(false)
+  const [fpsPref,          setFpsPref]          = useState(getSavedPref())
+  const [maxHz,            setMaxHz]            = useState(getMaxHz())
+
+  useEffect(() => { detectMaxHz().then(setMaxHz) }, [])
+  function chooseFps(pref: string) { applyFps(pref); setFpsPref(pref) }
 
   function saveName() {
     const t = nameInput.trim()
@@ -123,6 +129,42 @@ export default function Settings() {
             </GlassCard>
           </>
         )}
+
+        {/* Görüntü / Yenileme hızı */}
+        <SectionLabel>GÖRÜNTÜ</SectionLabel>
+        <GlassCard style={{ marginBottom: 'var(--sp-lg)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <span style={{ fontSize: 16 }}>⚡</span>
+            <div style={{ flex: 1 }}>
+              <div className="t-bold" style={{ color: 'var(--text)' }}>Yenileme Hızı</div>
+              <div className="t-caption" style={{ color: 'var(--text-muted)' }}>
+                Cihaz azamisi: {maxHz} Hz · stok en akıcı, düşük seçim pil tasarrufu
+              </div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {[
+              { v: 'auto', label: `Otomatik (${maxHz})` },
+              ...[120, 90, 60, 30].filter(n => n <= maxHz).map(n => ({ v: String(n), label: `${n} Hz` })),
+            ].map(opt => {
+              const active = fpsPref === opt.v
+              return (
+                <button
+                  key={opt.v}
+                  type="button"
+                  onClick={() => chooseFps(opt.v)}
+                  style={{
+                    padding: '8px 14px', borderRadius: 12,
+                    background: active ? 'rgba(52,148,255,0.18)' : 'rgba(255,255,255,0.06)',
+                    border: `0.5px solid ${active ? 'rgba(52,148,255,0.45)' : 'rgba(255,255,255,0.12)'}`,
+                    color: active ? 'var(--primary)' : 'var(--text-sub)',
+                    fontSize: 12, fontWeight: 800,
+                  }}
+                >{opt.label}</button>
+              )
+            })}
+          </div>
+        </GlassCard>
 
         {/* Developer */}
         <SectionLabel>GELİŞTİRİCİ</SectionLabel>
