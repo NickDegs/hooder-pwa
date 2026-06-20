@@ -163,38 +163,21 @@ export default function App() {
     setSelectedHood(null)  // close hood panel while claim panel is open
   }
 
-  // Haritada boş bir yere tıkla → o KOORDİNATTAKİ bölgenin mülklerini çek (GPS
-  // konumundaki gibi) ve mahalle panelini aç. Yakında mevcut hood varsa direkt o
-  // açılır; yoksa o bölge yüklenir (artık tıkladığın yer gösterilir, kendi konumun değil).
-  async function handleMapPick(lat: number, lng: number) {
-    const near0 = nearestHood(buildGroups().hoods, lat, lng)
-    if (near0 && Math.hypot(near0.lat - lat, near0.lng - lng) < 0.06) { handleSelectHood(near0); return }
-    if (!pickBusy.current) {
-      pickBusy.current = true
-      const before = allDynamicProperties().length
-      try {
-        await fetchLocalProperties(lat, lng)
-      } catch { /* ağ hatası → sessiz geç */ }
-      pickBusy.current = false
-      // Yalnız GERÇEKTEN yeni mülk eklendiyse markerları tazele (gereksiz rebuild yok)
-      if (allDynamicProperties().length > before) { setDynamicProperties(allDynamicProperties()); setLocalVersion(v => v + 1) }
-    }
+  // Haritada boş bir yere tıkla → o KOORDİNATTAKİ bölgeyi ANINDA doldur (prosedürel,
+  // ağ yok) ve en yakın mahalleyi aç. Artık tıkladığın yer gösterilir, kendi konumun değil.
+  function handleMapPick(lat: number, lng: number) {
+    if (ensureAreaProperties(lat, lng)) { setDynamicProperties(allDynamicProperties()); setLocalVersion(v => v + 1) }
     const near = nearestHood(buildGroups().hoods, lat, lng)
     if (near) handleSelectHood(near)
   }
 
   // Gezinti (pan) bitince: bakılan bölgeyi ANINDA doldur (prosedürel, offline,
   // garantili) → nereye bakarsan oranın etiketi anında belirir. PANEL AÇILMAZ.
-  async function handleMapExplore(lat: number, lng: number) {
-    // 1) Prosedürel hücre üret — anında, ağ beklemez, her zaman etiket verir
+  // NOT: Burada ARTIK network fetch YOK — her moveend'de fetch, sayfanın
+  // networkidle'a ulaşmasını engelliyordu (tarayıcı/scanner asılı kalıyordu).
+  // Prosedürel üretim zaten anında ve offline etiket veriyor.
+  function handleMapExplore(lat: number, lng: number) {
     if (ensureAreaProperties(lat, lng)) { setDynamicProperties(allDynamicProperties()); setLocalVersion(v => v + 1) }
-    // 2) Bonus: gerçek POI (otel/landmark) varsa zenginleştir — non-blocking
-    if (pickBusy.current) return
-    pickBusy.current = true
-    const before = allDynamicProperties().length
-    try { await fetchLocalProperties(lat, lng) } catch { /* sessiz */ }
-    pickBusy.current = false
-    if (allDynamicProperties().length > before) { setDynamicProperties(allDynamicProperties()); setLocalVersion(v => v + 1) }
   }
 
   // ── Desktop ─────────────────────────────────────────────────────────────────
