@@ -64,12 +64,16 @@ export default function Login() {
     catch (err: unknown) { setError(err instanceof Error ? err.message : 'Apple girişi başarısız') }
   }
 
-  // Google web popup'ı WKWebView'de güvenilir değil → native iOS'ta gizle
-  // (Apple zorunlu sağlayıcı native çalışır; Google opsiyonel). Bkz Apple 2.1(a).
-  const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
+  // Native iOS'ta sosyal giriş (Apple/Google) gizli: WKWebView popup'ı patlar
+  // (Apple 2.1a reddi). Sosyal giriş SUNULMAYINCA Sign in with Apple da zorunlu
+  // değildir → E-posta (birinci taraf) + Misafir yeterli. Web'de hepsi açık.
+  const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = isNativeIOS ? [
+    { id: 'email',  label: t('email'), icon: <span style={{ fontSize: 13 }}>✉️</span> },
+    { id: 'guest',  label: t('login_guest').split(' ')[0], icon: <span style={{ fontSize: 13 }}>👤</span> },
+  ] : [
     { id: 'email',  label: t('email'), icon: <span style={{ fontSize: 13 }}>✉️</span> },
     { id: 'apple',  label: 'Apple',   icon: <AppleLogo size={14} color="currentColor" /> },
-    ...(isNativeIOS ? [] : [{ id: 'google' as Tab, label: 'Google', icon: <GoogleLogo size={14} /> }]),
+    { id: 'google', label: 'Google',  icon: <GoogleLogo size={14} /> },
     { id: 'guest',  label: t('login_guest').split(' ')[0], icon: <span style={{ fontSize: 13 }}>👤</span> },
   ]
 
