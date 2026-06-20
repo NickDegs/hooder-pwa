@@ -215,37 +215,46 @@ export default function MapView({
 
   // Current zoom level cached in ref
   const zoomRef  = useRef(11)
+  // Son görünürlük kademesi (0:ülke 1:şehir 2:mahalle 3:mülk) → gereksiz loop önler
+  const lastTier = useRef(-1)
 
   // Platforma göre eşikler: masaüstü geniş ekran, mobil dar ekran
   const zHood = isDesktop ? Z_HOOD_DSK : Z_HOOD_MOB
   const zProp = isDesktop ? Z_PROP_DSK : Z_PROP_MOB
 
-  function applyVisibility(zoom: number) {
+  function applyVisibility(zoom: number, force = false) {
     zoomRef.current = zoom
     // Yakınlaştıkça etiket cam zemini koyulaşır (şeffaflık azalır) → çok yakında
     // okunaklı kalır; uzakta maksimum saydam "liquid glass" görünümü korunur.
     const op = zoom <= 11 ? 0.26 : zoom >= 16 ? 0.66 : 0.26 + ((zoom - 11) / 5) * 0.40
     document.documentElement.style.setProperty('--mk-op', op.toFixed(3))
-    const showCountry = zoom < Z_COUNTRY
-    const showCity = zoom >= Z_COUNTRY && zoom < zHood
-    const showHood = zoom >= zHood && zoom < zProp
-    const showProp = zoom >= zProp
-    countryMkrs.current.forEach(m => { (m.getElement() as HTMLElement).style.display = showCountry ? '' : 'none' })
-    cityMkrs.current.forEach(m => { (m.getElement() as HTMLElement).style.display = showCity ? '' : 'none' })
-    hoodMkrs.current.forEach(m => { (m.getElement() as HTMLElement).style.display = showHood ? '' : 'none' })
-    propMkrs.current.forEach(m => { (m.getElement() as HTMLElement).style.display = showProp ? '' : 'none' })
+    // Görünürlük kademesi (tier) değişmediyse yüzlerce marker'ın display'ini her
+    // zoom karesinde dolaşma → donma önlenir. Yalnız kademe değişince loop.
+    const tier = zoom < Z_COUNTRY ? 0 : zoom < zHood ? 1 : zoom < zProp ? 2 : 3
+    if (!force && tier === lastTier.current) return
+    lastTier.current = tier
+    countryMkrs.current.forEach(m => { (m.getElement() as HTMLElement).style.display = tier === 0 ? '' : 'none' })
+    cityMkrs.current.forEach(m => { (m.getElement() as HTMLElement).style.display = tier === 1 ? '' : 'none' })
+    hoodMkrs.current.forEach(m => { (m.getElement() as HTMLElement).style.display = tier === 2 ? '' : 'none' })
+    propMkrs.current.forEach(m => { (m.getElement() as HTMLElement).style.display = tier === 3 ? '' : 'none' })
   }
 
-  // Ülke + şehir + mahalle markerlarını (statik + dinamik) sıfırdan kur
-  function buildCityHood(map: mapboxgl.Map) {
-    countryMkrs.current.forEach(m => m.remove()); countryMkrs.current.clear()
-    cityMkrs.current.forEach(m => m.remove()); cityMkrs.current.clear()
-    hoodMkrs.current.forEach(m => m.remove()); hoodMkrs.current.clear()
+  // Ülke + şehir + mahalle markerları (statik + dinamik).
+  // incremental=true → mevcut markerlara DOKUNMA, yalnız eksik olanları ekle
+  // (gezinti/konum yüklemesinde tüm haritayı yeniden kurmak = donma; bu yüzden
+  //  sadece yeni bölgenin markerları eklenir). incremental=false → sıfırdan kur.
+  function buildCityHood(map: mapboxgl.Map, incremental = false) {
+    if (!incremental) {
+      countryMkrs.current.forEach(m => m.remove()); countryMkrs.current.clear()
+      cityMkrs.current.forEach(m => m.remove()); cityMkrs.current.clear()
+      hoodMkrs.current.forEach(m => m.remove()); hoodMkrs.current.clear()
+    }
     const { hoods, cities, countries } = buildGroups()
     hoodsRef.current = hoods
 
     // ── Ülke markerları (en üst) ──────────────────────────────────────────────
     countries.forEach(cg => {
+      if (incremental && countryMkrs.current.has(cg.country)) return
       const el = makeCountryEl(cg)
       el.addEventListener('click', e => {
         e.stopPropagation()
@@ -254,6 +263,7 @@ export default function MapView({
       countryMkrs.current.set(cg.country, new mapboxgl.Marker({ element: el, anchor: 'bottom' }).setLngLat([cg.lng, cg.lat]).addTo(map))
     })
     cities.forEach(g => {
+      if (incremental && cityMkrs.current.has(g.city)) return
       const el = makeCityEl(g, g.properties.length)
       el.addEventListener('click', e => {
         e.stopPropagation()
@@ -264,6 +274,7 @@ export default function MapView({
     })
     const ownedSet = new Set(ownedIdsRef.current)
     hoods.forEach(h => {
+      if (incremental && hoodMkrs.current.has(h.key)) return
       const oc = h.properties.reduce((n, p) => n + (ownedSet.has(p.id) ? 1 : 0), 0)
       const el = makeHoodEl(h, oc, h.key === highlightHood)
       el.addEventListener('click', e => {
@@ -277,10 +288,11 @@ export default function MapView({
   }
 
   // Mülk markerlarını (statik + dinamik) sahiplik rengiyle kur
-  function buildProps(map: mapboxgl.Map) {
-    propMkrs.current.forEach(m => m.remove()); propMkrs.current.clear()
+  function buildProps(map: mapboxgl.Map, incremental = false) {
+    if (!incremental) { propMkrs.current.forEach(m => m.remove()); propMkrs.current.clear() }
     const ownedSet = new Set(ownedIdsRef.current)
     allProperties.concat(dynamicProperties).forEach(prop => {
+      if (incremental && propMkrs.current.has(prop.id)) return
       const owned = ownedSet.has(prop.id)
       const el = makePropEl(prop, owned)
       el.addEventListener('click', e => {
@@ -357,7 +369,7 @@ export default function MapView({
 
       // ── Zoom → toggle visibility ──────────────────────────────────────────
       map.on('zoom', () => applyVisibility(map.getZoom()))
-      applyVisibility(map.getZoom())
+      applyVisibility(map.getZoom(), true)
 
       // ── Live pan → panel güncelle ─────────────────────────────────────────
       // Masaüstü: hood zoom eşiğinde (Z_HOOD_DSK=13) tam panel açılır
@@ -409,16 +421,17 @@ export default function MapView({
     if (!map || !map.isStyleLoaded()) return
     buildCityHood(map)
     buildProps(map)
-    applyVisibility(zoomRef.current)
+    applyVisibility(zoomRef.current, true)
   }, [ownedIds]) // eslint-disable-line
 
-  // Konum-bazlı dinamik mülkler gelince TÜM markerları (şehir+mahalle+mülk) yeniden kur
+  // Konum-bazlı dinamik mülkler gelince yalnız YENİ bölgenin markerlarını ekle
+  // (artımlı → mevcut yüzlerce marker yeniden yaratılmaz → donma yok)
   useEffect(() => {
     const map = mapRef.current
     if (!map || !map.isStyleLoaded()) return
-    buildCityHood(map)
-    buildProps(map)
-    applyVisibility(zoomRef.current)
+    buildCityHood(map, true)
+    buildProps(map, true)
+    applyVisibility(zoomRef.current, true)
   }, [localVersion]) // eslint-disable-line
 
   // Highlight selected hood marker
@@ -438,7 +451,7 @@ export default function MapView({
       })
       mk.getElement().replaceWith(el)
     })
-    applyVisibility(zoomRef.current)
+    applyVisibility(zoomRef.current, true)
   }, [highlightHood]) // eslint-disable-line
 
   // Fly to city

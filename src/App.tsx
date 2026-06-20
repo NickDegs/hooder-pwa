@@ -154,11 +154,13 @@ export default function App() {
     if (near0 && Math.hypot(near0.lat - lat, near0.lng - lng) < 0.06) { handleSelectHood(near0); return }
     if (!pickBusy.current) {
       pickBusy.current = true
+      const before = allDynamicProperties().length
       try {
-        const res = await fetchLocalProperties(lat, lng)
-        if (res && res.props.length) { setDynamicProperties(allDynamicProperties()); setLocalVersion(v => v + 1) }
+        await fetchLocalProperties(lat, lng)
       } catch { /* ağ hatası → sessiz geç */ }
       pickBusy.current = false
+      // Yalnız GERÇEKTEN yeni mülk eklendiyse markerları tazele (gereksiz rebuild yok)
+      if (allDynamicProperties().length > before) { setDynamicProperties(allDynamicProperties()); setLocalVersion(v => v + 1) }
     }
     const near = nearestHood(buildGroups().hoods, lat, lng)
     if (near) handleSelectHood(near)
@@ -169,11 +171,12 @@ export default function App() {
   async function handleMapExplore(lat: number, lng: number) {
     if (pickBusy.current) return
     pickBusy.current = true
+    const before = allDynamicProperties().length
     try {
-      const res = await fetchLocalProperties(lat, lng)
-      if (res && res.props.length) { setDynamicProperties(allDynamicProperties()); setLocalVersion(v => v + 1) }
+      await fetchLocalProperties(lat, lng)
     } catch { /* sessiz */ }
     pickBusy.current = false
+    if (allDynamicProperties().length > before) { setDynamicProperties(allDynamicProperties()); setLocalVersion(v => v + 1) }
   }
 
   // ── Desktop ─────────────────────────────────────────────────────────────────
