@@ -132,6 +132,19 @@ export default function Settings() {
           </>
         )}
 
+        {/* Otomatik bulut yedek (girişsiz, kodsuz) */}
+        <SectionLabel>{t('cloud_title')}</SectionLabel>
+        <GlassCard style={{ marginBottom: 'var(--sp-lg)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 20 }}>☁️</span>
+            <div style={{ flex: 1 }}>
+              <div className="t-bold" style={{ color: 'var(--text)' }}>iCloud · {t('cloud_title').toLowerCase()}</div>
+              <div className="t-caption" style={{ color: 'var(--text-muted)', lineHeight: 1.5 }}>{t('cloud_desc')}</div>
+            </div>
+            <span style={{ fontSize: 16, color: 'var(--green)' }}>✓</span>
+          </div>
+        </GlassCard>
+
         {/* Oyun dili */}
         <SectionLabel>{`${t('set_language')} · LANGUAGE`}</SectionLabel>
         <GlassCard style={{ marginBottom: 'var(--sp-lg)' }}>

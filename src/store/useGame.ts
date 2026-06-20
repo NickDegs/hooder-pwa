@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { allProperties, type Property } from '../data'
 import { getRegisteredProperty, registerProperties } from '../services/localProperties'
+import { pushState as cloudPush, pullState as cloudPull, isCloudOn } from '../services/cloudBackup'
 import { API_BASE } from '../services/apiBase'
 
 export interface OwnedProperty {
@@ -163,10 +164,13 @@ export const useGame = create<GameState>((set, get) => ({
           }
         })
     } else {
-      // Guest / no server: localStorage only
+      // Guest / no server: localStorage + girişsiz bulut yedek
       const raw = localStorage.getItem(makeKey(userId, ''))
-      if (!raw) return
-      try { set(parseState(JSON.parse(raw))) } catch { /* ignore */ }
+      if (raw) { try { set(parseState(JSON.parse(raw))) } catch { /* ignore */ } }
+      // Buluttan otomatik geri yükle (varsa) — kod ile başka cihazdan taşıma dahil
+      if (isCloudOn()) {
+        cloudPull().then(st => { if (st) set(parseState(st)) }).catch(() => {})
+      }
     }
   },
 
@@ -341,6 +345,11 @@ function persist() {
   // Always save locally as backup
   if (currentUserId) {
     localStorage.setItem(makeKey(currentUserId, currentServer), JSON.stringify(data))
+  }
+
+  // Girişsiz bulut yedek (oto) — sunucu oturumu yoksa (misafir/giriş yok)
+  if (!currentServer && isCloudOn()) {
+    cloudPush(data)
   }
 
   // Sync to API for authenticated users
