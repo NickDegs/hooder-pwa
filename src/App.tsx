@@ -4,6 +4,7 @@ import { useGame } from './store/useGame'
 import { allCities, setDynamicProperties, buildGroups, nearestHood, type City, type Property, type HoodGroup } from './data'
 import { formatPrice } from './data'
 import { fetchLocalProperties, allDynamicProperties } from './services/localProperties'
+import { syncWorldProperties } from './worldProperties'
 import { useDragSheet } from './services/useDragSheet'
 import { useLang } from './services/i18n'
 import { initEconomy } from './services/economy'
@@ -66,6 +67,17 @@ export default function App() {
 
   // Sanal ekonomiyi başlat (gerçek dünyadan tohumla → oyun-içi drift/işlem belirler)
   useEffect(() => { initEconomy() }, [])
+
+  // Gömülü dünya mülkleri: açılışta hepsi yüklenir (anında, donmasız, offline) +
+  // günde 1 otomatik tazelenir (id'ler sabit → sahiplik korunur, fiyat/ilan güncellenir).
+  useEffect(() => {
+    if (syncWorldProperties()) { setDynamicProperties(allDynamicProperties()); setLocalVersion(v => v + 1) }
+    // Uzun oturumda gün değişimini yakalamak için saatlik kontrol
+    const id = setInterval(() => {
+      if (syncWorldProperties()) { setDynamicProperties(allDynamicProperties()); setLocalVersion(v => v + 1) }
+    }, 3_600_000)
+    return () => clearInterval(id)
+  }, [])
 
   // Süren emlak işlemlerini saniyede bir kontrol et → süresi dolan tamamlanır
   useEffect(() => {

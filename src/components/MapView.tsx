@@ -7,6 +7,7 @@ import {
 } from '../data'
 import { formatPrice } from '../data'
 import { livePrice } from '../services/economy'
+import { worldCities, worldCountries, flagFromCC } from '../worldData'
 
 export interface MapClickInfo {
   name:     string
@@ -205,105 +206,140 @@ export default function MapView({
   // Flag: suppress map click when a marker was just clicked
   const markerClicked = useRef(false)
 
-  // Marker buckets
+  // ── Marker havuzları (viewport culling) ──────────────────────────────────────
+  // KALICI DONMA ÇÖZÜMÜ: marker'lar bir kez oluşturulup havuzda saklanır ama
+  // haritaya YALNIZ EKRANDA GÖRÜNEN (viewport + kenar payı) olanlar eklenir. Kaç
+  // bin mülk/şehir olursa olsun aynı anda DOM'da sadece birkaç düzine marker
+  // bulunur → 3D harita her karede yüzlerce marker'ı yeniden konumlandırmaz →
+  // donma yok. Dünya etiketleri (worldData) tek pakette gömülü gelir.
   const countryMkrs = useRef<Map<string, mapboxgl.Marker>>(new Map())
-  const cityMkrs  = useRef<Map<string, mapboxgl.Marker>>(new Map())
-  const hoodMkrs  = useRef<Map<string, mapboxgl.Marker>>(new Map())
-  const propMkrs  = useRef<Map<string, mapboxgl.Marker>>(new Map())
-  // Tıklama/pan için güncel mahalle listesi (statik + dinamik)
-  const hoodsRef  = useRef<HoodGroup[]>([])
+  const cityMkrs    = useRef<Map<string, mapboxgl.Marker>>(new Map())
+  const hoodMkrs    = useRef<Map<string, mapboxgl.Marker>>(new Map())
+  const propMkrs    = useRef<Map<string, mapboxgl.Marker>>(new Map())
+  // Şu an haritaya EKLİ olan key'ler (havuzdaki diğerleri detached)
+  const attCountry  = useRef<Set<string>>(new Set())
+  const attCity     = useRef<Set<string>>(new Set())
+  const attHood     = useRef<Set<string>>(new Set())
+  const attProp     = useRef<Set<string>>(new Set())
+  // Culling kaynağı: güncel veri (gruplanmış + dünya)
+  const hoodsRef      = useRef<HoodGroup[]>([])
+  const citiesData    = useRef<CityGroup[]>([])
+  const countriesData = useRef<CountryGroup[]>([])
+  const propsData     = useRef<Property[]>([])
 
   // Current zoom level cached in ref
   const zoomRef  = useRef(11)
-  // Son görünürlük kademesi (0:ülke 1:şehir 2:mahalle 3:mülk) → gereksiz loop önler
-  const lastTier = useRef(-1)
 
   // Platforma göre eşikler: masaüstü geniş ekran, mobil dar ekran
   const zHood = isDesktop ? Z_HOOD_DSK : Z_HOOD_MOB
   const zProp = isDesktop ? Z_PROP_DSK : Z_PROP_MOB
 
-  function applyVisibility(zoom: number, force = false) {
-    zoomRef.current = zoom
-    // Yakınlaştıkça etiket cam zemini koyulaşır (şeffaflık azalır) → çok yakında
-    // okunaklı kalır; uzakta maksimum saydam "liquid glass" görünümü korunur.
-    const op = zoom <= 11 ? 0.26 : zoom >= 16 ? 0.66 : 0.26 + ((zoom - 11) / 5) * 0.40
-    document.documentElement.style.setProperty('--mk-op', op.toFixed(3))
-    // Görünürlük kademesi (tier) değişmediyse yüzlerce marker'ın display'ini her
-    // zoom karesinde dolaşma → donma önlenir. Yalnız kademe değişince loop.
-    const tier = zoom < Z_COUNTRY ? 0 : zoom < zHood ? 1 : zoom < zProp ? 2 : 3
-    if (!force && tier === lastTier.current) return
-    lastTier.current = tier
-    countryMkrs.current.forEach(m => { (m.getElement() as HTMLElement).style.display = tier === 0 ? '' : 'none' })
-    cityMkrs.current.forEach(m => { (m.getElement() as HTMLElement).style.display = tier === 1 ? '' : 'none' })
-    hoodMkrs.current.forEach(m => { (m.getElement() as HTMLElement).style.display = tier === 2 ? '' : 'none' })
-    propMkrs.current.forEach(m => { (m.getElement() as HTMLElement).style.display = tier === 3 ? '' : 'none' })
-  }
-
-  // Ülke + şehir + mahalle markerları (statik + dinamik).
-  // incremental=true → mevcut markerlara DOKUNMA, yalnız eksik olanları ekle
-  // (gezinti/konum yüklemesinde tüm haritayı yeniden kurmak = donma; bu yüzden
-  //  sadece yeni bölgenin markerları eklenir). incremental=false → sıfırdan kur.
-  function buildCityHood(map: mapboxgl.Map, incremental = false) {
-    if (!incremental) {
-      countryMkrs.current.forEach(m => m.remove()); countryMkrs.current.clear()
-      cityMkrs.current.forEach(m => m.remove()); cityMkrs.current.clear()
-      hoodMkrs.current.forEach(m => m.remove()); hoodMkrs.current.clear()
-    }
+  // Gruplanmış veri + dünya etiketlerini birleştirip culling kaynaklarını tazele
+  function refreshData() {
     const { hoods, cities, countries } = buildGroups()
     hoodsRef.current = hoods
-
-    // ── Ülke markerları (en üst) ──────────────────────────────────────────────
-    countries.forEach(cg => {
-      if (incremental && countryMkrs.current.has(cg.country)) return
-      const el = makeCountryEl(cg)
-      el.addEventListener('click', e => {
-        e.stopPropagation()
-        map.flyTo({ center: [cg.lng, cg.lat], zoom: 9, pitch: 45, duration: 1400 })
-      })
-      countryMkrs.current.set(cg.country, new mapboxgl.Marker({ element: el, anchor: 'bottom' }).setLngLat([cg.lng, cg.lat]).addTo(map))
-    })
-    cities.forEach(g => {
-      if (incremental && cityMkrs.current.has(g.city)) return
-      const el = makeCityEl(g, g.properties.length)
-      el.addEventListener('click', e => {
-        e.stopPropagation()
-        const cd = allCities.find(c => c.name === g.city)
-        map.flyTo({ center: [g.lng, g.lat], zoom: cd?.zoom ?? 13, pitch: 52, duration: 1400 })
-      })
-      cityMkrs.current.set(g.city, new mapboxgl.Marker({ element: el, anchor: 'bottom' }).setLngLat([g.lng, g.lat]).addTo(map))
-    })
-    const ownedSet = new Set(ownedIdsRef.current)
-    hoods.forEach(h => {
-      if (incremental && hoodMkrs.current.has(h.key)) return
-      const oc = h.properties.reduce((n, p) => n + (ownedSet.has(p.id) ? 1 : 0), 0)
-      const el = makeHoodEl(h, oc, h.key === highlightHood)
-      el.addEventListener('click', e => {
-        e.stopPropagation()
-        markerClicked.current = true
-        map.flyTo({ center: [h.lng, h.lat], zoom: 14, pitch: 58, duration: 1100 })
-        cbHood.current(h)
-      })
-      hoodMkrs.current.set(h.key, new mapboxgl.Marker({ element: el, anchor: 'bottom' }).setLngLat([h.lng, h.lat]).addTo(map))
-    })
+    const cityKeys = new Set(cities.map(c => c.city))
+    const extraCities: CityGroup[] = worldCities
+      .filter(w => !cityKeys.has(w.name))
+      .map(w => ({ city: w.name, country: w.country, flag: flagFromCC(w.country), lat: w.lat, lng: w.lng, properties: [] }))
+    citiesData.current = [...cities, ...extraCities]
+    const ctryKeys = new Set(countries.map(c => c.country))
+    const extraCtry: CountryGroup[] = worldCountries
+      .filter(w => !ctryKeys.has(w.country))
+      .map(w => ({ country: w.country, name: w.name, flag: flagFromCC(w.country), lat: w.lat, lng: w.lng, cityCount: 0, properties: [] }))
+    countriesData.current = [...countries, ...extraCtry]
+    // En değerli mülkler önce → sığdırma (cap) sınırında değerliler görünür
+    propsData.current = allProperties.concat(dynamicProperties).slice().sort((a, b) => b.price - a.price)
   }
 
-  // Mülk markerlarını (statik + dinamik) sahiplik rengiyle kur
-  function buildProps(map: mapboxgl.Map, incremental = false) {
-    if (!incremental) { propMkrs.current.forEach(m => m.remove()); propMkrs.current.clear() }
-    const ownedSet = new Set(ownedIdsRef.current)
-    allProperties.concat(dynamicProperties).forEach(prop => {
-      if (incremental && propMkrs.current.has(prop.id)) return
-      const owned = ownedSet.has(prop.id)
-      const el = makePropEl(prop, owned)
-      el.addEventListener('click', e => {
-        e.stopPropagation()
-        markerClicked.current = true
-        cbSelect.current(prop)
-        const hood = hoodsRef.current.find(h => h.key === `${prop.city}::${prop.neighborhood}`)
-        if (hood) cbHood.current(hood)
-      })
-      propMkrs.current.set(prop.id, new mapboxgl.Marker({ element: el, anchor: 'bottom' }).setLngLat([prop.lng, prop.lat]).addTo(map))
+  // Marker üreticileri (lazy; havuzda yoksa bir kez oluşturulur)
+  function makeCountryMarker(cg: CountryGroup, map: mapboxgl.Map): mapboxgl.Marker {
+    const el = makeCountryEl(cg)
+    el.addEventListener('click', e => { e.stopPropagation(); markerClicked.current = true; map.flyTo({ center: [cg.lng, cg.lat], zoom: 5.2, pitch: 45, duration: 1400 }) })
+    return new mapboxgl.Marker({ element: el, anchor: 'bottom' }).setLngLat([cg.lng, cg.lat])
+  }
+  function makeCityMarker(g: CityGroup, map: mapboxgl.Map): mapboxgl.Marker {
+    const el = makeCityEl(g, g.properties.length)
+    el.addEventListener('click', e => {
+      e.stopPropagation(); markerClicked.current = true
+      const cd = allCities.find(c => c.name === g.city)
+      map.flyTo({ center: [g.lng, g.lat], zoom: cd?.zoom ?? 13, pitch: 52, duration: 1400 })
+      // Şehre tıkla → o şehrin mülklerini yükle (canlı), panel açmadan
+      if (cbMapExplore.current) cbMapExplore.current(g.lat, g.lng)
     })
+    return new mapboxgl.Marker({ element: el, anchor: 'bottom' }).setLngLat([g.lng, g.lat])
+  }
+  function makeHoodMarker(h: HoodGroup, map: mapboxgl.Map): mapboxgl.Marker {
+    const ownedSet = new Set(ownedIdsRef.current)
+    const oc = h.properties.reduce((n, p) => n + (ownedSet.has(p.id) ? 1 : 0), 0)
+    const el = makeHoodEl(h, oc, h.key === highlightHood)
+    el.addEventListener('click', e => {
+      e.stopPropagation(); markerClicked.current = true
+      map.flyTo({ center: [h.lng, h.lat], zoom: 14, pitch: 58, duration: 1100 })
+      cbHood.current(h)
+    })
+    return new mapboxgl.Marker({ element: el, anchor: 'bottom' }).setLngLat([h.lng, h.lat])
+  }
+  function makePropMarker(prop: Property, _map: mapboxgl.Map): mapboxgl.Marker {
+    const owned = new Set(ownedIdsRef.current).has(prop.id)
+    const el = makePropEl(prop, owned)
+    el.addEventListener('click', e => {
+      e.stopPropagation(); markerClicked.current = true
+      cbSelect.current(prop)
+      const hood = hoodsRef.current.find(h => h.key === `${prop.city}::${prop.neighborhood}`)
+      if (hood) cbHood.current(hood)
+    })
+    return new mapboxgl.Marker({ element: el, anchor: 'bottom' }).setLngLat([prop.lng, prop.lat])
+  }
+
+  // Bir kademenin marker'larını viewport'a göre senkronla (ekle/çıkar, cap'li)
+  function syncTier<T>(
+    map: mapboxgl.Map, active: boolean,
+    pool: { current: Map<string, mapboxgl.Marker> }, att: { current: Set<string> },
+    data: T[], keyOf: (t: T) => string, lnglatOf: (t: T) => [number, number],
+    make: (t: T, map: mapboxgl.Map) => mapboxgl.Marker, cap: number,
+  ) {
+    if (!active) {
+      if (att.current.size) { att.current.forEach(k => pool.current.get(k)?.remove()); att.current.clear() }
+      return
+    }
+    const b = map.getBounds()
+    if (!b) return
+    const dLat = (b.getNorth() - b.getSouth()) * 0.25, dLng = (b.getEast() - b.getWest()) * 0.25
+    const inView = (lng: number, lat: number) =>
+      lat >= b.getSouth() - dLat && lat <= b.getNorth() + dLat && lng >= b.getWest() - dLng && lng <= b.getEast() + dLng
+    const want = new Set<string>()
+    for (const it of data) {
+      const [lng, lat] = lnglatOf(it)
+      if (inView(lng, lat)) { want.add(keyOf(it)); if (want.size >= cap) break }
+    }
+    // Görünürden çıkanları haritadan kaldır (havuzda kalır, yeniden kullanılır)
+    att.current.forEach(k => { if (!want.has(k)) { pool.current.get(k)?.remove(); att.current.delete(k) } })
+    // Yeni görünenleri ekle
+    for (const it of data) {
+      const k = keyOf(it)
+      if (!want.has(k) || att.current.has(k)) continue
+      let m = pool.current.get(k)
+      if (!m) { m = make(it, map); pool.current.set(k, m) }
+      m.addTo(map); att.current.add(k)
+    }
+  }
+
+  // Zoom kademesine + viewport'a göre tüm marker'ları senkronla
+  function reconcile(map: mapboxgl.Map) {
+    const z = map.getZoom(); zoomRef.current = z
+    const op = z <= 11 ? 0.26 : z >= 16 ? 0.66 : 0.26 + ((z - 11) / 5) * 0.40
+    document.documentElement.style.setProperty('--mk-op', op.toFixed(3))
+    const tier = z < Z_COUNTRY ? 0 : z < zHood ? 1 : z < zProp ? 2 : 3
+    syncTier(map, tier === 0, countryMkrs, attCountry, countriesData.current, c => c.country, c => [c.lng, c.lat], makeCountryMarker, 40)
+    syncTier(map, tier === 1, cityMkrs,    attCity,    citiesData.current,    c => c.city,    c => [c.lng, c.lat], makeCityMarker,    60)
+    syncTier(map, tier === 2, hoodMkrs,    attHood,    hoodsRef.current,       h => h.key,     h => [h.lng, h.lat], makeHoodMarker,    60)
+    syncTier(map, tier === 3, propMkrs,    attProp,    propsData.current,      p => p.id,      p => [p.lng, p.lat], makePropMarker,    80)
+  }
+
+  // Bir havuzu tamamen boşalt (sahiplik/seçim değişince renk güncellensin diye)
+  function clearPool(pool: { current: Map<string, mapboxgl.Marker> }, att: { current: Set<string> }) {
+    pool.current.forEach(m => m.remove()); pool.current.clear(); att.current.clear()
   }
 
   // Init
@@ -340,9 +376,9 @@ export default function MapView({
         if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'none')
       })
 
-      // ── Tüm markerlar (statik + dinamik) ──────────────────────────────────
-      buildCityHood(map)
-      buildProps(map)
+      // ── Veriyi hazırla + ekrandaki marker'ları kur (viewport culling) ──────
+      refreshData()
+      reconcile(map)
 
       // ── Haritanın HERHANGİ bir yerine tıkla → yakınlaştır + en yakın mahalle
       //    listesini aç (cam panel). Eskiden "talep paneli" açılıyordu; kullanıcı
@@ -367,9 +403,12 @@ export default function MapView({
         else { const nearest = nearestHood(hoodsRef.current, lat, lng); if (nearest) cbHood.current(nearest) }
       })
 
-      // ── Zoom → toggle visibility ──────────────────────────────────────────
-      map.on('zoom', () => applyVisibility(map.getZoom()))
-      applyVisibility(map.getZoom(), true)
+      // ── Zoom (her kare): yalnız etiket opaklığını güncelle (ucuz) ──────────
+      map.on('zoom', () => {
+        const z = map.getZoom(); zoomRef.current = z
+        const op = z <= 11 ? 0.26 : z >= 16 ? 0.66 : 0.26 + ((z - 11) / 5) * 0.40
+        document.documentElement.style.setProperty('--mk-op', op.toFixed(3))
+      })
 
       // ── Live pan → panel güncelle ─────────────────────────────────────────
       // Masaüstü: hood zoom eşiğinde (Z_HOOD_DSK=13) tam panel açılır
@@ -394,6 +433,10 @@ export default function MapView({
       // Panel AÇILMAZ; sadece o civarın mülk markerları/etiketleri belirir. Çok
       // yakınlaşıp gezindikçe haritada gerçekten gezdiğin yer dolu görünür.
       map.on('moveend', () => {
+        // 1) Ekrandaki marker'ları yeni viewport'a göre senkronla (culling)
+        reconcile(map)
+        // 2) Mülkler zaten gömülü; yine de detaylı POI için (otel/landmark) bölge
+        //    yüklenmemişse canlı dene (gömülü mülkler yetiyorsa fetch boş döner).
         const z = map.getZoom()
         if (z < zHood || !cbMapExplore.current) return
         const c = map.getCenter()
@@ -415,43 +458,32 @@ export default function MapView({
     }
   }, []) // eslint-disable-line
 
-  // Sahiplik değişince mülk + mahalle (% özeti) markerlarını yenile
+  // Sahiplik değişince: mülk + mahalle havuzlarını boşalt (renk/% güncellensin),
+  // veriyi tazele, ekrandakileri yeniden kur (culling → yalnız görünür olanlar)
   useEffect(() => {
     const map = mapRef.current
     if (!map || !map.isStyleLoaded()) return
-    buildCityHood(map)
-    buildProps(map)
-    applyVisibility(zoomRef.current, true)
+    clearPool(propMkrs, attProp)
+    clearPool(hoodMkrs, attHood)
+    refreshData()
+    reconcile(map)
   }, [ownedIds]) // eslint-disable-line
 
-  // Konum-bazlı dinamik mülkler gelince yalnız YENİ bölgenin markerlarını ekle
-  // (artımlı → mevcut yüzlerce marker yeniden yaratılmaz → donma yok)
+  // Konum-bazlı dinamik mülkler gelince: veriyi tazele + ekrandakileri senkronla.
+  // Havuz korunur → yalnız yeni bölgenin görünür marker'ları eklenir (donma yok).
   useEffect(() => {
     const map = mapRef.current
     if (!map || !map.isStyleLoaded()) return
-    buildCityHood(map, true)
-    buildProps(map, true)
-    applyVisibility(zoomRef.current, true)
+    refreshData()
+    reconcile(map)
   }, [localVersion]) // eslint-disable-line
 
-  // Highlight selected hood marker
+  // Seçili mahalle değişince: hood havuzunu boşalt (highlight halkası güncellensin)
   useEffect(() => {
-    // Reset all hood markers, rebuild selected one with highlight
-    const { hoods } = buildGroups()
-    hoods.forEach(h => {
-      const mk = hoodMkrs.current.get(h.key)
-      if (!mk) return
-      const isSelected = h.key === highlightHood
-      // Replace element
-      const el = makeHoodEl(h, 0, isSelected)
-      el.addEventListener('click', e => {
-        e.stopPropagation()
-        mapRef.current?.flyTo({ center: [h.lng, h.lat], zoom: 14, pitch: 58, duration: 1100 })
-        cbHood.current(h)
-      })
-      mk.getElement().replaceWith(el)
-    })
-    applyVisibility(zoomRef.current, true)
+    const map = mapRef.current
+    if (!map || !map.isStyleLoaded()) return
+    clearPool(hoodMkrs, attHood)
+    reconcile(map)
   }, [highlightHood]) // eslint-disable-line
 
   // Fly to city
