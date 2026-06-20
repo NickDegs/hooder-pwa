@@ -4,8 +4,9 @@ import { formatPrice } from '../data'
 import GlassCard from '../components/GlassCard'
 import {
   initEconomy, allCurrencyCodes, currencyName, currencyFlag, rateOf,
-  recordTrade, marketIndex, marketDeltaPct, hasEcon,
+  recordTrade, marketIndex, marketDeltaPct, hasEcon, postFxTrade,
 } from '../services/economy'
+import { useAuth } from '../services/auth'
 import { useLang } from '../services/i18n'
 
 const AMOUNTS = [100_000, 1_000_000, 10_000_000]
@@ -13,6 +14,7 @@ const AMOUNTS = [100_000, 1_000_000, 10_000_000]
 export default function Forex() {
   const { cash, fx, buyFx, sellFx } = useGame()
   const { t } = useLang()
+  const { user } = useAuth()
   const [, force] = useState(0)
   const [open, setOpen] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
@@ -27,14 +29,14 @@ export default function Forex() {
   function flash(m: string) { setToast(m); setTimeout(() => setToast(null), 2400) }
   function doBuy(code: string, usd: number) {
     if (cash < usd) { flash('Yetersiz bakiye'); return }
-    if (buyFx(code, usd, rateOf(code))) { recordTrade(code, usd, 'buy'); flash(`${formatPrice(usd)} → ${code} alındı`); force(n => n + 1) }
+    if (buyFx(code, usd, rateOf(code))) { recordTrade(code, usd, 'buy'); postFxTrade(code, usd, user?.token); flash(`${formatPrice(usd)} → ${code} alındı`); force(n => n + 1) }
   }
   function doSell(code: string) {
     const pos = fx[code]
     const costUSD = pos ? pos.costUSD : 0
     const pl = sellFx(code, rateOf(code))
     if (!isNaN(pl)) {
-      recordTrade(code, costUSD + pl, 'sell')
+      recordTrade(code, costUSD + pl, 'sell'); postFxTrade(code, -(costUSD + pl), user?.token)
       flash(`${code} satıldı · ${pl >= 0 ? 'Kâr' : 'Zarar'} ${formatPrice(Math.abs(Math.round(pl)))}`)
       force(n => n + 1)
     }

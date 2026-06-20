@@ -29,6 +29,12 @@ export default function Rankings() {
   const { playerName, netWorth, owned, serverId } = useGame()
   const { user } = useAuth()
   const [apiEntries, setApiEntries] = useState<ApiEntry[] | null>(null)
+  const [view, setView] = useState<'league' | 'world' | 'countries'>('league')
+  const [world, setWorld] = useState<{ world: any[]; countries: any[] } | null>(null)
+
+  useEffect(() => {
+    fetch(`${API_BASE}/world/rankings`).then(r => r.json()).then(setWorld).catch(() => setWorld(null))
+  }, [])
 
   useEffect(() => {
     if (!serverId || !user?.token) { setApiEntries(null); return }
@@ -65,6 +71,15 @@ export default function Rankings() {
 
   const playerRank = leaders.findIndex(e => e.isPlayer) + 1
   const medals = ['🥇', '🥈', '🥉']
+
+  // Dünya görünümü: backend gerçek oyuncular (boşsa lig/botlar)
+  const worldRows: Entry[] = (world?.world && world.world.length > 0)
+    ? world.world.map((p: any, i: number) => ({ id: `w${i}`, name: p.name, netWorth: p.netWorth, count: p.owned, flag: '🌍', isPlayer: false }))
+    : leaders
+  const countries = world?.countries ?? []
+  const VIEWS: { k: 'league' | 'world' | 'countries'; label: string }[] = [
+    { k: 'league', label: t('rank_league') }, { k: 'world', label: t('rank_world') }, { k: 'countries', label: t('rank_countries') },
+  ]
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -107,9 +122,43 @@ export default function Rankings() {
           </div>
         </GlassCard>
 
-        {/* Leaderboard */}
+        {/* Görünüm seçici: Lig / Dünya / Ülkeler */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 'var(--sp-md)' }}>
+          {VIEWS.map(v => (
+            <button key={v.k} type="button" onClick={() => setView(v.k)}
+              style={{
+                flex: 1, padding: '8px', borderRadius: 12,
+                background: view === v.k ? 'rgba(52,148,255,0.18)' : 'rgba(255,255,255,0.06)',
+                border: `0.5px solid ${view === v.k ? 'rgba(52,148,255,0.45)' : 'rgba(255,255,255,0.12)'}`,
+                color: view === v.k ? 'var(--primary)' : 'var(--text-sub)', fontSize: 12, fontWeight: 800,
+              }}>{v.label}</button>
+          ))}
+        </div>
+
+        {/* Ülkeler görünümü */}
+        {view === 'countries' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-sm)' }}>
+            {countries.length === 0 && (
+              <p className="t-caption" style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 20 }}>{t('no_players')}</p>
+            )}
+            {countries.map((c: any, idx: number) => (
+              <div key={c.country} style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-md)', padding: 'var(--sp-md)', borderRadius: 'var(--r-md)', background: 'rgba(255,255,255,0.04)', border: '0.5px solid var(--border)' }}>
+                <span className="t-bold" style={{ width: 28, color: idx < 3 ? 'var(--gold)' : 'var(--text-sub)' }}>{idx + 1}</span>
+                <span style={{ fontSize: 18 }}>{[...(c.country || '')].slice(0, 2).map((ch: string) => String.fromCodePoint(127397 + ch.toUpperCase().charCodeAt(0))).join('')}</span>
+                <div style={{ flex: 1 }}>
+                  <div className="t-body" style={{ color: 'var(--text)' }}>{c.country}</div>
+                  <div className="t-caption" style={{ color: 'var(--text-muted)' }}>{c.players} {t('players')} · 🏆 {c.top}</div>
+                </div>
+                <span className="t-bold" style={{ color: 'var(--gold)', fontSize: 13 }}>{formatPrice(c.total)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Leaderboard (Lig / Dünya) */}
+        {view !== 'countries' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-sm)' }}>
-          {leaders.map((entry, idx) => {
+          {(view === 'world' ? worldRows : leaders).map((entry, idx) => {
             const rank = idx + 1
             return (
               <div
@@ -155,8 +204,9 @@ export default function Rankings() {
             )
           })}
         </div>
+        )}
 
-        {!serverId && (
+        {!serverId && view === 'league' && (
           <p className="t-caption" style={{ color: 'var(--text-muted)', textAlign: 'center', marginTop: 'var(--sp-lg)' }}>
             Gerçek sıralama için bir sunucuya bağlan
           </p>

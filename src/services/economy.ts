@@ -75,7 +75,7 @@ export function currencyNativeName(code: string): string {
 
 // ── Tohumlama: gerçek dünyadan bir kez ────────────────────────────────────────
 export async function initEconomy(): Promise<void> {
-  if (econ && econ.seed && Object.keys(econ.seed).length > 5) { tick(); return }
+  if (econ && econ.seed && Object.keys(econ.seed).length > 5) { tick(); syncGlobalPressure(); return }
   try {
     const r = await fetch('https://open.er-api.com/v6/latest/USD')
     const j = await r.json()
@@ -128,6 +128,33 @@ export function recordTrade(code: string, usdAmount: number, side: 'buy' | 'sell
   const seed = econ.seed[code] || econ.rates[code]
   econ.rates[code] = Math.max(seed * 0.3, Math.min(seed * 3, econ.rates[code] * factor))
   save()
+}
+
+// ── Küresel döviz savaşı senkronu (backend havuzu) ────────────────────────────
+import { API_BASE } from './apiBase'
+export async function syncGlobalPressure(): Promise<void> {
+  if (!econ) return
+  try {
+    const r = await fetch(`${API_BASE}/fx/global`)
+    const j = await r.json() as Record<string, { pressure: number; trades: number }>
+    for (const [code, info] of Object.entries(j)) {
+      // Yalnız gerçek küresel talep olan dövizlerde uygula (oyuncular topladıkça güçlenir)
+      if (econ.rates[code] && info.trades > 0 && info.pressure && info.pressure !== 1) {
+        const seed = econ.seed[code] || econ.rates[code]
+        econ.rates[code] = Math.max(seed * 0.3, Math.min(seed * 3, seed / info.pressure))
+      }
+    }
+    save()
+  } catch { /* ignore */ }
+}
+export async function postFxTrade(code: string, usdDelta: number, token?: string): Promise<void> {
+  if (!token || !usdDelta) return
+  try {
+    await fetch(`${API_BASE}/fx/trade`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ currency: code, usd_delta: usdDelta }),
+    })
+  } catch { /* ignore */ }
 }
 
 export function rateOf(code: string): number { return econ?.rates?.[code] ?? 0 }

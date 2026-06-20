@@ -198,6 +198,10 @@ const EXTRA: Record<string, Record<string, string>> = {
   signin:      { tr:'Giriş Yap', en:'Sign In', es:'Entrar', fr:'Se Connecter', de:'Anmelden', it:'Accedi', pt:'Entrar', ru:'Войти', ar:'تسجيل الدخول', zh:'登录', ja:'ログイン', ko:'로그인', az:'Giriş', uk:'Увійти', fa:'ورود', hi:'साइन इन' },
   register:    { tr:'Kayıt Ol', en:'Register', es:'Registrarse', fr:'S’inscrire', de:'Registrieren', it:'Registrati', pt:'Registrar', ru:'Регистрация', ar:'تسجيل', zh:'注册', ja:'登録', ko:'가입', az:'Qeydiyyat', uk:'Реєстрація', fa:'ثبت‌نام', hi:'रजिस्टर' },
   net_worth:   { tr:'Net Değer', en:'Net Worth', es:'Patrimonio', fr:'Valeur Nette', de:'Nettowert', it:'Patrimonio', pt:'Património', ru:'Капитал', ar:'صافي الثروة', zh:'净资产', ja:'純資産', ko:'순자산', az:'Xalis Dəyər', uk:'Капітал', fa:'ارزش خالص', hi:'कुल संपत्ति' },
+  rank_league: { tr:'Lig', en:'League', es:'Liga', fr:'Ligue', de:'Liga', it:'Lega', pt:'Liga', ru:'Лига', ar:'الدوري', zh:'联赛', ja:'リーグ', ko:'리그', az:'Liqa', uk:'Ліга', fa:'لیگ', hi:'लीग' },
+  rank_world:  { tr:'Dünya', en:'World', es:'Mundo', fr:'Monde', de:'Welt', it:'Mondo', pt:'Mundo', ru:'Мир', ar:'العالم', zh:'世界', ja:'世界', ko:'세계', az:'Dünya', uk:'Світ', fa:'جهان', hi:'विश्व' },
+  rank_countries:{ tr:'Ülkeler', en:'Countries', es:'Países', fr:'Pays', de:'Länder', it:'Paesi', pt:'Países', ru:'Страны', ar:'الدول', zh:'国家', ja:'国別', ko:'국가', az:'Ölkələr', uk:'Країни', fa:'کشورها', hi:'देश' },
+  no_players:  { tr:'Henüz oyuncu yok — ilk sen ol!', en:'No players yet — be the first!', es:'Aún sin jugadores', fr:'Aucun joueur', de:'Noch keine Spieler', it:'Ancora nessun giocatore', pt:'Ainda sem jogadores', ru:'Пока нет игроков', ar:'لا لاعبين بعد', zh:'暂无玩家', ja:'まだプレイヤーがいません', ko:'아직 플레이어 없음', az:'Hələ oyunçu yox', uk:'Ще немає гравців', fa:'هنوز بازیکنی نیست', hi:'अभी कोई खिलाड़ी नहीं' },
 }
 
 export function t(key: string): string {
