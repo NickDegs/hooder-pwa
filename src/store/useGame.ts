@@ -71,6 +71,8 @@ interface GameState {
   sendAgent:       (p: Property) => boolean
   buyFx:           (code: string, usdAmount: number, rate: number) => boolean
   sellFx:          (code: string, currentRate: number) => number   // gerçekleşen K/Z (USD)
+  dailyStatus:     () => { available: boolean; amount: number; day: number; inWeek: number; isSeventh: boolean }
+  claimDaily:      () => number
 }
 
 // Bölge kilidi sabitleri
@@ -88,6 +90,24 @@ let currentToken   = ''
 
 function makeKey(userId: string, serverId: string) {
   return serverId ? `hooder_game_${userId}_${serverId}` : `hooder_game_${userId}`
+}
+
+// ── Günlük bedava ödül (IAP'siz ilerleme — bedava oyuncular da yükselsin) ──────
+function computeDaily(): { available: boolean; amount: number; day: number; inWeek: number; isSeventh: boolean } {
+  let rec = { ts: 0, streak: 0 }
+  try { rec = { ...rec, ...JSON.parse(localStorage.getItem('hooder_daily') || '{}') } } catch { /* ignore */ }
+  const now = Date.now(); const since = now - (rec.ts || 0)
+  const available = since >= 20 * 3600 * 1000          // 20s cooldown
+  const streak = (rec.ts && since <= 48 * 3600 * 1000) ? rec.streak : 0  // 48s sonra seri sıfırlanır
+  const day = streak + 1                                // toplam ardışık gün (sınırsız)
+  const inWeek = ((day - 1) % 7) + 1                    // 1..7 (haftalık döngü)
+  const isSeventh = inWeek === 7
+  // Günlük artar; 7. günde EKSTRA jackpot (bedava oyuncular hızlı yükselsin)
+  const amount = isSeventh ? 25_000_000 : 1_000_000 + (inWeek - 1) * 1_000_000  // 1M→6M, 7.gün 25M
+  return { available, amount, day, inWeek, isSeventh }
+}
+function recordDaily(day: number): void {
+  try { localStorage.setItem('hooder_daily', JSON.stringify({ ts: Date.now(), streak: day })) } catch { /* ignore */ }
 }
 
 // ── Günlük alım limiti (spam backstop) ────────────────────────────────────────
@@ -284,6 +304,17 @@ export const useGame = create<GameState>((set, get) => ({
     set({ pending, cash, netWorth: computeNetWorth(cash, st.owned) })
     persist()
     return true
+  },
+
+  dailyStatus() { return computeDaily() },
+  claimDaily() {
+    const s = computeDaily()
+    if (!s.available) return 0
+    recordDaily(s.day)
+    const st = get(); const cash = st.cash + s.amount
+    set({ cash, netWorth: computeNetWorth(cash, st.owned) })
+    persist()
+    return s.amount
   },
 
   isPending(id: string) { return get().pending.some(p => p.id === id) },

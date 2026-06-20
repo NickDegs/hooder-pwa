@@ -29,7 +29,9 @@ interface Package {
 
 export default function Store() {
   const { t } = useLang()
-  const { addCash } = useGame()
+  const { addCash, dailyStatus, claimDaily } = useGame()
+  const [, forceD] = useState(0)
+  const daily = dailyStatus()
   const [packages,  setPackages]  = useState<Package[]>([])
   const [loading,   setLoading]   = useState(true)
   const [buying,    setBuying]    = useState<string | null>(null)
@@ -144,6 +146,41 @@ export default function Store() {
             Oyun parası satın alarak imparatorluğunu büyüt
           </div>
         </div>
+
+        {/* Günlük bedava ödül — IAP'siz ilerleme (bedava oyuncular da yükselir) */}
+        <GlassCard style={{ marginBottom: 'var(--sp-lg)', borderColor: daily.isSeventh && daily.available ? 'rgba(255,196,52,0.6)' : daily.available ? 'rgba(48,209,88,0.4)' : 'var(--border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 28 }}>{daily.isSeventh ? '🏆' : '🎁'}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="t-bold" style={{ color: daily.isSeventh ? 'var(--gold)' : 'var(--text)' }}>
+                {daily.isSeventh && daily.available ? t('daily_jackpot') : t('daily_title')}
+              </div>
+              <div className="t-caption" style={{ color: 'var(--text-muted)' }}>
+                {daily.available ? `${t('daily_day')} ${daily.day} · +${formatPrice(daily.amount)}` : t('daily_done')}
+              </div>
+              {/* 7 günlük seri izleyici */}
+              <div style={{ display: 'flex', gap: 3, marginTop: 5 }}>
+                {[1,2,3,4,5,6,7].map(d => (
+                  <span key={d} style={{
+                    width: d===7?10:7, height: d===7?10:7, borderRadius: '50%',
+                    background: d < daily.inWeek ? 'var(--green)' : d === daily.inWeek && daily.available ? (d===7?'var(--gold)':'var(--green)') : 'rgba(255,255,255,0.15)',
+                  }} />
+                ))}
+              </div>
+            </div>
+            <button
+              type="button"
+              disabled={!daily.available}
+              onClick={() => { const a = claimDaily(); if (a > 0) { showToast(`🎁 +${formatPrice(a)}`, true); forceD(n => n + 1) } }}
+              style={{
+                padding: '10px 18px', borderRadius: 12, fontSize: 13, fontWeight: 800,
+                background: daily.available ? 'var(--green)' : 'rgba(255,255,255,0.06)',
+                color: daily.available ? '#003312' : 'var(--text-muted)',
+                border: 'none', opacity: daily.available ? 1 : 0.6,
+              }}
+            >{t('daily_claim')}</button>
+          </div>
+        </GlassCard>
 
         {/* Ödeme bilgi banner'ı — native iOS: App Store / web: Stripe test */}
         {isNativeIOS ? (
