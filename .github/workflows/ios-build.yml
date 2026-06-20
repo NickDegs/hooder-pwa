@@ -84,19 +84,9 @@ jobs:
           sed -i '' "s/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g" "$PBXPROJ"
           # Manuel signing — provisioning profile Fastlane update_code_signing_settings ile ayarlanır
 
-          # ── Entitlements: APNs push + Sign in with Apple ──────────────────────
-          # (bundle'da PUSH_NOTIFICATIONS + APPLE_ID_AUTH capability'leri açık)
-          cat > ios/App/App/App.entitlements <<'ENT'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0"><dict>
-  <key>aps-environment</key><string>production</string>
-  <key>com.apple.developer.applesignin</key><array><string>Default</string></array>
-</dict></plist>
-ENT
-          # CODE_SIGN_ENTITLEMENTS ayarını tüm build config'lerine ekle
-          sed -i '' "s|CODE_SIGN_STYLE = Manual;|CODE_SIGN_STYLE = Manual;\\
-				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;|g" "$PBXPROJ"
+          # Entitlements: APNs push + Sign in with Apple (tek satır printf → YAML güvenli)
+          printf '%s' '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict><key>aps-environment</key><string>production</string><key>com.apple.developer.applesignin</key><array><string>Default</string></array></dict></plist>' > ios/App/App/App.entitlements
+          sed -i '' "s#CODE_SIGN_STYLE = Manual;#CODE_SIGN_STYLE = Manual; CODE_SIGN_ENTITLEMENTS = App/App.entitlements;#g" "$PBXPROJ"
 
       # ── Signing sertifikası ──────────────────────────────────────────────────
       - name: Import distribution certificate
