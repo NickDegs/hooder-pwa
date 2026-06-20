@@ -21,6 +21,8 @@ interface Props {
   onSelectProperty:      (p: Property) => void
   onSelectNeighborhood:  (h: HoodGroup) => void
   onMapClick?:           (info: MapClickInfo) => void
+  onMapPick?:            (lat: number, lng: number) => void  // haritada boş bir yere tıkla → o bölgeyi yükle/aç
+  onMapExplore?:         (lat: number, lng: number) => void  // gezinti (pan) bitince o bölgeyi yükle (panel açmadan, canlı etiket)
   onMapCenter?:          (hood: HoodGroup | null) => void
   flyToCity:             City | null
   highlightHood?:        string | null
@@ -54,7 +56,7 @@ const lg = (extra = '') => `
   background:
     linear-gradient(135deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.02) 38%, rgba(255,255,255,0) 60%),
     radial-gradient(120% 90% at 50% 0%, rgba(255,255,255,0.10), rgba(255,255,255,0) 55%),
-    rgba(10,14,26,0.26);
+    rgba(10,14,26, var(--mk-op, 0.26));
   border: 0.6px solid rgba(255,255,255,0.30);
   box-shadow: 0 6px 22px rgba(0,0,0,0.40),
               inset 0 0.7px 0 rgba(255,255,255,0.45),
@@ -178,7 +180,7 @@ function makePropEl(prop: Property, isOwned: boolean): HTMLElement {
 // ── Component ──────────────────────────────────────────────────────────────────
 
 export default function MapView({
-  selectedProperty, onSelectProperty, onSelectNeighborhood, onMapClick, onMapCenter, flyToCity, highlightHood, ownedIds = [], isDesktop = false, localVersion = 0,
+  selectedProperty, onSelectProperty, onSelectNeighborhood, onMapClick, onMapPick, onMapExplore, onMapCenter, flyToCity, highlightHood, ownedIds = [], isDesktop = false, localVersion = 0,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef       = useRef<mapboxgl.Map | null>(null)
@@ -188,10 +190,14 @@ export default function MapView({
   const cbSelect      = useRef(onSelectProperty)
   const cbHood        = useRef(onSelectNeighborhood)
   const cbMapClick    = useRef(onMapClick)
+  const cbMapPick     = useRef(onMapPick)
+  const cbMapExplore  = useRef(onMapExplore)
   const cbMapCenter   = useRef(onMapCenter)
   cbSelect.current    = onSelectProperty
   cbHood.current      = onSelectNeighborhood
   cbMapClick.current  = onMapClick
+  cbMapPick.current   = onMapPick
+  cbMapExplore.current= onMapExplore
   cbMapCenter.current = onMapCenter
   const ownedIdsRef   = useRef(ownedIds)
   ownedIdsRef.current = ownedIds
@@ -216,6 +222,10 @@ export default function MapView({
 
   function applyVisibility(zoom: number) {
     zoomRef.current = zoom
+    // Yakınlaştıkça etiket cam zemini koyulaşır (şeffaflık azalır) → çok yakında
+    // okunaklı kalır; uzakta maksimum saydam "liquid glass" görünümü korunur.
+    const op = zoom <= 11 ? 0.26 : zoom >= 16 ? 0.66 : 0.26 + ((zoom - 11) / 5) * 0.40
+    document.documentElement.style.setProperty('--mk-op', op.toFixed(3))
     const showCountry = zoom < Z_COUNTRY
     const showCity = zoom >= Z_COUNTRY && zoom < zHood
     const showHood = zoom >= zHood && zoom < zProp
@@ -337,9 +347,12 @@ export default function MapView({
           duration: 900,
         })
 
-        // En yakın mahalleyi bul → liste panelini aç (her zaman)
-        const nearest = nearestHood(hoodsRef.current, e.lngLat.lat, e.lngLat.lng)
-        if (nearest) cbHood.current(nearest)
+        // Tıklanan KOORDİNATI App'e bildir → o bölgenin mülklerini çek/aç.
+        // (Eskiden sadece mevcut hood'lardan en yakını açılırdı → başka yere
+        //  tıklayınca hep kendi konumun çıkardı. Artık tıklanan yer yüklenir.)
+        const lat = e.lngLat.lat, lng = e.lngLat.lng
+        if (cbMapPick.current) cbMapPick.current(lat, lng)
+        else { const nearest = nearestHood(hoodsRef.current, lat, lng); if (nearest) cbHood.current(nearest) }
       })
 
       // ── Zoom → toggle visibility ──────────────────────────────────────────
@@ -363,6 +376,18 @@ export default function MapView({
         } else {
           cbMapCenter.current?.(null)
         }
+      })
+
+      // ── Gezinti bitince (canlı): merkez bölgede etiket yoksa o bölgeyi yükle ──
+      // Panel AÇILMAZ; sadece o civarın mülk markerları/etiketleri belirir. Çok
+      // yakınlaşıp gezindikçe haritada gerçekten gezdiğin yer dolu görünür.
+      map.on('moveend', () => {
+        const z = map.getZoom()
+        if (z < zHood || !cbMapExplore.current) return
+        const c = map.getCenter()
+        const near = nearestHood(hoodsRef.current, c.lat, c.lng)
+        const far = !near || Math.hypot(near.lat - c.lat, near.lng - c.lng) > 0.055 // ~6 km
+        if (far) cbMapExplore.current(c.lat, c.lng)
       })
     })
 

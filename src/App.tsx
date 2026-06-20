@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo, type CSSProperties } from 'react'
+import { useState, useEffect, useMemo, useRef, type CSSProperties } from 'react'
 import { useAuth } from './services/auth'
 import { useGame } from './store/useGame'
-import { allCities, setDynamicProperties, type City, type Property, type HoodGroup } from './data'
+import { allCities, setDynamicProperties, buildGroups, nearestHood, type City, type Property, type HoodGroup } from './data'
 import { formatPrice } from './data'
 import { fetchLocalProperties, allDynamicProperties } from './services/localProperties'
 import { useDragSheet } from './services/useDragSheet'
@@ -49,6 +49,7 @@ export default function App() {
   const [liveHood,       setLiveHood]       = useState<HoodGroup | null>(null) // pan tracking → mini kart
   const [liveOff,        setLiveOff]        = useState(false) // mini kart kapatıldı → pan'de tekrar açma
   const [localVersion,   setLocalVersion]   = useState(0)     // konum-bazlı mülkler değişince artar
+  const pickBusy = useRef(false)                              // aynı anda tek konum-fetch (tıklama/gezinti spam koruması)
   const [userCity,       setUserCity]       = useState<City | null>(null) // gerçek konum (city picker'da "Konumum")
   const [claimTarget,    setClaimTarget]    = useState<MapClickInfo | null>(null)
   const [flyToCity,      setFlyToCity]      = useState<City | null>(allCities[0])
@@ -145,6 +146,36 @@ export default function App() {
     setSelectedHood(null)  // close hood panel while claim panel is open
   }
 
+  // Haritada boş bir yere tıkla → o KOORDİNATTAKİ bölgenin mülklerini çek (GPS
+  // konumundaki gibi) ve mahalle panelini aç. Yakında mevcut hood varsa direkt o
+  // açılır; yoksa o bölge yüklenir (artık tıkladığın yer gösterilir, kendi konumun değil).
+  async function handleMapPick(lat: number, lng: number) {
+    const near0 = nearestHood(buildGroups().hoods, lat, lng)
+    if (near0 && Math.hypot(near0.lat - lat, near0.lng - lng) < 0.06) { handleSelectHood(near0); return }
+    if (!pickBusy.current) {
+      pickBusy.current = true
+      try {
+        const res = await fetchLocalProperties(lat, lng)
+        if (res && res.props.length) { setDynamicProperties(allDynamicProperties()); setLocalVersion(v => v + 1) }
+      } catch { /* ağ hatası → sessiz geç */ }
+      pickBusy.current = false
+    }
+    const near = nearestHood(buildGroups().hoods, lat, lng)
+    if (near) handleSelectHood(near)
+  }
+
+  // Gezinti (pan) bitince: o bölgenin mülklerini yükle ama PANEL AÇMA → sadece
+  // canlı etiket/marker belirir. Aynı bölge tekrar çekilmez (localProperties cache).
+  async function handleMapExplore(lat: number, lng: number) {
+    if (pickBusy.current) return
+    pickBusy.current = true
+    try {
+      const res = await fetchLocalProperties(lat, lng)
+      if (res && res.props.length) { setDynamicProperties(allDynamicProperties()); setLocalVersion(v => v + 1) }
+    } catch { /* sessiz */ }
+    pickBusy.current = false
+  }
+
   // ── Desktop ─────────────────────────────────────────────────────────────────
   if (isDesktop) {
     return (
@@ -160,6 +191,8 @@ export default function App() {
             onSelectProperty={handleSelectProperty}
             onSelectNeighborhood={handleSelectHood}
             onMapClick={handleMapClick}
+            onMapPick={handleMapPick}
+            onMapExplore={handleMapExplore}
             onMapCenter={h => { if (h) setSelectedHood(h) }}
             flyToCity={flyToCity}
             highlightHood={selectedHood?.key ?? null}
@@ -286,6 +319,8 @@ export default function App() {
         onSelectProperty={handleSelectProperty}
         onSelectNeighborhood={handleSelectHood}
         onMapClick={handleMapClick}
+        onMapPick={handleMapPick}
+        onMapExplore={handleMapExplore}
         onMapCenter={h => setLiveHood(h)}
         flyToCity={flyToCity}
         highlightHood={(selectedHood ?? liveHood)?.key ?? null}
