@@ -3,7 +3,7 @@ import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import {
   allProperties, allCities, categoryMeta, buildGroups, nearestHood, dynamicProperties,
-  type Property, type City, type HoodGroup, type CityGroup,
+  type Property, type City, type HoodGroup, type CityGroup, type CountryGroup,
 } from '../data'
 import { formatPrice } from '../data'
 
@@ -28,7 +28,10 @@ interface Props {
   localVersion?:         number    // konum-bazlı dinamik mülkler değişince artar → markerleri yeniden kur
 }
 
-// ── Zoom thresholds ────────────────────────────────────────────────────────────
+// ── Zoom thresholds (4 kademe: ülke → şehir → mahalle → mülk) ──────────────────
+// zoom < Z_COUNTRY: ülke etiketleri (en büyük) · Z_COUNTRY..Z_HOOD: şehir
+// Z_HOOD..Z_PROP: mahalle · ≥ Z_PROP: mülk
+const Z_COUNTRY = 5.5
 // Desktop (macOS): geniş ekran, markerlar daha az çakışır
 const Z_HOOD_DSK = 13
 const Z_PROP_DSK = 15
@@ -50,6 +53,30 @@ const lg = (extra = '') => `
               inset 0 0.5px 0 rgba(255,255,255,0.18);
   ${extra}
 `
+
+// Country glass pill — EN ÜST kademe, en büyük/belirgin
+function makeCountryEl(g: CountryGroup): HTMLElement {
+  const wrap = document.createElement('div')
+  wrap.style.cssText = 'cursor:pointer;padding:6px;width:max-content;'
+  const el = document.createElement('div')
+  el.style.cssText = `
+    display:flex;flex-direction:column;align-items:center;
+    padding:12px 22px;border-radius:22px;width:max-content;
+    transition:transform 0.22s cubic-bezier(0.34,1.56,0.64,1);
+    ${lg()} white-space:nowrap;
+  `
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="font-size:32px">${g.flag}</span>
+      <span style="color:#fff;font-size:22px;font-weight:900;letter-spacing:-0.6px;text-shadow:0 1px 4px rgba(0,0,0,0.6)">${g.name}</span>
+    </div>
+    <div style="color:rgba(255,255,255,0.6);font-size:12px;font-weight:600;margin-top:3px">${g.cityCount} şehir · ${g.properties.length} mülk</div>
+  `
+  wrap.appendChild(el)
+  wrap.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.06) translateY(-2px)' })
+  wrap.addEventListener('mouseleave', () => { el.style.transform = '' })
+  return wrap
+}
 
 // City glass pill
 function makeCityEl(g: CityGroup, count: number): HTMLElement {
@@ -159,6 +186,7 @@ export default function MapView({
   const markerClicked = useRef(false)
 
   // Marker buckets
+  const countryMkrs = useRef<Map<string, mapboxgl.Marker>>(new Map())
   const cityMkrs  = useRef<Map<string, mapboxgl.Marker>>(new Map())
   const hoodMkrs  = useRef<Map<string, mapboxgl.Marker>>(new Map())
   const propMkrs  = useRef<Map<string, mapboxgl.Marker>>(new Map())
@@ -174,20 +202,33 @@ export default function MapView({
 
   function applyVisibility(zoom: number) {
     zoomRef.current = zoom
-    const showCity = zoom < zHood
+    const showCountry = zoom < Z_COUNTRY
+    const showCity = zoom >= Z_COUNTRY && zoom < zHood
     const showHood = zoom >= zHood && zoom < zProp
     const showProp = zoom >= zProp
+    countryMkrs.current.forEach(m => { (m.getElement() as HTMLElement).style.display = showCountry ? '' : 'none' })
     cityMkrs.current.forEach(m => { (m.getElement() as HTMLElement).style.display = showCity ? '' : 'none' })
     hoodMkrs.current.forEach(m => { (m.getElement() as HTMLElement).style.display = showHood ? '' : 'none' })
     propMkrs.current.forEach(m => { (m.getElement() as HTMLElement).style.display = showProp ? '' : 'none' })
   }
 
-  // Şehir + mahalle markerlarını (statik + dinamik) sıfırdan kur
+  // Ülke + şehir + mahalle markerlarını (statik + dinamik) sıfırdan kur
   function buildCityHood(map: mapboxgl.Map) {
+    countryMkrs.current.forEach(m => m.remove()); countryMkrs.current.clear()
     cityMkrs.current.forEach(m => m.remove()); cityMkrs.current.clear()
     hoodMkrs.current.forEach(m => m.remove()); hoodMkrs.current.clear()
-    const { hoods, cities } = buildGroups()
+    const { hoods, cities, countries } = buildGroups()
     hoodsRef.current = hoods
+
+    // ── Ülke markerları (en üst) ──────────────────────────────────────────────
+    countries.forEach(cg => {
+      const el = makeCountryEl(cg)
+      el.addEventListener('click', e => {
+        e.stopPropagation()
+        map.flyTo({ center: [cg.lng, cg.lat], zoom: 9, pitch: 45, duration: 1400 })
+      })
+      countryMkrs.current.set(cg.country, new mapboxgl.Marker({ element: el, anchor: 'bottom' }).setLngLat([cg.lng, cg.lat]).addTo(map))
+    })
     cities.forEach(g => {
       const el = makeCityEl(g, g.properties.length)
       el.addEventListener('click', e => {
@@ -311,6 +352,7 @@ export default function MapView({
 
     return () => {
       window.removeEventListener('resize', onResize)
+      countryMkrs.current.forEach(m => m.remove())
       cityMkrs.current.forEach(m => m.remove())
       hoodMkrs.current.forEach(m => m.remove())
       propMkrs.current.forEach(m => m.remove())

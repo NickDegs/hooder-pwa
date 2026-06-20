@@ -728,12 +728,34 @@ export interface CityGroup {
   properties: Property[]
 }
 
+export interface CountryGroup {
+  country:    string   // ISO kodu (TR, US...)
+  name:       string   // görünen ad (Türkiye, ABD...)
+  flag:       string
+  lat:        number
+  lng:        number
+  cityCount:  number
+  properties: Property[]
+}
+
+// Ülke kodu → görünen ad (Intl ile tüm ülkeler) + bayrak emoji
+const _regionNames = (typeof Intl !== 'undefined' && (Intl as unknown as { DisplayNames?: unknown }).DisplayNames)
+  ? new Intl.DisplayNames(['tr'], { type: 'region' }) : null
+export function countryName(code: string): string {
+  if (!code) return 'Bölge'
+  try { return _regionNames?.of(code.toUpperCase()) ?? code } catch { return code }
+}
+export function flagFromCode(code: string): string {
+  if (!code || code.length !== 2) return '🌍'
+  return code.toUpperCase().replace(/./g, c => String.fromCodePoint(127397 + c.charCodeAt(0)))
+}
+
 // Runtime konum-bazlı mülkler (kullanıcının gerçek konumundan üretilen). buildGroups
 // + MapView bunları statik mülklerle BİRLİKTE gösterir. Bkz services/localProperties.
 export let dynamicProperties: Property[] = []
 export function setDynamicProperties(props: Property[]) { dynamicProperties = props }
 
-export function buildGroups(): { hoods: HoodGroup[]; cities: CityGroup[] } {
+export function buildGroups(): { hoods: HoodGroup[]; cities: CityGroup[]; countries: CountryGroup[] } {
   const flagMap: Record<string, string> = {}
   allCities.forEach(c => { flagMap[c.name] = c.flag })
   dynamicProperties.forEach(p => { if (!flagMap[p.city]) flagMap[p.city] = '📍' })
@@ -771,7 +793,34 @@ export function buildGroups(): { hoods: HoodGroup[]; cities: CityGroup[] } {
     }
   })
 
-  return { hoods: Array.from(hoodMap.values()), cities: Array.from(cityMap.values()) }
+  // ── Ülke grupları (en üst kademe) ────────────────────────────────────────────
+  const countryMap = new Map<string, CountryGroup>()
+  const countryCities = new Map<string, Set<string>>()
+  cityMap.forEach(c => {
+    const code = c.country || 'XX'
+    if (!countryMap.has(code)) {
+      countryMap.set(code, {
+        country: code, name: countryName(code), flag: c.flag || flagFromCode(code),
+        lat: 0, lng: 0, cityCount: 0, properties: [],
+      })
+      countryCities.set(code, new Set())
+    }
+    const cg = countryMap.get(code)!
+    cg.properties.push(...c.properties)
+    countryCities.get(code)!.add(c.city)
+  })
+  countryMap.forEach((cg, code) => {
+    // ülke merkezi = şehirlerinin ortalaması (mülk ağırlıklı)
+    cg.lat = cg.properties.reduce((s, p) => s + p.lat, 0) / cg.properties.length
+    cg.lng = cg.properties.reduce((s, p) => s + p.lng, 0) / cg.properties.length
+    cg.cityCount = countryCities.get(code)!.size
+  })
+
+  return {
+    hoods: Array.from(hoodMap.values()),
+    cities: Array.from(cityMap.values()),
+    countries: Array.from(countryMap.values()),
+  }
 }
 
 export function nearestHood(hoods: HoodGroup[], lat: number, lng: number): HoodGroup | null {
