@@ -304,7 +304,7 @@ export default function MapView({
     }
     const b = map.getBounds()
     if (!b) return
-    const dLat = (b.getNorth() - b.getSouth()) * 0.25, dLng = (b.getEast() - b.getWest()) * 0.25
+    const dLat = (b.getNorth() - b.getSouth()) * 0.12, dLng = (b.getEast() - b.getWest()) * 0.12
     const inView = (lng: number, lat: number) =>
       lat >= b.getSouth() - dLat && lat <= b.getNorth() + dLat && lng >= b.getWest() - dLng && lng <= b.getEast() + dLng
     const want = new Set<string>()
@@ -331,10 +331,13 @@ export default function MapView({
     const op = z <= 11 ? 0.26 : z >= 16 ? 0.66 : 0.26 + ((z - 11) / 5) * 0.40
     document.documentElement.style.setProperty('--mk-op', op.toFixed(3))
     const tier = z < Z_COUNTRY ? 0 : z < zHood ? 1 : z < zProp ? 2 : 3
-    syncTier(map, tier === 0, countryMkrs, attCountry, countriesData.current, c => c.country, c => [c.lng, c.lat], makeCountryMarker, 40)
-    syncTier(map, tier === 1, cityMkrs,    attCity,    citiesData.current,    c => c.city,    c => [c.lng, c.lat], makeCityMarker,    60)
-    syncTier(map, tier === 2, hoodMkrs,    attHood,    hoodsRef.current,       h => h.key,     h => [h.lng, h.lat], makeHoodMarker,    60)
-    syncTier(map, tier === 3, propMkrs,    attProp,    propsData.current,      p => p.id,      p => [p.lng, p.lat], makePropMarker,    80)
+    // Mobilde ekrandaki marker sayısını düşük tut → 3D haritada zoom/pan sırasında
+    // her karede daha az eleman yeniden konumlanır → drop/donma olmaz.
+    const big = isDesktop
+    syncTier(map, tier === 0, countryMkrs, attCountry, countriesData.current, c => c.country, c => [c.lng, c.lat], makeCountryMarker, big ? 40 : 22)
+    syncTier(map, tier === 1, cityMkrs,    attCity,    citiesData.current,    c => c.city,    c => [c.lng, c.lat], makeCityMarker,    big ? 55 : 32)
+    syncTier(map, tier === 2, hoodMkrs,    attHood,    hoodsRef.current,       h => h.key,     h => [h.lng, h.lat], makeHoodMarker,    big ? 55 : 32)
+    syncTier(map, tier === 3, propMkrs,    attProp,    propsData.current,      p => p.id,      p => [p.lng, p.lat], makePropMarker,    big ? 80 : 42)
   }
 
   // Bir havuzu tamamen boşalt (sahiplik/seçim değişince renk güncellensin diye)
@@ -403,12 +406,10 @@ export default function MapView({
         else { const nearest = nearestHood(hoodsRef.current, lat, lng); if (nearest) cbHood.current(nearest) }
       })
 
-      // ── Zoom (her kare): yalnız etiket opaklığını güncelle (ucuz) ──────────
-      map.on('zoom', () => {
-        const z = map.getZoom(); zoomRef.current = z
-        const op = z <= 11 ? 0.26 : z >= 16 ? 0.66 : 0.26 + ((z - 11) / 5) * 0.40
-        document.documentElement.style.setProperty('--mk-op', op.toFixed(3))
-      })
+      // NOT: Zoom sırasında HER KARE düküman geneline stil yazmak (--mk-op) tüm
+      // sayfayı (backdrop-filter'lı HUD dahil) yeniden hesaplatıp DROP yapıyordu.
+      // Opaklık artık yalnız hareket BİTİNCE (reconcile) güncellenir → zoom akıcı.
+      map.on('zoom', () => { zoomRef.current = map.getZoom() })
 
       // ── Live pan → panel güncelle ─────────────────────────────────────────
       // Masaüstü: hood zoom eşiğinde (Z_HOOD_DSK=13) tam panel açılır
