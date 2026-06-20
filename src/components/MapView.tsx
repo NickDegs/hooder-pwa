@@ -229,6 +229,9 @@ export default function MapView({
 
   // Current zoom level cached in ref
   const zoomRef  = useRef(11)
+  // Su (deniz/göl) tespiti: stildeki su katmanları + su üstü çıkan id'ler (kalıcı atla)
+  const waterLayers = useRef<string[]>([])
+  const waterIds    = useRef<Set<string>>(new Set())
 
   // Platforma göre eşikler: masaüstü geniş ekran, mobil dar ekran
   const zHood = isDesktop ? Z_HOOD_DSK : Z_HOOD_MOB
@@ -291,11 +294,21 @@ export default function MapView({
   }
 
   // Bir kademenin marker'larını viewport'a göre senkronla (ekle/çıkar, cap'li)
+  // Bir nokta deniz/göl üstünde mi? (yalnız viewport içindeki noktalar için doğru)
+  function isWater(map: mapboxgl.Map, lng: number, lat: number): boolean {
+    if (!waterLayers.current.length) return false
+    try {
+      const p = map.project([lng, lat])
+      const f = map.queryRenderedFeatures(p, { layers: waterLayers.current })
+      return f.length > 0
+    } catch { return false }
+  }
+
   function syncTier<T>(
     map: mapboxgl.Map, active: boolean,
     pool: { current: Map<string, mapboxgl.Marker> }, att: { current: Set<string> },
     data: T[], keyOf: (t: T) => string, lnglatOf: (t: T) => [number, number],
-    make: (t: T, map: mapboxgl.Map) => mapboxgl.Marker, cap: number,
+    make: (t: T, map: mapboxgl.Map) => mapboxgl.Marker, cap: number, avoidWater = false,
   ) {
     if (!active) {
       // Kademe pasif → tüm marker'ları haritadan KALDIR ve havuzdan SİL (RAM boş)
@@ -309,8 +322,12 @@ export default function MapView({
       lat >= b.getSouth() - dLat && lat <= b.getNorth() + dLat && lng >= b.getWest() - dLng && lng <= b.getEast() + dLng
     const want = new Set<string>()
     for (const it of data) {
+      const k = keyOf(it)
+      if (avoidWater && waterIds.current.has(k)) continue   // bilinen deniz mülkü → atla
       const [lng, lat] = lnglatOf(it)
-      if (inView(lng, lat)) { want.add(keyOf(it)); if (want.size >= cap) break }
+      if (!inView(lng, lat)) continue
+      if (avoidWater && isWater(map, lng, lat)) { waterIds.current.add(k); continue } // deniz üstü → kalıcı atla
+      want.add(k); if (want.size >= cap) break
     }
     // Görünürden çıkanları haritadan kaldır + havuzdan SİL (ekran dışı = RAM yemez,
     // "pasif". Geri gelince yeniden oluşturulur — cap'li olduğu için ucuz.)
@@ -336,8 +353,8 @@ export default function MapView({
     const big = isDesktop
     syncTier(map, tier === 0, countryMkrs, attCountry, countriesData.current, c => c.country, c => [c.lng, c.lat], makeCountryMarker, big ? 40 : 22)
     syncTier(map, tier === 1, cityMkrs,    attCity,    citiesData.current,    c => c.city,    c => [c.lng, c.lat], makeCityMarker,    big ? 55 : 32)
-    syncTier(map, tier === 2, hoodMkrs,    attHood,    hoodsRef.current,       h => h.key,     h => [h.lng, h.lat], makeHoodMarker,    big ? 55 : 32)
-    syncTier(map, tier === 3, propMkrs,    attProp,    propsData.current,      p => p.id,      p => [p.lng, p.lat], makePropMarker,    big ? 80 : 42)
+    syncTier(map, tier === 2, hoodMkrs,    attHood,    hoodsRef.current,       h => h.key,     h => [h.lng, h.lat], makeHoodMarker,    big ? 55 : 32, true)
+    syncTier(map, tier === 3, propMkrs,    attProp,    propsData.current,      p => p.id,      p => [p.lng, p.lat], makePropMarker,    big ? 80 : 42, true)
   }
 
   // Bir havuzu tamamen boşalt (sahiplik/seçim değişince renk güncellensin diye)
@@ -378,6 +395,13 @@ export default function MapView({
       ].forEach(id => {
         if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'none')
       })
+
+      // Su (deniz/göl) katmanlarını sapta → mülk/mahalle marker'ları su üstüne konmaz
+      try {
+        waterLayers.current = (map.getStyle().layers || [])
+          .filter(l => /water|ocean/i.test(l.id) && (l.type === 'fill' || l.type === 'background'))
+          .map(l => l.id)
+      } catch { waterLayers.current = [] }
 
       // ── Veriyi hazırla + ekrandaki marker'ları kur (viewport culling) ──────
       refreshData()

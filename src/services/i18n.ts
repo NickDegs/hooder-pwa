@@ -179,6 +179,27 @@ export function setLang(code: Lang) {
 
 // Derin ekran metinleri — anahtar→dil (kısmi kapsam, eksikse İngilizce'ye düşer)
 const EXTRA: Record<string, Record<string, string>> = {
+  // ── Prosedürel mülk adları: semt + tip (16 dilin HEPSİNDE) ──
+  wd_central:{ tr:'Merkez', en:'Central', es:'Centro', fr:'Centre', de:'Zentrum', it:'Centro', pt:'Centro', ru:'Центр', ar:'المركز', zh:'中心', ja:'中央', ko:'중심', az:'Mərkəz', uk:'Центр', fa:'مرکزی', hi:'केंद्र' },
+  wd_riverside:{ tr:'Nehirkenarı', en:'Riverside', es:'Ribera', fr:'Rive', de:'Ufer', it:'Lungofiume', pt:'Beira-rio', ru:'Набережная', ar:'ضفة النهر', zh:'河畔', ja:'川沿い', ko:'강변', az:'Çay kənarı', uk:'Набережна', fa:'کنار رود', hi:'नदी किनारा' },
+  wd_hilltop:{ tr:'Tepe', en:'Hilltop', es:'Colina', fr:'Colline', de:'Hügel', it:'Collina', pt:'Colina', ru:'Холм', ar:'التل', zh:'山顶', ja:'丘の上', ko:'언덕', az:'Təpə', uk:'Пагорб', fa:'تپه', hi:'पहाड़ी' },
+  wd_newcity:{ tr:'Yenişehir', en:'New City', es:'Ciudad Nueva', fr:'Ville Nouvelle', de:'Neustadt', it:'Città Nuova', pt:'Cidade Nova', ru:'Новый город', ar:'المدينة الجديدة', zh:'新城', ja:'新市街', ko:'신도시', az:'Yeni şəhər', uk:'Нове місто', fa:'شهر جدید', hi:'नया शहर' },
+  wd_harbor:{ tr:'Liman', en:'Harbor', es:'Puerto', fr:'Port', de:'Hafen', it:'Porto', pt:'Porto', ru:'Гавань', ar:'الميناء', zh:'港口', ja:'港', ko:'항구', az:'Liman', uk:'Гавань', fa:'بندر', hi:'बंदरगाह' },
+  wd_garden:{ tr:'Bahçeli', en:'Garden', es:'Jardín', fr:'Jardin', de:'Garten', it:'Giardino', pt:'Jardim', ru:'Сад', ar:'الحديقة', zh:'花园', ja:'庭園', ko:'정원', az:'Bağ', uk:'Сад', fa:'باغ', hi:'उद्यान' },
+  wd_park:{ tr:'Park', en:'Park', es:'Parque', fr:'Parc', de:'Park', it:'Parco', pt:'Parque', ru:'Парк', ar:'الحديقة العامة', zh:'公园', ja:'公園', ko:'공원', az:'Park', uk:'Парк', fa:'پارک', hi:'पार्क' },
+  wd_marina:{ tr:'Marina', en:'Marina', es:'Marina', fr:'Marina', de:'Marina', it:'Marina', pt:'Marina', ru:'Марина', ar:'المرسى', zh:'码头', ja:'マリーナ', ko:'마리나', az:'Marina', uk:'Марина', fa:'مارینا', hi:'मरीना' },
+  wd_valley:{ tr:'Vadi', en:'Valley', es:'Valle', fr:'Vallée', de:'Tal', it:'Valle', pt:'Vale', ru:'Долина', ar:'الوادي', zh:'山谷', ja:'谷', ko:'계곡', az:'Vadi', uk:'Долина', fa:'دره', hi:'घाटी' },
+  wd_coast:{ tr:'Sahil', en:'Coast', es:'Costa', fr:'Côte', de:'Küste', it:'Costa', pt:'Costa', ru:'Берег', ar:'الساحل', zh:'海岸', ja:'海岸', ko:'해안', az:'Sahil', uk:'Берег', fa:'ساحل', hi:'तट' },
+  wd_south:{ tr:'Güney', en:'South', es:'Sur', fr:'Sud', de:'Süd', it:'Sud', pt:'Sul', ru:'Юг', ar:'الجنوب', zh:'南区', ja:'南', ko:'남부', az:'Cənub', uk:'Південь', fa:'جنوب', hi:'दक्षिण' },
+  wd_north:{ tr:'Kuzey', en:'North', es:'Norte', fr:'Nord', de:'Nord', it:'Nord', pt:'Norte', ru:'Север', ar:'الشمال', zh:'北区', ja:'北', ko:'북부', az:'Şimal', uk:'Північ', fa:'شمال', hi:'उत्तर' },
+  wt_hotel:{ tr:'Otel', en:'Hotel', es:'Hotel', fr:'Hôtel', de:'Hotel', it:'Hotel', pt:'Hotel', ru:'Отель', ar:'فندق', zh:'酒店', ja:'ホテル', ko:'호텔', az:'Otel', uk:'Готель', fa:'هتل', hi:'होटल' },
+  wt_tower:{ tr:'Kule', en:'Tower', es:'Torre', fr:'Tour', de:'Turm', it:'Torre', pt:'Torre', ru:'Башня', ar:'برج', zh:'大厦', ja:'タワー', ko:'타워', az:'Qüllə', uk:'Вежа', fa:'برج', hi:'टावर' },
+  wt_landmark:{ tr:'Anıt', en:'Landmark', es:'Monumento', fr:'Monument', de:'Wahrzeichen', it:'Monumento', pt:'Marco', ru:'Достопримечательность', ar:'معلم', zh:'地标', ja:'ランドマーク', ko:'랜드마크', az:'Abidə', uk:'Пам’ятка', fa:'نشانه', hi:'स्थल' },
+  wt_mall:{ tr:'AVM', en:'Mall', es:'Centro Comercial', fr:'Centre Commercial', de:'Einkaufszentrum', it:'Centro Commerciale', pt:'Shopping', ru:'Торговый центр', ar:'مول', zh:'购物中心', ja:'モール', ko:'몰', az:'Ticarət Mərkəzi', uk:'Торговий центр', fa:'مرکز خرید', hi:'मॉल' },
+  wt_residence:{ tr:'Rezidans', en:'Residence', es:'Residencia', fr:'Résidence', de:'Residenz', it:'Residenza', pt:'Residência', ru:'Резиденция', ar:'مجمع سكني', zh:'公寓', ja:'レジデンス', ko:'레지던스', az:'Rezidens', uk:'Резиденція', fa:'رزیدنس', hi:'रेज़िडेंस' },
+  wt_apartments:{ tr:'Apartmanı', en:'Apartments', es:'Apartamentos', fr:'Appartements', de:'Apartments', it:'Appartamenti', pt:'Apartamentos', ru:'Апартаменты', ar:'شقق', zh:'公寓楼', ja:'アパート', ko:'아파트', az:'Mənzillər', uk:'Апартаменти', fa:'آپارتمان', hi:'अपार्टमेंट' },
+  wt_plaza:{ tr:'Plaza', en:'Plaza', es:'Plaza', fr:'Place', de:'Plaza', it:'Plaza', pt:'Praça', ru:'Плаза', ar:'بلازا', zh:'广场', ja:'プラザ', ko:'플라자', az:'Plaza', uk:'Плаза', fa:'پلازا', hi:'प्लाज़ा' },
+  wt_gardens:{ tr:'Konutları', en:'Gardens', es:'Jardines', fr:'Jardins', de:'Gärten', it:'Giardini', pt:'Jardins', ru:'Сады', ar:'حدائق', zh:'花园', ja:'ガーデンズ', ko:'가든', az:'Bağlar', uk:'Сади', fa:'باغات', hi:'गार्डन' },
   // ── Kademeli emlakçı paketleri ({city}/{country} panelde değiştirilir) ──
   agent_choose:{ tr:'Emlakçı Paketi Seç', en:'Choose an Agent Package', de:'Makler-Paket wählen', fr:'Choisir un forfait agent', es:'Elige un paquete de agente', ru:'Выберите пакет агента', ar:'اختر باقة وكيل', zh:'选择中介套餐', ja:'エージェントパックを選択' },
   ag_c1_t:{ tr:'Tek Şehir Emlakçısı', en:'Single City Agent' },

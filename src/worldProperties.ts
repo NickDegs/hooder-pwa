@@ -11,6 +11,7 @@
 import { type Property, type PropertyCategory, categoryMeta } from './data'
 import { worldCities } from './worldData'
 import { registerProperties } from './services/localProperties'
+import { t } from './services/i18n'
 
 // Seed'li RNG (mulberry32) — deterministik, ağ gerektirmez
 function rng(seed: number) {
@@ -28,18 +29,21 @@ function hashStr(s: string): number {
   return h >>> 0
 }
 
-// Semt adları (proper-noun, global okunur) ve mülk tipleri
-const DISTRICTS = ['Central', 'Downtown', 'Riverside', 'Old Town', 'Harbor', 'Heights', 'Garden', 'Marina', 'Park', 'Hillside', 'Bayview', 'Grand']
-const TYPES: { cat: PropertyCategory; base: number; prestige: number; word: string }[] = [
-  { cat: 'hotel',    base: 95_000_000,  prestige: 5, word: 'Hotel' },
-  { cat: 'office',   base: 70_000_000,  prestige: 4, word: 'Tower' },
-  { cat: 'landmark', base: 150_000_000, prestige: 5, word: 'Landmark' },
-  { cat: 'retail',   base: 26_000_000,  prestige: 3, word: 'Mall' },
-  { cat: 'building',  base: 18_000_000,  prestige: 2, word: 'Residence' },
-  { cat: 'building',  base: 12_000_000,  prestige: 2, word: 'Apartments' },
-  { cat: 'office',   base: 40_000_000,  prestige: 3, word: 'Plaza' },
-  { cat: 'park',     base: 16_000_000,  prestige: 2, word: 'Gardens' },
+// Semt + tip anahtarları → adlar oyuncu dilinde üretilir (i18n: wd_* / wt_*)
+const DKEYS = ['central', 'riverside', 'hilltop', 'newcity', 'harbor', 'garden', 'park', 'marina', 'valley', 'coast', 'south', 'north']
+const TYPES: { cat: PropertyCategory; base: number; prestige: number; key: string }[] = [
+  { cat: 'hotel',    base: 95_000_000,  prestige: 5, key: 'hotel' },
+  { cat: 'office',   base: 70_000_000,  prestige: 4, key: 'tower' },
+  { cat: 'landmark', base: 150_000_000, prestige: 5, key: 'landmark' },
+  { cat: 'retail',   base: 26_000_000,  prestige: 3, key: 'mall' },
+  { cat: 'building',  base: 18_000_000,  prestige: 2, key: 'residence' },
+  { cat: 'building',  base: 12_000_000,  prestige: 2, key: 'apartments' },
+  { cat: 'office',   base: 40_000_000,  prestige: 3, key: 'plaza' },
+  { cat: 'park',     base: 16_000_000,  prestige: 2, key: 'gardens' },
 ]
+// Semt + tip → oyuncu dilinde ad ("Sahil Kule", "Merkez Rezidans"...)
+function propName(dk: string, tk: string): string { return `${t('wd_' + dk)} ${t('wt_' + tk)}` }
+function districtLabel(dk: string): string { return t('wd_' + dk) }
 
 // Tek şehir için mülkler (deterministik). daySeed → günlük fiyat/ilan tazeleme.
 function cityProps(city: { name: string; country: string; lat: number; lng: number; rank: number }, daySeed: number): Property[] {
@@ -50,30 +54,28 @@ function cityProps(city: { name: string; country: string; lat: number; lng: numb
   const wealth = 0.6 + Math.min(city.rank, 40) / 40 * 1.4   // büyük/zengin şehir → pahalı
   const out: Property[] = []
   for (let i = 0; i < count; i++) {
-    const t = TYPES[Math.floor(r() * TYPES.length)]
-    const district = DISTRICTS[(hashStr(city.name) + i) % DISTRICTS.length]
+    const ty = TYPES[Math.floor(r() * TYPES.length)]
+    const dk = DKEYS[(hashStr(city.name) + i) % DKEYS.length]
     // Şehir merkezine küçük ofset (~0–4 km) — id sabitliği için ofset baseSeed'e bağlı
     const or2 = rng(baseSeed + i * 97)
-    const dLat = (or2() - 0.5) * 0.06
-    const dLng = (or2() - 0.5) * 0.06
-    const lat = +(city.lat + dLat).toFixed(5)
-    const lng = +(city.lng + dLng).toFixed(5)
+    const lat = +(city.lat + (or2() - 0.5) * 0.06).toFixed(5)
+    const lng = +(city.lng + (or2() - 0.5) * 0.06).toFixed(5)
     const factor = (0.6 + r() * 1.8) * wealth
-    const price = Math.max(2_000_000, Math.round((t.base * factor) / 100_000) * 100_000)
+    const price = Math.max(2_000_000, Math.round((ty.base * factor) / 100_000) * 100_000)
     const income = Math.max(2000, Math.round(price * 0.0009))
-    const prestige = Math.min(5, Math.max(1, t.prestige + (r() > 0.85 ? 1 : 0)))
+    const prestige = Math.min(5, Math.max(1, ty.prestige + (r() > 0.85 ? 1 : 0)))
     out.push({
       id: `wp_${city.country}_${hashStr(city.name) % 100000}_${i}`,   // SABİT id → sahiplik korunur
-      name: `${district} ${t.word}`,
-      address: `${district}, ${city.name}`,
-      category: t.cat,
-      neighborhood: district,
+      name: propName(dk, ty.key),
+      address: `${districtLabel(dk)}, ${city.name}`,
+      category: ty.cat,
+      neighborhood: districtLabel(dk),
       city: city.name,
       country: city.country,
       price, incomePerDay: income, prestige,
       lat, lng,
-      description: `${city.name} şehrinde ${categoryMeta[t.cat].label.toLowerCase()}. Değerli yatırım fırsatı.`,
-      accentHex: categoryMeta[t.cat].accent,
+      description: `${city.name} — ${categoryMeta[ty.cat].label.toLowerCase()}.`,
+      accentHex: categoryMeta[ty.cat].accent,
       roiPercent: +(income * 365 / price * 100).toFixed(1),
     })
   }
@@ -96,9 +98,9 @@ const genCells = new Set<string>()
 const CELL = 0.03   // ~3.3 km ızgara (yoğun doluluk için küçük)
 
 function nearestWorldCity(lat: number, lng: number) {
-  let best: typeof worldCities[number] | null = null, bd = Infinity
+  let best = worldCities[0], bd = Infinity
   for (const c of worldCities) { const d = Math.hypot(c.lat - lat, c.lng - lng); if (d < bd) { bd = d; best = c } }
-  return best && bd < 0.6 ? best : null   // ~66km içindeyse o şehre bağla
+  return best   // her zaman EN YAKIN şehri döndür → "Bölge X,Y" yerine gerçek şehir adı
 }
 
 function fillCell(cy: number, cx: number): Property[] {
@@ -109,14 +111,14 @@ function fillCell(cy: number, cx: number): Property[] {
   const seed = hashStr(cell)
   const r = rng(seed)
   const near = nearestWorldCity(clat, clng)
-  const cityName = near ? near.name : `Bölge ${cy},${cx}`   // şehir dışıysa hücreye özel ad → hood'lar karışmaz
-  const cc = near ? near.country : ''
-  const wealth = near ? (0.6 + Math.min(near.rank, 40) / 40 * 1.4) : 0.7
+  const cityName = near.name
+  const cc = near.country
+  const wealth = 0.6 + Math.min(near.rank, 40) / 40 * 1.4
   const count = 6 + Math.floor(r() * 5)   // hücre başına 6–10 mülk
   const props: Property[] = []
   for (let i = 0; i < count; i++) {
     const ty = TYPES[Math.floor(r() * TYPES.length)]
-    const district = DISTRICTS[(seed + i) % DISTRICTS.length]
+    const dk = DKEYS[(seed + i) % DKEYS.length]
     const or2 = rng(seed + i * 131)
     const lat2 = +(clat + (or2() - 0.5) * CELL).toFixed(5)
     const lng2 = +(clng + (or2() - 0.5) * CELL).toFixed(5)
@@ -126,11 +128,11 @@ function fillCell(cy: number, cx: number): Property[] {
     const prestige = Math.min(5, Math.max(1, ty.prestige + (r() > 0.85 ? 1 : 0)))
     props.push({
       id: `gp_${cell}_${i}`,
-      name: `${district} ${ty.word}`,
-      address: `${district}, ${cityName}`,
-      category: ty.cat, neighborhood: district, city: cityName, country: cc,
+      name: propName(dk, ty.key),
+      address: `${districtLabel(dk)}, ${cityName}`,
+      category: ty.cat, neighborhood: districtLabel(dk), city: cityName, country: cc,
       price, incomePerDay: income, prestige, lat: lat2, lng: lng2,
-      description: `${cityName} bölgesinde ${categoryMeta[ty.cat].label.toLowerCase()}. Değerli yatırım fırsatı.`,
+      description: `${cityName} — ${categoryMeta[ty.cat].label.toLowerCase()}.`,
       accentHex: categoryMeta[ty.cat].accent, roiPercent: +(income * 365 / price * 100).toFixed(1),
     })
   }
