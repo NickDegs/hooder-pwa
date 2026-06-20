@@ -209,6 +209,14 @@ input {
 :root {
   --ease-glass: cubic-bezier(0.22, 1, 0.36, 1);
   --spring:     cubic-bezier(0.34, 1.30, 0.5, 1);
+  /* iOS sheet/SwiftUI yay eğrisi — en yumuşak settle (overshoot yok, akışkan) */
+  --ease-ios:   cubic-bezier(0.32, 0.72, 0, 1);
+  /* SwiftUI .snappy — hafif yaylı oturma (gerçek native his) */
+  --spring-ios: linear(
+    0, 0.006, 0.025 2.8%, 0.101 6.1%, 0.539 18.9%, 0.721 25.3%, 0.849, 0.937 34.6%,
+    0.968, 0.991 41.1%, 1.006 44.4%, 1.015 48.4%, 1.017 52.8%, 1.014 57.5%, 1.001 70.2%,
+    0.997 77.6%, 0.999 87.5%, 1
+  );
 }
 @keyframes fadeIn   { from { opacity: 0 } to { opacity: 1 } }
 /* Yumuşak yükseliş: hafif kayma + ölçek + saydamlık, blur ile akışkan */

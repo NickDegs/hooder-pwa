@@ -236,8 +236,9 @@ export default function App() {
 
   // Panel içerik alanı: haritadan çıkıldığında alta kayarak açılır
   const screenPanelStyle: CSSProperties = {
+    // GPU-yumuşak: sabit yükseklik + translateY (height yerine transform).
     position: 'fixed', bottom: 0, left: 0, right: 0,
-    height: isDesktop ? 'var(--panel-h)' : `${(screenSheet.frac * 100).toFixed(1)}dvh`, zIndex: 50,
+    height: isDesktop ? 'var(--panel-h)' : `${screenSheet.fullDvh.toFixed(1)}dvh`, zIndex: 50,
     display: 'flex', flexDirection: 'column',
     background: 'rgba(4,8,18,0.24)',
     backdropFilter: 'blur(44px) saturate(200%)',
@@ -245,8 +246,9 @@ export default function App() {
     borderTop: '0.5px solid rgba(255,255,255,0.18)',
     borderRadius: 'var(--r-2xl) var(--r-2xl) 0 0',
     boxShadow: '0 -12px 60px rgba(0,0,0,0.65), inset 0 0.5px 0 rgba(255,255,255,0.2)',
-    transform: isMap ? 'translateY(100%)' : 'translateY(0)',
-    transition: screenSheet.dragging ? 'transform 0.58s cubic-bezier(0.22,1,0.36,1)' : 'transform 0.58s cubic-bezier(0.22,1,0.36,1), height 0.32s cubic-bezier(0.22,1,0.36,1)',
+    transform: isMap ? 'translateY(100%)' : (isDesktop ? 'translateY(0)' : `translateY(${screenSheet.hiddenPct.toFixed(2)}dvh)`),
+    transition: screenSheet.dragging ? 'none' : 'transform 0.52s var(--ease-ios)',
+    willChange: 'transform',
     paddingBottom: 'var(--tab-h)',
     overflow: 'hidden',
   }

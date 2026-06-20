@@ -18,7 +18,7 @@ export default function NeighborhoodPanel({ hood, onClose, isDesktop }: Props) {
   const { cash, isOwned, buy, sell } = useGame()
   const [toast, setToast]             = useState<string | null>(null)
   const [collapsed, setCollapsed]     = useState<Set<string>>(new Set())
-  const { frac: heightFrac, dragging, handlers } = useDragSheet(SNAP_HALF, SNAP_FULL, SNAP_CLOSE, onClose)
+  const { dragging, handlers, fullDvh, hiddenPct } = useDragSheet(SNAP_HALF, SNAP_FULL, SNAP_CLOSE, onClose)
 
   if (!hood) return null
   const h = hood
@@ -67,15 +67,18 @@ export default function NeighborhoodPanel({ hood, onClose, isDesktop }: Props) {
     boxShadow: '0 24px 80px rgba(0,0,0,0.5), inset 0 0.5px 0 rgba(255,255,255,0.24)',
     animation: 'slideFromRight 0.55s cubic-bezier(0.22,1,0.36,1) forwards',
   } : {
+    // GPU-yumuşak: sabit yükseklik + translateY (height animasyonu reflow=jank).
     position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 60,
-    height: `${(heightFrac * 100).toFixed(1)}dvh`,
+    height: `${fullDvh.toFixed(1)}dvh`,
+    transform: `translateY(${hiddenPct.toFixed(2)}dvh)`,
+    transition: dragging ? 'none' : 'transform 0.5s var(--ease-ios)',
+    willChange: 'transform',
     display: 'flex', flexDirection: 'column', borderRadius: '22px 22px 0 0', overflow: 'hidden',
     background: 'rgba(6,10,20,0.14)',
     backdropFilter: 'blur(34px) saturate(195%)',
     WebkitBackdropFilter: 'blur(34px) saturate(195%)',
     border: '0.5px solid rgba(255,255,255,0.22)', borderBottom: 'none',
     boxShadow: '0 -16px 60px rgba(0,0,0,0.45), inset 0 0.5px 0 rgba(255,255,255,0.24)',
-    transition: dragging ? 'none' : 'height 0.32s cubic-bezier(0.22,1,0.36,1)',
     paddingBottom: 'calc(86px + env(safe-area-inset-bottom, 0px))',
   }
 
