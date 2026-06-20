@@ -436,13 +436,15 @@ export default function MapView({
       map.on('moveend', () => {
         // 1) Ekrandaki marker'ları yeni viewport'a göre senkronla (culling)
         reconcile(map)
-        // 2) Gezdiğin her yerde etiket: aktif kademede ekranda AZ etiket kaldıysa
-        //    (gömülü mülk yoksa) o bölgeyi canlı yükle. localProperties ~5km cache
-        //    + "yeni eklendiyse" kontrolü sayesinde aynı boş bölge tekrar yüklenmez.
+        // 2) Baktığın yeri ANINDA doldur: hood/mülk kademesinde her durakta merkez
+        //    bölgeyi üret (prosedürel, hücre cache'li → aynı yer tekrar üretilmez,
+        //    boşsa bile bir kez üretip etiket çıkarır). Şehir kademesinde dünya
+        //    şehir etiketleri zaten gömülü.
         const z = map.getZoom()
-        if (z < zHood || !cbMapExplore.current) return
-        const visible = z < zProp ? attHood.current.size : attProp.current.size
-        if (visible < 6) { const c = map.getCenter(); cbMapExplore.current(c.lat, c.lng) }
+        if (z >= zHood && cbMapExplore.current) {
+          const c = map.getCenter()
+          cbMapExplore.current(c.lat, c.lng)
+        }
       })
     })
 

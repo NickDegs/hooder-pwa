@@ -87,6 +87,67 @@ export function buildWorldProperties(daySeed: number): Property[] {
   return all
 }
 
+// ── Bakılan her bölgeyi ANINDA doldur (prosedürel, offline, sınırsız kapsam) ──
+// Barış: "Tam olarak haritada nereye bakıyorsam anlık canlı olarak oranın etiketi
+// belirsin." Gömülü şehirler arasında boşluk kalmasın diye: haritada görünen
+// merkezin ~6km hücresi için deterministik mülkler üretilir (bir kez, cache'li).
+// Ağ YOK → anında. id'ler hücreye sabit → sahiplik korunur.
+const genCells = new Set<string>()
+const CELL = 0.03   // ~3.3 km ızgara (yoğun doluluk için küçük)
+
+function nearestWorldCity(lat: number, lng: number) {
+  let best: typeof worldCities[number] | null = null, bd = Infinity
+  for (const c of worldCities) { const d = Math.hypot(c.lat - lat, c.lng - lng); if (d < bd) { bd = d; best = c } }
+  return best && bd < 0.6 ? best : null   // ~66km içindeyse o şehre bağla
+}
+
+function fillCell(cy: number, cx: number): Property[] {
+  const cell = `${cy}_${cx}`
+  if (genCells.has(cell)) return []
+  genCells.add(cell)
+  const clat = cy * CELL, clng = cx * CELL
+  const seed = hashStr(cell)
+  const r = rng(seed)
+  const near = nearestWorldCity(clat, clng)
+  const cityName = near ? near.name : `Bölge ${cy},${cx}`   // şehir dışıysa hücreye özel ad → hood'lar karışmaz
+  const cc = near ? near.country : ''
+  const wealth = near ? (0.6 + Math.min(near.rank, 40) / 40 * 1.4) : 0.7
+  const count = 6 + Math.floor(r() * 5)   // hücre başına 6–10 mülk
+  const props: Property[] = []
+  for (let i = 0; i < count; i++) {
+    const ty = TYPES[Math.floor(r() * TYPES.length)]
+    const district = DISTRICTS[(seed + i) % DISTRICTS.length]
+    const or2 = rng(seed + i * 131)
+    const lat2 = +(clat + (or2() - 0.5) * CELL).toFixed(5)
+    const lng2 = +(clng + (or2() - 0.5) * CELL).toFixed(5)
+    const factor = (0.6 + r() * 1.8) * wealth
+    const price = Math.max(2_000_000, Math.round((ty.base * factor) / 100_000) * 100_000)
+    const income = Math.max(2000, Math.round(price * 0.0009))
+    const prestige = Math.min(5, Math.max(1, ty.prestige + (r() > 0.85 ? 1 : 0)))
+    props.push({
+      id: `gp_${cell}_${i}`,
+      name: `${district} ${ty.word}`,
+      address: `${district}, ${cityName}`,
+      category: ty.cat, neighborhood: district, city: cityName, country: cc,
+      price, incomePerDay: income, prestige, lat: lat2, lng: lng2,
+      description: `${cityName} bölgesinde ${categoryMeta[ty.cat].label.toLowerCase()}. Değerli yatırım fırsatı.`,
+      accentHex: categoryMeta[ty.cat].accent, roiPercent: +(income * 365 / price * 100).toFixed(1),
+    })
+  }
+  return props
+}
+
+// Bakılan merkezin çevresinde 3×3 hücre bloğu üret → baktığın yer yoğun dolar.
+// Cache'li (her hücre bir kez). Yeni mülk üretildiyse true (çağıran tazeler).
+export function ensureAreaProperties(lat: number, lng: number): boolean {
+  const cy = Math.round(lat / CELL), cx = Math.round(lng / CELL)
+  const out: Property[] = []
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) out.push(...fillCell(cy + dy, cx + dx))
+  if (!out.length) return false
+  registerProperties(out)
+  return true
+}
+
 // ── Günlük otomatik tazeleme ──────────────────────────────────────────────────
 // Uygulama açılışında + saatlik kontrolde çağrılır. Gün değiştiyse mülkleri yeni
 // tohumla yeniden üretip kaydeder (id'ler sabit → sahiplik/satın alımlar korunur,

@@ -4,7 +4,7 @@ import { useGame } from './store/useGame'
 import { allCities, setDynamicProperties, buildGroups, nearestHood, type City, type Property, type HoodGroup } from './data'
 import { formatPrice } from './data'
 import { fetchLocalProperties, allDynamicProperties } from './services/localProperties'
-import { syncWorldProperties } from './worldProperties'
+import { syncWorldProperties, ensureAreaProperties } from './worldProperties'
 import { useDragSheet } from './services/useDragSheet'
 import { useLang } from './services/i18n'
 import { initEconomy } from './services/economy'
@@ -183,15 +183,16 @@ export default function App() {
     if (near) handleSelectHood(near)
   }
 
-  // Gezinti (pan) bitince: o bölgenin mülklerini yükle ama PANEL AÇMA → sadece
-  // canlı etiket/marker belirir. Aynı bölge tekrar çekilmez (localProperties cache).
+  // Gezinti (pan) bitince: bakılan bölgeyi ANINDA doldur (prosedürel, offline,
+  // garantili) → nereye bakarsan oranın etiketi anında belirir. PANEL AÇILMAZ.
   async function handleMapExplore(lat: number, lng: number) {
+    // 1) Prosedürel hücre üret — anında, ağ beklemez, her zaman etiket verir
+    if (ensureAreaProperties(lat, lng)) { setDynamicProperties(allDynamicProperties()); setLocalVersion(v => v + 1) }
+    // 2) Bonus: gerçek POI (otel/landmark) varsa zenginleştir — non-blocking
     if (pickBusy.current) return
     pickBusy.current = true
     const before = allDynamicProperties().length
-    try {
-      await fetchLocalProperties(lat, lng)
-    } catch { /* sessiz */ }
+    try { await fetchLocalProperties(lat, lng) } catch { /* sessiz */ }
     pickBusy.current = false
     if (allDynamicProperties().length > before) { setDynamicProperties(allDynamicProperties()); setLocalVersion(v => v + 1) }
   }
