@@ -15,9 +15,21 @@ interface Props {
 }
 
 export default function NeighborhoodPanel({ hood, onClose, isDesktop }: Props) {
-  const { cash, isOwned, buy, sell } = useGame()
+  const { cash, isOwned, buy, sell, areaStatus, sendAgent } = useGame()
   const [toast, setToast]             = useState<string | null>(null)
   const [collapsed, setCollapsed]     = useState<Set<string>>(new Set())
+
+  function handleAgent(prop: Property) {
+    const st = areaStatus(prop)
+    if (sendAgent(prop)) {
+      setToast(st.needAgent === 'country'
+        ? `🕴️ ${prop.country} ülkesine emlakçı yollandı — bölge açıldı!`
+        : `🕴️ ${prop.city} için emlakçı yollandı — bölge açıldı!`)
+    } else {
+      setToast('Yetersiz bakiye — emlakçı yollanamadı')
+    }
+    setTimeout(() => setToast(null), 2600)
+  }
   const { dragging, handlers, fullDvh, hiddenPct } = useDragSheet(SNAP_HALF, SNAP_FULL, SNAP_CLOSE, onClose)
 
   if (!hood) return null
@@ -208,6 +220,8 @@ export default function NeighborhoodPanel({ hood, onClose, isDesktop }: Props) {
                     {props.map(prop => {
                       const owned     = isOwned(prop.id)
                       const canAfford = cash >= prop.price
+                      const area      = areaStatus(prop)
+                      const locked    = !owned && !area.allowed
 
                       return (
                         <div key={prop.id} style={{
@@ -263,6 +277,18 @@ export default function NeighborhoodPanel({ hood, onClose, isDesktop }: Props) {
                                     background: 'rgba(255,69,58,0.12)', border: '0.5px solid rgba(255,69,58,0.3)',
                                     color: '#ff453a', fontSize: 10, fontWeight: 700,
                                   }}>Sat</button>
+                                ) : locked ? (
+                                  <button type="button" onClick={() => handleAgent(prop)} disabled={cash < area.fee} style={{
+                                    padding: '7px 11px', borderRadius: 10, whiteSpace: 'nowrap',
+                                    background: cash >= area.fee ? 'rgba(255,196,52,0.16)' : 'rgba(255,255,255,0.06)',
+                                    border: `0.5px solid ${cash >= area.fee ? 'rgba(255,196,52,0.5)' : 'rgba(255,255,255,0.1)'}`,
+                                    color: cash >= area.fee ? '#ffc434' : 'rgba(255,255,255,0.3)',
+                                    fontSize: 10, fontWeight: 800, opacity: cash >= area.fee ? 1 : 0.65,
+                                    display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1.2,
+                                  }}>
+                                    <span>🕴️ Emlakçı</span>
+                                    <span style={{ fontSize: 8.5, opacity: 0.85 }}>{formatPrice(area.fee)}</span>
+                                  </button>
                                 ) : (
                                   <button type="button" onClick={() => handleBuy(prop)} disabled={!canAfford} style={{
                                     padding: '7px 12px', borderRadius: 10,

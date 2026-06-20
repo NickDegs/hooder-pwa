@@ -31,6 +31,9 @@ interface GameState {
   claimed:       ClaimedPlace[]
   lastCollect:   number
   serverId:      string
+  currentCity:   string   // anlık GPS konum şehri/ili (burada serbest alım)
+  currentCountry:string   // anlık GPS ülke kodu
+  unlockedAreas: string[] // emlakçı ile açılan bölgeler ('city:Ad' / 'country:TR')
 
   // computed
   netWorth:      number
@@ -49,6 +52,18 @@ interface GameState {
   addCash:         (amount: number) => void
   reset:           () => void
   isOwned:         (id: string) => boolean
+  setCurrentArea:  (city: string, country: string) => void
+  areaStatus:      (p: Property) => { allowed: boolean; needAgent: null | 'city' | 'country'; fee: number }
+  sendAgent:       (p: Property) => boolean
+}
+
+// Bölge kilidi sabitleri
+const MIN_TO_EXPAND   = 3          // bu kadar mülk → her yere serbest genişleme
+const AGENT_CITY_FEE  = 3_000_000  // başka il/şehir (aynı ülke) emlakçı ücreti
+const AGENT_COUNTRY_FEE = 15_000_000 // başka ülke emlakçı ücreti
+// Şehir adı normalleştir (İ/ı/case farklarını yok say)
+function normCity(s: string): string {
+  return (s || '').toLocaleLowerCase('tr').replace(/i̇/g, 'i').replace(/ı/g, 'i').trim()
 }
 
 let currentUserId  = ''
@@ -93,6 +108,9 @@ function parseState(raw: Record<string, unknown>) {
     lastCollect,
     owned,
     claimed,
+    currentCity:   (raw.currentCity    as string)   ?? 'Istanbul',
+    currentCountry:(raw.currentCountry as string)   ?? 'TR',
+    unlockedAreas: (raw.unlockedAreas  as string[]) ?? [],
     netWorth:      computeNetWorth(cash, owned),
     dailyIncome:   computeDailyIncome(owned),
     pendingIncome: computePendingIncome(owned, lastCollect),
@@ -108,6 +126,9 @@ export const useGame = create<GameState>((set, get) => ({
   claimed:       [],
   lastCollect:   Date.now(),
   serverId:      '',
+  currentCity:   'Istanbul',
+  currentCountry:'TR',
+  unlockedAreas: [],
   netWorth:      15_000_000,
   dailyIncome:   0,
   pendingIncome: 0,
@@ -149,9 +170,46 @@ export const useGame = create<GameState>((set, get) => ({
     persist()
   },
 
+  setCurrentArea(city: string, country: string) {
+    if (!city) return
+    set({ currentCity: city, currentCountry: country || '' })
+    persist()
+  },
+
+  // Bir mülkün bulunduğu bölge alınabilir mi? Değilse emlakçı gerekir.
+  areaStatus(p: Property) {
+    const st = get()
+    const sameCity = normCity(p.city) === normCity(st.currentCity)        // fiziksen oradasın
+    const enough   = st.owned.length >= MIN_TO_EXPAND                     // yeterli mülk → serbest
+    const unlocked = st.unlockedAreas.includes(`city:${normCity(p.city)}`) ||
+                     st.unlockedAreas.includes(`country:${(p.country || '').toUpperCase()}`)
+    if (sameCity || enough || unlocked) return { allowed: true, needAgent: null as null, fee: 0 }
+    const sameCountry = (p.country || '').toUpperCase() === (st.currentCountry || '').toUpperCase()
+    return sameCountry
+      ? { allowed: false, needAgent: 'city' as const,    fee: AGENT_CITY_FEE }
+      : { allowed: false, needAgent: 'country' as const, fee: AGENT_COUNTRY_FEE }
+  },
+
+  // Emlakçı yolla → bölgeyi aç (ücretli). Şehir ucuz, ülke pahalı.
+  sendAgent(p: Property) {
+    const st = get()
+    const status = st.areaStatus(p)
+    if (status.allowed || !status.needAgent) return false
+    if (st.cash < status.fee) return false
+    const key = status.needAgent === 'country'
+      ? `country:${(p.country || '').toUpperCase()}`
+      : `city:${normCity(p.city)}`
+    const unlockedAreas = [...st.unlockedAreas, key]
+    const cash = st.cash - status.fee
+    set({ unlockedAreas, cash, netWorth: computeNetWorth(cash, st.owned) })
+    persist()
+    return true
+  },
+
   buy(property: Property) {
     const st = get()
     if (st.cash < property.price || st.isOwned(property.id)) return false
+    if (!st.areaStatus(property).allowed) return false   // bölge kilitli → önce emlakçı / git
     const op: OwnedProperty = { id: property.id, property, purchasedAt: Date.now(), totalEarned: 0 }
     const owned = [...st.owned, op]
     const cash  = st.cash - property.price
@@ -226,6 +284,7 @@ export const useGame = create<GameState>((set, get) => ({
       owned:         [],
       claimed:       [],
       lastCollect:   Date.now(),
+      unlockedAreas: [],
       netWorth:      15_000_000,
       dailyIncome:   0,
       pendingIncome: 0,
@@ -239,11 +298,12 @@ export const useGame = create<GameState>((set, get) => ({
 }))
 
 function persist() {
-  const { playerName, cash, level, xp, owned, lastCollect, netWorth, claimed } = useGame.getState()
+  const { playerName, cash, level, xp, owned, lastCollect, netWorth, claimed, currentCity, currentCountry, unlockedAreas } = useGame.getState()
   const data = {
     playerName, cash, level, xp, lastCollect, netWorth,
     ownedPropertyIDs: owned.map(o => ({ id: o.id, purchasedAt: o.purchasedAt, totalEarned: o.totalEarned, prop: o.property })),
     claimedPlaces: claimed,
+    currentCity, currentCountry, unlockedAreas,
   }
 
   // Always save locally as backup

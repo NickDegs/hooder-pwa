@@ -34,7 +34,7 @@ function useIsDesktop() {
 
 export default function App() {
   const { user }       = useAuth()
-  const { load, cash, level, pendingIncome, owned } = useGame()
+  const { load, cash, level, pendingIncome, owned, setCurrentArea } = useGame()
   const ownedIds = useMemo(() => owned.map(o => o.id), [owned])
   const isDesktop      = useIsDesktop()
 
@@ -86,6 +86,8 @@ export default function App() {
         setUserCity(city)
         setFlyToCity(city)
         setLiveOff(false)
+        // Anlık konum bölgesi → burada serbest alım (dışı emlakçı ister)
+        if (ctx?.city) setCurrentArea(ctx.city, ctx.country || '')
       } catch { /* sessiz geç */ }
     }, () => { /* izin yok → İstanbul'da kal */ }, { enableHighAccuracy: false, timeout: 9000, maximumAge: 600000 })
   }, [user?.uid]) // eslint-disable-line
