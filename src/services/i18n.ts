@@ -179,7 +179,21 @@ export function setLang(code: Lang) {
 
 // Derin ekran metinleri — anahtar→dil (kısmi kapsam, eksikse İngilizce'ye düşer)
 const EXTRA: Record<string, Record<string, string>> = {
-  cancel:      { tr:'İptal', en:'Cancel', es:'Cancelar', fr:'Annuler', de:'Abbrechen', it:'Annulla', pt:'Cancelar', ru:'Отмена', ar:'إلغاء', zh:'取消', ja:'キャンセル', ko:'취소', az:'Ləğv et', uk:'Скасувати', fa:'لغو', hi:'रद्द करें' },
+  // ── Kademeli emlakçı paketleri ({city}/{country} panelde değiştirilir) ──
+  agent_choose:{ tr:'Emlakçı Paketi Seç', en:'Choose an Agent Package', de:'Makler-Paket wählen', fr:'Choisir un forfait agent', es:'Elige un paquete de agente', ru:'Выберите пакет агента', ar:'اختر باقة وكيل', zh:'选择中介套餐', ja:'エージェントパックを選択' },
+  ag_c1_t:{ tr:'Tek Şehir Emlakçısı', en:'Single City Agent' },
+  ag_c1_d:{ tr:'{city} açılır', en:'Unlocks {city}' },
+  ag_c2_t:{ tr:'Bölge Emlakçısı', en:'Regional Agent' },
+  ag_c2_d:{ tr:'{country} genelindeki TÜM şehirler', en:'ALL cities across {country}' },
+  ag_c3_t:{ tr:'VIP Şehir Emlakçısı', en:'VIP City Agent' },
+  ag_c3_d:{ tr:'{city} + işlemler ANINDA', en:'{city} + INSTANT deals' },
+  ag_k1_t:{ tr:'Tek Ülke Emlakçısı', en:'Single Country Agent' },
+  ag_k1_d:{ tr:'{country} açılır', en:'Unlocks {country}' },
+  ag_k2_t:{ tr:'VIP Ülke Emlakçısı', en:'VIP Country Agent' },
+  ag_k2_d:{ tr:'{country} + işlemler ANINDA', en:'{country} + INSTANT deals' },
+  ag_k3_t:{ tr:'Global Pasaport', en:'Global Passport' },
+  ag_k3_d:{ tr:'TÜM dünya + işlemler ANINDA', en:'WHOLE world + INSTANT deals' },
+  cancel:      { tr:'İptal', en:'Cancel', es:'Cancelar', fr:'Annuler', de:'Abbrechen', it:'Annulla', pt:'Cancelar', ru:'Отмена', ar:'إلغاء', zh:'取消', ja:'キャンセル', ko:'취소', az:'Ləğv et', uk:'Скасувати', fa:'لغو', hi:'रد्द करें' },
   all:         { tr:'Tümü', en:'All', es:'Todos', fr:'Tout', de:'Alle', it:'Tutti', pt:'Todos', ru:'Все', ar:'الكل', zh:'全部', ja:'すべて', ko:'전체', az:'Hamısı', uk:'Усі', fa:'همه', hi:'सभी' },
   all_cities:  { tr:'Tüm Şehirler', en:'All Cities', es:'Todas las Ciudades', fr:'Toutes les Villes', de:'Alle Städte', it:'Tutte le Città', pt:'Todas as Cidades', ru:'Все города', ar:'كل المدن', zh:'所有城市', ja:'全都市', ko:'모든 도시', az:'Bütün Şəhərlər', uk:'Усі міста', fa:'همه شهرها', hi:'सभी शहर' },
   insufficient2:{ tr:'Yetersiz', en:'Low funds', es:'Sin fondos', fr:'Fonds bas', de:'Zu wenig', it:'Fondi bassi', pt:'Sem fundos', ru:'Мало средств', ar:'رصيد منخفض', zh:'余额不足', ja:'残高不足', ko:'잔액 부족', az:'Balans az', uk:'Мало коштів', fa:'موجودی کم', hi:'धन कम' },

@@ -70,6 +70,8 @@ interface GameState {
   setCurrentArea:  (city: string, country: string) => void
   areaStatus:      (p: Property) => { allowed: boolean; needAgent: null | 'city' | 'country'; fee: number }
   sendAgent:       (p: Property) => boolean
+  agentPackages:   (p: Property) => AgentPkg[]                 // kademeli emlakçı paketleri (il / ülke dışı)
+  sendAgentPkg:    (p: Property, pkgId: string) => boolean     // seçilen paketi uygula
   buyFx:           (code: string, usdAmount: number, rate: number) => boolean
   sellFx:          (code: string, currentRate: number) => number   // gerçekleşen K/Z (USD)
   dailyStatus:     () => { available: boolean; amount: number; day: number; inWeek: number; isSeventh: boolean }
@@ -83,6 +85,26 @@ interface GameState {
 const MIN_TO_EXPAND   = 3          // bu kadar mülk → her yere serbest genişleme
 const AGENT_CITY_FEE  = 3_000_000  // başka il/şehir (aynı ülke) emlakçı ücreti
 const AGENT_COUNTRY_FEE = 15_000_000 // başka ülke emlakçı ücreti
+
+// ── Kademeli emlakçı paketleri ────────────────────────────────────────────────
+// scope: açılan kapsam (city=tek şehir, country=tüm ülke, all=tüm dünya).
+// instant: o kapsamdaki alımlar ANINDA (işlem süresi yok).
+export interface AgentPkg {
+  id: string; emoji: string; titleKey: string; descKey: string
+  fee: number; scope: 'city' | 'country' | 'all'; instant: boolean
+}
+// İl içi (aynı ülke, farklı şehir) — 3 paket
+const PKGS_CITY: AgentPkg[] = [
+  { id: 'c1', emoji: '🕴️', titleKey: 'ag_c1_t', descKey: 'ag_c1_d', fee: 3_000_000,  scope: 'city',    instant: false },
+  { id: 'c2', emoji: '🏙️', titleKey: 'ag_c2_t', descKey: 'ag_c2_d', fee: 10_000_000, scope: 'country', instant: false },
+  { id: 'c3', emoji: '👑', titleKey: 'ag_c3_t', descKey: 'ag_c3_d', fee: 18_000_000, scope: 'city',    instant: true  },
+]
+// Ülke dışı (farklı ülke) — 3 paket
+const PKGS_COUNTRY: AgentPkg[] = [
+  { id: 'k1', emoji: '🌍', titleKey: 'ag_k1_t', descKey: 'ag_k1_d', fee: 15_000_000,  scope: 'country', instant: false },
+  { id: 'k2', emoji: '🛫', titleKey: 'ag_k2_t', descKey: 'ag_k2_d', fee: 35_000_000,  scope: 'country', instant: true  },
+  { id: 'k3', emoji: '🛂', titleKey: 'ag_k3_t', descKey: 'ag_k3_d', fee: 120_000_000, scope: 'all',     instant: true  },
+]
 // Şehir adı normalleştir (İ/ı/case farklarını yok say)
 function normCity(s: string): string {
   return (s || '').toLocaleLowerCase('tr').replace(/i̇/g, 'i').replace(/ı/g, 'i').trim()
@@ -254,7 +276,8 @@ export const useGame = create<GameState>((set, get) => ({
     const st = get()
     const sameCity = normCity(p.city) === normCity(st.currentCity)        // fiziksen oradasın
     const enough   = st.owned.length >= MIN_TO_EXPAND                     // yeterli mülk → serbest
-    const unlocked = st.unlockedAreas.includes(`city:${normCity(p.city)}`) ||
+    const unlocked = st.unlockedAreas.includes('all:1') ||
+                     st.unlockedAreas.includes(`city:${normCity(p.city)}`) ||
                      st.unlockedAreas.includes(`country:${(p.country || '').toUpperCase()}`)
     if (sameCity || enough || unlocked) return { allowed: true, needAgent: null as null, fee: 0 }
     const sameCountry = (p.country || '').toUpperCase() === (st.currentCountry || '').toUpperCase()
@@ -274,6 +297,38 @@ export const useGame = create<GameState>((set, get) => ({
       : `city:${normCity(p.city)}`
     const unlockedAreas = [...st.unlockedAreas, key]
     const cash = st.cash - status.fee
+    set({ unlockedAreas, cash, netWorth: computeNetWorth(cash, st.owned) })
+    persist()
+    return true
+  },
+
+  // Bir mülk için uygun kademeli emlakçı paketleri (il içi 3 / ülke dışı 3).
+  // Bölge zaten açıksa boş döner.
+  agentPackages(p: Property) {
+    const st = get()
+    if (st.areaStatus(p).allowed) return []
+    const sameCountry = (p.country || '').toUpperCase() === (st.currentCountry || '').toUpperCase()
+    return sameCountry ? PKGS_CITY : PKGS_COUNTRY
+  },
+
+  // Seçilen emlakçı paketini uygula → kapsamı aç (+ VIP ise o kapsamda anında alım)
+  sendAgentPkg(p: Property, pkgId: string) {
+    const st = get()
+    const sameCountry = (p.country || '').toUpperCase() === (st.currentCountry || '').toUpperCase()
+    const pkg = (sameCountry ? PKGS_CITY : PKGS_COUNTRY).find(x => x.id === pkgId)
+    if (!pkg || st.cash < pkg.fee) return false
+    const CC = (p.country || '').toUpperCase()
+    const keys: string[] = []
+    if (pkg.scope === 'all') keys.push('all:1')
+    else if (pkg.scope === 'country') keys.push(`country:${CC}`)
+    else keys.push(`city:${normCity(p.city)}`)
+    if (pkg.instant) {
+      if (pkg.scope === 'all') keys.push('vip:all')
+      else if (pkg.scope === 'country') keys.push(`vip:country:${CC}`)
+      else keys.push(`vip:city:${normCity(p.city)}`)
+    }
+    const unlockedAreas = [...new Set([...st.unlockedAreas, ...keys])]
+    const cash = st.cash - pkg.fee
     set({ unlockedAreas, cash, netWorth: computeNetWorth(cash, st.owned) })
     persist()
     return true
@@ -313,11 +368,22 @@ export const useGame = create<GameState>((set, get) => ({
     // Tycoon primi: çok mülk → pahalı (anti-tekel; gerçek parayla 1 günde dünya alınmaz)
     const cost = Math.round(property.price * ownershipPremium(st.owned.length))
     if (st.cash < cost) return false
+    const cash = st.cash - cost   // ödeme işlem başında (emanet)
+    recordBuy()
+    // VIP emlakçı kapsamı → işlem ANINDA (süresiz). Aksi halde değere orantılı süre.
+    const CC = (property.country || '').toUpperCase()
+    const vip = st.unlockedAreas.includes('vip:all')
+      || st.unlockedAreas.includes(`vip:country:${CC}`)
+      || st.unlockedAreas.includes(`vip:city:${normCity(property.city)}`)
+    if (vip) {
+      const owned = [...st.owned, { id: property.id, property: { ...property, price: cost }, purchasedAt: Date.now(), totalEarned: 0 }]
+      set({ owned, cash, netWorth: computeNetWorth(cash, owned), dailyIncome: computeDailyIncome(owned) })
+      persist()
+      return true
+    }
     // Süreli işlem: değere orantılı (pahalı mülk uzun sürer; tekte alınmaz)
     const durMs = Math.min(600_000, Math.max(4000, Math.round(cost / 1_000_000 * 1500)))
     const pending = [...st.pending, { id: property.id, property: { ...property, price: cost }, startAt: Date.now(), durMs }]
-    const cash = st.cash - cost   // ödeme işlem başında (emanet)
-    recordBuy()
     set({ pending, cash, netWorth: computeNetWorth(cash, st.owned) })
     persist()
     return true

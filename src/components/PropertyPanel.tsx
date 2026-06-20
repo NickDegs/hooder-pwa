@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import type { Property } from '../data'
-import { formatPrice, formatIncome, ownershipPremium } from '../data'
+import { formatPrice, formatIncome, ownershipPremium, countryName } from '../data'
 import { useGame } from '../store/useGame'
 import { livePrice, liveIncome } from '../services/economy'
+import { t } from '../services/i18n'
 import { useAuth } from '../services/auth'
 import { makeOffer, makeAuction } from '../services/market'
 import GlassCard from './GlassCard'
@@ -15,7 +16,7 @@ interface Props {
 
 // Mülk etiketine basınca açılan DETAY paneli (liste değil — direkt o mülk).
 export default function PropertyPanel({ property, onClose, isDesktop = false }: Props) {
-  const { cash, isOwned, buy, sell, owned, areaStatus, sendAgent, isPending, pendingInfo } = useGame()
+  const { cash, isOwned, buy, sell, owned, areaStatus, agentPackages, sendAgentPkg, isPending, pendingInfo } = useGame()
   const { user } = useAuth()
   const [toast, setToast] = useState<string | null>(null)
   const [, force] = useState(0)
@@ -42,12 +43,10 @@ export default function PropertyPanel({ property, onClose, isDesktop = false }: 
     flash(ok ? `✓ ${property.name} işleme alındı` : 'Yetersiz bakiye!')
   }
   function handleSell() { sell(property.id); flash(`${property.name} satıldı`); setTimeout(onClose, 1200) }
-  function handleAgent() {
-    const st = areaStatus(property)
-    flash(sendAgent(property)
-      ? (st.needAgent === 'country' ? `🕴️ ${property.country} için emlakçı yollandı — açıldı!` : `🕴️ ${property.city} için emlakçı yollandı — açıldı!`)
-      : 'Yetersiz bakiye — emlakçı yollanamadı', 2600)
+  function handleAgentPkg(id: string) {
+    flash(sendAgentPkg(property, id) ? '🕴️ Emlakçı yollandı — bölge açıldı!' : 'Yetersiz bakiye — emlakçı yollanamadı', 2600)
   }
+  const fillVars = (s: string) => s.replace('{city}', property.city).replace('{country}', countryName(property.country) || property.country)
   async function handleOffer() {
     const input = window.prompt('Teklifin ($):', String(lprice))
     const amt = Number((input || '').replace(/[^\d]/g, ''))
@@ -130,17 +129,36 @@ export default function PropertyPanel({ property, onClose, isDesktop = false }: 
               </span>
             </div>
           ) : !area.allowed ? (
-            <div style={{ display: 'flex', gap: 'var(--sp-sm)' }}>
-              <button onClick={handleAgent} disabled={cash < area.fee} style={{ flex: 1, padding: 'var(--sp-md)', borderRadius: 'var(--r-lg)',
-                background: cash < area.fee ? 'rgba(255,255,255,0.08)' : 'rgba(191,90,242,0.16)', border: '0.5px solid rgba(191,90,242,0.35)', opacity: cash < area.fee ? 0.6 : 1 }}>
-                <span className="t-btn-md" style={{ color: 'var(--purple)' }}>🕴️ Emlakçı Yolla — {formatPrice(area.fee)}</span>
-              </button>
-              {user && (
-                <button onClick={handleOffer} style={{ padding: 'var(--sp-md) var(--sp-lg)', borderRadius: 'var(--r-lg)',
-                  background: 'rgba(255,196,52,0.12)', border: '0.5px solid rgba(255,196,52,0.3)' }}>
-                  <span className="t-btn-md" style={{ color: 'var(--gold)' }}>💰</span>
-                </button>
-              )}
+            <div>
+              <div className="t-label" style={{ color: 'var(--text-muted)', marginBottom: 6 }}>🕴️ {t('agent_choose')}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {agentPackages(property).map(pkg => {
+                  const can = cash >= pkg.fee
+                  return (
+                    <button key={pkg.id} onClick={() => handleAgentPkg(pkg.id)} disabled={!can} style={{
+                      display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
+                      padding: '10px 12px', borderRadius: 'var(--r-lg)',
+                      background: can ? 'rgba(191,90,242,0.14)' : 'rgba(255,255,255,0.05)',
+                      border: '0.5px solid rgba(191,90,242,0.3)', opacity: can ? 1 : 0.55,
+                    }}>
+                      <span style={{ fontSize: 20 }}>{pkg.emoji}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className="t-bold" style={{ color: 'var(--text)', fontSize: 13 }}>
+                          {fillVars(t(pkg.titleKey))}{pkg.instant ? ' ⚡' : ''}
+                        </div>
+                        <div className="t-caption" style={{ color: 'var(--text-sub)' }}>{fillVars(t(pkg.descKey))}</div>
+                      </div>
+                      <span className="t-bold" style={{ color: can ? 'var(--purple)' : 'var(--text-muted)', fontSize: 12, whiteSpace: 'nowrap' }}>{formatPrice(pkg.fee)}</span>
+                    </button>
+                  )
+                })}
+                {user && (
+                  <button onClick={handleOffer} style={{ padding: '10px 12px', borderRadius: 'var(--r-lg)',
+                    background: 'rgba(255,196,52,0.12)', border: '0.5px solid rgba(255,196,52,0.3)' }}>
+                    <span className="t-btn-md" style={{ color: 'var(--gold)' }}>💰 Teklif Ver</span>
+                  </button>
+                )}
+              </div>
             </div>
           ) : (
             <div style={{ display: 'flex', gap: 'var(--sp-sm)' }}>
