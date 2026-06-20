@@ -28,16 +28,16 @@ interface Props {
   localVersion?:         number    // konum-bazlı dinamik mülkler değişince artar → markerleri yeniden kur
 }
 
-// ── Zoom thresholds (4 kademe: ülke → şehir → mahalle → mülk) ──────────────────
-// zoom < Z_COUNTRY: ülke etiketleri (en büyük) · Z_COUNTRY..Z_HOOD: şehir
-// Z_HOOD..Z_PROP: mahalle · ≥ Z_PROP: mülk
-const Z_COUNTRY = 5.5
-// Desktop (macOS): geniş ekran, markerlar daha az çakışır
-const Z_HOOD_DSK = 13
-const Z_PROP_DSK = 15
-// Mobile (iOS): dar ekran, markerlar çok çabuk çakışır → daha geç göster
-const Z_HOOD_MOB = 14
-const Z_PROP_MOB = 16
+// ── Zoom thresholds (4 kademe: ülke → şehir/il → ilçe/mahalle → mülk) ──────────
+// zoom < Z_COUNTRY: ülke (en büyük) · Z_COUNTRY..Z_HOOD: şehir/il
+// Z_HOOD..Z_PROP: ilçe/mahalle (artık İL GÖRÜNÜMÜNDE de görünür) · ≥ Z_PROP: mülk
+const Z_COUNTRY = 4.5
+// Desktop (macOS): geniş ekran
+const Z_HOOD_DSK = 9.5
+const Z_PROP_DSK = 13
+// Mobile (iOS): dar ekran. İlçe/mahalle eşiği düşürüldü → il görünümünde ilçeler çıkar
+const Z_HOOD_MOB = 10.5
+const Z_PROP_MOB = 13.5
 
 // ── Marker arka planı ───────────────────────────────────────────────────────
 // NOT: Marker'larda backdrop-filter:blur KULLANILMAZ. Haritada aynı anda yüzlerce
