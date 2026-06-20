@@ -69,7 +69,11 @@ async function scanDevice(browser, dev) {
     isMobile: dev.plat === 'phone',     // Chromium mobile emulation yalnız telefonlarda
     hasTouch: isTouch,
     userAgent: uaFor(dev.plat),
+    locale: 'tr-TR',
   })
+  // Oyun dilini TR'ye sabitle (i18n cihaz diline göre değişiyor; tarayıcı İngilizce
+  // olursa login etiketleri 'Misafir'→'Play' olur, misafir girişi bulunamaz).
+  await ctx.addInitScript(() => { try { localStorage.setItem('hooder_lang', 'tr') } catch {} })
   const page = await ctx.newPage()
 
   page.on('console', m => {
