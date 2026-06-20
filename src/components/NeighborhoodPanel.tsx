@@ -61,11 +61,11 @@ export default function NeighborhoodPanel({ hood, onClose, isDesktop }: Props) {
     animation: 'slideFromRight 0.55s cubic-bezier(0.22,1,0.36,1) forwards',
   } : {
     position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 60,
-    height: '80dvh',
+    height: '56dvh',
     display: 'flex', flexDirection: 'column', borderRadius: '22px 22px 0 0', overflow: 'hidden',
-    background: 'rgba(6,10,20,0.30)',
-    backdropFilter: 'blur(54px) saturate(210%)',
-    WebkitBackdropFilter: 'blur(54px) saturate(210%)',
+    background: 'rgba(6,10,20,0.22)',
+    backdropFilter: 'blur(40px) saturate(200%)',
+    WebkitBackdropFilter: 'blur(40px) saturate(200%)',
     border: '0.5px solid rgba(255,255,255,0.22)', borderBottom: 'none',
     boxShadow: '0 -16px 60px rgba(0,0,0,0.45), inset 0 0.5px 0 rgba(255,255,255,0.24)',
     animation: 'slideUp 0.55s cubic-bezier(0.22,1,0.36,1) forwards',
@@ -75,7 +75,7 @@ export default function NeighborhoodPanel({ hood, onClose, isDesktop }: Props) {
   return (
     <>
       {!isDesktop && (
-        <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 55, background: 'rgba(0,0,0,0.15)' }} />
+        <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 55, background: 'transparent' }} />
       )}
 
       <div className="lg-refract" style={panelStyle}>

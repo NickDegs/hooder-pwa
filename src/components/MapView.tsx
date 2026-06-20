@@ -258,7 +258,9 @@ export default function MapView({
         propMkrs.current.set(prop.id, mk)
       })
 
-      // ── Click anywhere → zoom + query Mapbox features ─────────────────────
+      // ── Haritanın HERHANGİ bir yerine tıkla → yakınlaştır + en yakın mahalle
+      //    listesini aç (cam panel). Eskiden "talep paneli" açılıyordu; kullanıcı
+      //    her tıklamada listeyi istiyor.
       map.on('click', (e) => {
         // Skip if a marker was just clicked
         if (markerClicked.current) { markerClicked.current = false; return }
@@ -271,32 +273,9 @@ export default function MapView({
           duration: 900,
         })
 
-        // Query what was clicked on the Mapbox map
-        const features = map.queryRenderedFeatures(e.point)
-        const priorityOrder = ['poi-label','road-label','natural-label','place-label','building','transit-label']
-        let bestFeature: mapboxgl.GeoJSONFeature | undefined
-        for (const layerId of priorityOrder) {
-          bestFeature = features.find(f => f.layer?.id === layerId || f.layer?.id?.startsWith(layerId))
-          if (bestFeature) break
-        }
-
-        const rawName    = (bestFeature?.properties?.name_en ?? bestFeature?.properties?.name ?? '') as string
-        const rawAddress = (bestFeature?.properties?.address ?? '') as string
-        const rawType    = ((bestFeature?.layer?.id ?? 'land') as string).replace('-label','').replace('-symbol','')
-
-        cbMapClick.current?.({
-          name:      rawName,
-          address:   rawAddress,
-          placeType: rawType,
-          lat:       e.lngLat.lat,
-          lng:       e.lngLat.lng,
-        })
-
-        // Tıklama → yakın mahalle panelini aç (sadece mülk zoomuna ulaşmamışsa)
-        if (z < zProp) {
-          const nearest = nearestHood(hoods, e.lngLat.lat, e.lngLat.lng)
-          if (nearest) cbHood.current(nearest)
-        }
+        // En yakın mahalleyi bul → liste panelini aç (her zaman)
+        const nearest = nearestHood(hoods, e.lngLat.lat, e.lngLat.lng)
+        if (nearest) cbHood.current(nearest)
       })
 
       // ── Zoom → toggle visibility ──────────────────────────────────────────
