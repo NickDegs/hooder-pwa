@@ -4,6 +4,7 @@ import { useAuth } from '../services/auth'
 import { formatPrice, formatIncome } from '../data'
 import GlassCard from '../components/GlassCard'
 import { getSavedPref, getMaxHz, detectMaxHz, applyFps } from '../services/fps'
+import { LANGS, useLang } from '../services/i18n'
 
 export default function Settings() {
   const { playerName, cash, netWorth, owned, dailyIncome, level, setPlayerName, addCash, reset, serverId } = useGame()
@@ -18,6 +19,7 @@ export default function Settings() {
 
   useEffect(() => { detectMaxHz().then(setMaxHz) }, [])
   function chooseFps(pref: string) { applyFps(pref); setFpsPref(pref) }
+  const { lang, t, setLang } = useLang()
 
   function saveName() {
     const t = nameInput.trim()
@@ -77,7 +79,7 @@ export default function Settings() {
         {/* Account */}
         {user && (
           <>
-            <SectionLabel>HESAP</SectionLabel>
+            <SectionLabel>{t('set_account')}</SectionLabel>
             <GlassCard style={{ marginBottom: 'var(--sp-lg)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-md)', marginBottom: 'var(--sp-md)' }}>
                 <div style={{
@@ -102,7 +104,7 @@ export default function Settings() {
                 style={{ marginTop: 'var(--sp-md)', display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}
               >
                 <span style={{ fontSize: 16 }}>🚪</span>
-                <span className="t-bold" style={{ color: 'var(--red)' }}>Çıkış Yap</span>
+                <span className="t-bold" style={{ color: 'var(--red)' }}>{t('logout')}</span>
               </button>
               <Divider />
               <button
@@ -110,7 +112,7 @@ export default function Settings() {
                 style={{ marginTop: 'var(--sp-md)', display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}
               >
                 <span style={{ fontSize: 16 }}>🗑️</span>
-                <span className="t-bold" style={{ color: 'var(--red)' }}>Hesabı Sil</span>
+                <span className="t-bold" style={{ color: 'var(--red)' }}>{t('delete_account')}</span>
               </button>
             </GlassCard>
           </>
@@ -130,13 +132,34 @@ export default function Settings() {
           </>
         )}
 
+        {/* Oyun dili */}
+        <SectionLabel>{`${t('set_language')} · LANGUAGE`}</SectionLabel>
+        <GlassCard style={{ marginBottom: 'var(--sp-lg)' }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {LANGS.map(l => {
+              const active = lang === l.code
+              return (
+                <button key={l.code} type="button" onClick={() => setLang(l.code)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 12,
+                    background: active ? 'rgba(52,148,255,0.18)' : 'rgba(255,255,255,0.06)',
+                    border: `0.5px solid ${active ? 'rgba(52,148,255,0.45)' : 'rgba(255,255,255,0.12)'}`,
+                    color: active ? 'var(--primary)' : 'var(--text-sub)', fontSize: 12, fontWeight: 800,
+                  }}>
+                  <span style={{ fontSize: 15 }}>{l.flag}</span>{l.native}
+                </button>
+              )
+            })}
+          </div>
+        </GlassCard>
+
         {/* Görüntü / Yenileme hızı */}
-        <SectionLabel>GÖRÜNTÜ</SectionLabel>
+        <SectionLabel>{t('set_display')}</SectionLabel>
         <GlassCard style={{ marginBottom: 'var(--sp-lg)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <span style={{ fontSize: 16 }}>⚡</span>
             <div style={{ flex: 1 }}>
-              <div className="t-bold" style={{ color: 'var(--text)' }}>Yenileme Hızı</div>
+              <div className="t-bold" style={{ color: 'var(--text)' }}>{t('set_refresh')}</div>
               <div className="t-caption" style={{ color: 'var(--text-muted)' }}>
                 Cihaz azamisi: {maxHz} Hz · stok en akıcı, düşük seçim pil tasarrufu
               </div>
@@ -167,7 +190,7 @@ export default function Settings() {
         </GlassCard>
 
         {/* Developer */}
-        <SectionLabel>GELİŞTİRİCİ</SectionLabel>
+        <SectionLabel>DEVELOPER</SectionLabel>
         <GlassCard style={{ marginBottom: 'var(--sp-lg)' }}>
           {[
             { label: 'Nakit Ekle $100K',   emoji: '💵', action: () => addCash(100_000) },

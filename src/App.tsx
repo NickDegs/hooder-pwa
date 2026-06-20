@@ -5,6 +5,7 @@ import { allCities, setDynamicProperties, type City, type Property, type HoodGro
 import { formatPrice } from './data'
 import { fetchLocalProperties, allDynamicProperties } from './services/localProperties'
 import { useDragSheet } from './services/useDragSheet'
+import { useLang } from './services/i18n'
 import { initEconomy } from './services/economy'
 
 import MapView            from './components/MapView'
@@ -21,7 +22,7 @@ import Rankings           from './screens/Rankings'
 import Store              from './screens/Store'
 import Settings           from './screens/Settings'
 
-const SCREEN_TITLES = ['Harita', 'Piyasa', 'Portföyüm', 'Döviz', 'Sıralama', 'Mağaza', 'Ayarlar']
+const TITLE_KEYS = ['tab_map','tab_market','portfolio_mine','tab_fx','tab_rank','tab_store','tab_settings']
 
 function useIsDesktop() {
   const [desktop, setDesktop] = useState(() => window.innerWidth >= 768)
@@ -39,6 +40,7 @@ export default function App() {
   const { load, cash, level, pendingIncome, owned, setCurrentArea } = useGame()
   const ownedIds = useMemo(() => owned.map(o => o.id), [owned])
   const isDesktop      = useIsDesktop()
+  const { t }          = useLang()
 
   const [tab,            setTab]            = useState(0)
   const [selectedProp,   setSelectedProp]   = useState<Property | null>(null)
@@ -224,7 +226,7 @@ export default function App() {
               borderBottom: '0.5px solid var(--border)',
               flexShrink: 0,
             }}>
-              <span className="t-h3" style={{ color: 'var(--text)' }}>{SCREEN_TITLES[tab]}</span>
+              <span className="t-h3" style={{ color: 'var(--text)' }}>{t(TITLE_KEYS[tab])}</span>
             </div>
             <div style={{ flex: 1, overflow: 'hidden' }}>
               {tab === 1 && <Market />}
@@ -324,7 +326,7 @@ export default function App() {
               {formatPrice(cash)}
             </div>
             <div style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,196,52,0.5)', letterSpacing: 0.3 }}>
-              NAKİT
+              {t('cash')}
             </div>
           </div>
 
@@ -495,7 +497,7 @@ export default function App() {
         >
           <div style={{ width: 36, height: 4, borderRadius: 99, background: 'rgba(255,255,255,0.2)' }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 15, fontWeight: 900, color: 'var(--text)' }}>{SCREEN_TITLES[tab]}</span>
+            <span style={{ fontSize: 15, fontWeight: 900, color: 'var(--text)' }}>{t(TITLE_KEYS[tab])}</span>
           </div>
           <div style={{ width: '100%', height: '0.5px', background: 'rgba(255,255,255,0.1)' }} />
         </div>

@@ -3,14 +3,16 @@ import { useGame } from '../store/useGame'
 import { formatPrice } from '../data'
 import GlassCard from '../components/GlassCard'
 import {
-  initEconomy, allCurrencyCodes, currencyName, currencyNativeName, currencyFlag, rateOf,
+  initEconomy, allCurrencyCodes, currencyName, currencyFlag, rateOf,
   recordTrade, marketIndex, marketDeltaPct, hasEcon,
 } from '../services/economy'
+import { useLang } from '../services/i18n'
 
 const AMOUNTS = [100_000, 1_000_000, 10_000_000]
 
 export default function Forex() {
   const { cash, fx, buyFx, sellFx } = useGame()
+  const { t } = useLang()
   const [, force] = useState(0)
   const [open, setOpen] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
@@ -61,7 +63,7 @@ export default function Forex() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: 26 }}>🌍</span>
             <div style={{ flex: 1 }}>
-              <div className="t-caption" style={{ color: 'var(--text-muted)' }}>Sanal Dünya Piyasa Endeksi</div>
+              <div className="t-caption" style={{ color: 'var(--text-muted)' }}>{t('fx_index')}</div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
                 <span style={{ fontSize: 22, fontWeight: 900, color: 'var(--text)' }}>{idx.toFixed(3)}</span>
                 <span style={{ fontSize: 13, fontWeight: 800, color: delta >= 0 ? 'var(--green)' : 'var(--red)' }}>
@@ -76,10 +78,10 @@ export default function Forex() {
           </div>
         </GlassCard>
 
-        <SectionLabel>NAKİT</SectionLabel>
+        <SectionLabel>{t('cash')}</SectionLabel>
         <GlassCard style={{ marginBottom: 'var(--sp-lg)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span className="t-bold" style={{ color: 'var(--text-sub)' }}>🇺🇸 Oyun Nakdi (USD)</span>
+            <span className="t-bold" style={{ color: 'var(--text-sub)' }}>🇺🇸 {t('fx_cash')} (USD)</span>
             <span style={{ fontWeight: 900, color: 'var(--gold)' }}>{formatPrice(cash)}</span>
           </div>
         </GlassCard>
@@ -91,12 +93,12 @@ export default function Forex() {
           borderRadius: 'var(--r-md)', marginBottom: 'var(--sp-md)',
         }}>
           <span style={{ color: 'var(--text-muted)' }}>🔍</span>
-          <input placeholder="Döviz ara (USD, EUR, TRY, Bitcoin yok)..." value={search}
+          <input placeholder={t('fx_search')} value={search}
             onChange={e => setSearch(e.target.value)} style={{ flex: 1, color: 'var(--text)' }} className="t-body" />
           {search && <button onClick={() => setSearch('')} style={{ color: 'var(--text-muted)', fontSize: 16 }}>✕</button>}
         </div>
 
-        <SectionLabel>DÖVİZ BORSASI {!ready && '· yükleniyor…'} · {allCurrencyCodes().length} birim</SectionLabel>
+        <SectionLabel>{t('fx_market')} {!ready && '· …'} · {allCurrencyCodes().length} {t('fx_units')}</SectionLabel>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {shown.map((code, i) => {
             const rate = rateOf(code)
@@ -112,9 +114,9 @@ export default function Forex() {
                   {!q && <span style={{ width: 22, fontSize: 11, fontWeight: 800, color: 'var(--text-muted)' }}>#{i + 1}</span>}
                   <span style={{ fontSize: 22 }}>{currencyFlag(code)}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="t-bold" style={{ color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{code} · {currencyNativeName(code)}</div>
+                    <div className="t-bold" style={{ color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{code} · {currencyName(code)}</div>
                     <div className="t-caption" style={{ color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {currencyName(code)} · 1 USD = {rate.toLocaleString('tr', { maximumFractionDigits: 4 })} {code}
+                      1 USD = {rate.toLocaleString(undefined, { maximumFractionDigits: 4 })} {code}
                     </div>
                   </div>
                   {pos ? (
@@ -134,13 +136,13 @@ export default function Forex() {
                             background: cash >= a ? 'rgba(48,209,88,0.14)' : 'rgba(255,255,255,0.05)',
                             border: `0.5px solid ${cash >= a ? 'rgba(48,209,88,0.4)' : 'rgba(255,255,255,0.1)'}`,
                             color: cash >= a ? 'var(--green)' : 'var(--text-muted)', fontSize: 11, fontWeight: 800,
-                          }}>Al {formatPrice(a)}</button>
+                          }}>{t('buy')} {formatPrice(a)}</button>
                       ))}
                     </div>
                     {pos && (
                       <button type="button" onClick={() => doSell(code)}
                         style={{ padding: '9px', borderRadius: 12, background: 'rgba(255,69,58,0.14)', border: '0.5px solid rgba(255,69,58,0.4)', color: 'var(--red)', fontSize: 12, fontWeight: 800 }}>
-                        Tümünü Sat → {formatPrice(Math.round(value))} ({pl >= 0 ? 'kâr' : 'zarar'} {formatPrice(Math.abs(Math.round(pl)))})
+                        {t('fx_sellall')} → {formatPrice(Math.round(value))} ({pl >= 0 ? 'kâr' : 'zarar'} {formatPrice(Math.abs(Math.round(pl)))})
                       </button>
                     )}
                   </div>

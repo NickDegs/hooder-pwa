@@ -16,9 +16,16 @@ let econ: Econ | null = (() => {
 
 function save() { try { if (econ) localStorage.setItem(KEY, JSON.stringify(econ)) } catch { /* ignore */ } }
 
-// ── Para birimi adı (Intl ile TÜM ISO kodları) + bayrak ───────────────────────
-const _curNames = (typeof Intl !== 'undefined' && (Intl as unknown as { DisplayNames?: unknown }).DisplayNames)
-  ? new Intl.DisplayNames(['tr'], { type: 'currency' }) : null
+// ── Para birimi adı (OYUNCUNUN dilinde; kod global kalır) + bayrak ────────────
+import { getLang } from './i18n'
+const _nameCache = new Map<string, Intl.DisplayNames | null>()
+function namesFor(lang: string): Intl.DisplayNames | null {
+  if (_nameCache.has(lang)) return _nameCache.get(lang)!
+  let dn: Intl.DisplayNames | null = null
+  try { dn = new Intl.DisplayNames([lang], { type: 'currency' }) } catch { try { dn = new Intl.DisplayNames(['en'], { type: 'currency' }) } catch { dn = null } }
+  _nameCache.set(lang, dn)
+  return dn
+}
 const FLAG_SPECIAL: Record<string, string> = {
   EUR: '🇪🇺', XAU: '🥇', XAG: '🥈', XDR: '🏳️', XOF: '🌍', XAF: '🌍', XCD: '🌴', XPF: '🌴', ANG: '🌴',
 }
@@ -30,7 +37,7 @@ export function currencyFlag(code: string): string {
   return FLAG_SPECIAL[code] ?? flagFromCC(code.slice(0, 2))
 }
 export function currencyName(code: string): string {
-  try { return _curNames?.of(code) ?? code } catch { return code }
+  try { return namesFor(getLang())?.of(code) ?? code } catch { return code }
 }
 
 // ── Para biriminin ÜLKESİNİN DİLİ → o dilde isim ──────────────────────────────

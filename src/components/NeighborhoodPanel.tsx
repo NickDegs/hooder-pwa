@@ -3,6 +3,7 @@ import { type HoodGroup, type Property, categoryMeta, formatPrice, formatIncome 
 import { useGame } from '../store/useGame'
 import { useDragSheet } from '../services/useDragSheet'
 import { livePrice, liveIncome } from '../services/economy'
+import { useLang } from '../services/i18n'
 
 // Alt-sayfa snap noktaları (ekran yüksekliği oranı)
 const SNAP_FULL = 0.94   // yukarı çek → neredeyse tam ekran liste
@@ -17,6 +18,7 @@ interface Props {
 
 export default function NeighborhoodPanel({ hood, onClose, isDesktop }: Props) {
   const { cash, isOwned, buy, sell, areaStatus, sendAgent } = useGame()
+  const { t } = useLang()
   const [toast, setToast]             = useState<string | null>(null)
   const [collapsed, setCollapsed]     = useState<Set<string>>(new Set())
 
@@ -157,10 +159,10 @@ export default function NeighborhoodPanel({ hood, onClose, isDesktop }: Props) {
             display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap',
           }}>
             {[
-              { label: 'Toplam Mülk',  value: `${h.properties.length}`,      color: 'rgba(255,255,255,0.7)' },
-              { label: 'Toplam Değer', value: formatPrice(totalValue),         color: '#ffc434' },
-              { label: 'Günlük Gelir', value: `+${formatIncome(dailyIncome)}`, color: '#30d158' },
-              ...(ownedInHood > 0 ? [{ label: 'Sahip Olduğun', value: `${ownedInHood} mülk`, color: '#30d158' }] : []),
+              { label: t('hood_total'),  value: `${h.properties.length}`,      color: 'rgba(255,255,255,0.7)' },
+              { label: t('hood_value'), value: formatPrice(totalValue),         color: '#ffc434' },
+              { label: t('hood_income'), value: `+${formatIncome(dailyIncome)}`, color: '#30d158' },
+              ...(ownedInHood > 0 ? [{ label: t('hood_owned'), value: `${ownedInHood} mülk`, color: '#30d158' }] : []),
             ].map(s => (
               <div key={s.label} style={{
                 padding: '4px 10px', borderRadius: 99,
@@ -279,7 +281,7 @@ export default function NeighborhoodPanel({ hood, onClose, isDesktop }: Props) {
                                     padding: '7px 12px', borderRadius: 10,
                                     background: 'rgba(255,69,58,0.12)', border: '0.5px solid rgba(255,69,58,0.3)',
                                     color: '#ff453a', fontSize: 10, fontWeight: 700,
-                                  }}>Sat</button>
+                                  }}>{t('sell')}</button>
                                 ) : locked ? (
                                   <button type="button" onClick={() => handleAgent(prop)} disabled={cash < area.fee} style={{
                                     padding: '7px 11px', borderRadius: 10, whiteSpace: 'nowrap',
@@ -289,7 +291,7 @@ export default function NeighborhoodPanel({ hood, onClose, isDesktop }: Props) {
                                     fontSize: 10, fontWeight: 800, opacity: cash >= area.fee ? 1 : 0.65,
                                     display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1.2,
                                   }}>
-                                    <span>🕴️ Emlakçı</span>
+                                    <span>🕴️ {t('agent')}</span>
                                     <span style={{ fontSize: 8.5, opacity: 0.85 }}>{formatPrice(area.fee)}</span>
                                   </button>
                                 ) : (
@@ -299,7 +301,7 @@ export default function NeighborhoodPanel({ hood, onClose, isDesktop }: Props) {
                                     border: `0.5px solid ${canAfford ? prop.accentHex + '55' : 'rgba(255,255,255,0.1)'}`,
                                     color: canAfford ? prop.accentHex : 'rgba(255,255,255,0.3)',
                                     fontSize: 10, fontWeight: 700, opacity: canAfford ? 1 : 0.65,
-                                  }}>{canAfford ? 'Al' : '🔒'}</button>
+                                  }}>{canAfford ? t('buy') : '🔒'}</button>
                                 )}
                               </div>
                             </div>

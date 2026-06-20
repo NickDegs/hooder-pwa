@@ -1,3 +1,4 @@
+import { useLang } from '../services/i18n'
 // ── SVG icons (Feather-style, 24×24 stroke) ──────────────────────────────────
 
 function MapIcon({ color }: { color: string }) {
@@ -91,14 +92,14 @@ function FxIcon({ color }: { color: string }) {
 
 type IconComp = (props: { color: string }) => JSX.Element
 
-const TABS: { label: string; Icon: IconComp }[] = [
-  { label: 'Harita',    Icon: MapIcon      },
-  { label: 'Piyasa',   Icon: MarketIcon   },
-  { label: 'Portföy',  Icon: ChartIcon    },
-  { label: 'Döviz',    Icon: FxIcon       },
-  { label: 'Sıralama', Icon: TrophyIcon   },
-  { label: 'Mağaza',   Icon: StoreIcon    },
-  { label: 'Ayarlar',  Icon: SettingsIcon },
+const TABS: { key: string; Icon: IconComp }[] = [
+  { key: 'tab_map',       Icon: MapIcon      },
+  { key: 'tab_market',    Icon: MarketIcon   },
+  { key: 'tab_portfolio', Icon: ChartIcon    },
+  { key: 'tab_fx',        Icon: FxIcon       },
+  { key: 'tab_rank',      Icon: TrophyIcon   },
+  { key: 'tab_store',     Icon: StoreIcon    },
+  { key: 'tab_settings',  Icon: SettingsIcon },
 ]
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -109,6 +110,7 @@ interface Props {
 }
 
 export default function TabBar({ tab, onChange }: Props) {
+  const { t } = useLang()
   return (
     <div style={{
       position:  'fixed',
@@ -127,7 +129,8 @@ export default function TabBar({ tab, onChange }: Props) {
       borderRadius: 22,
       boxShadow: '0 8px 40px rgba(0,0,0,0.55), inset 0 0.5px 0 rgba(255,255,255,0.18)',
     }}>
-      {TABS.map(({ label, Icon }, i) => {
+      {TABS.map(({ key, Icon }, i) => {
+        const label = t(key)
         const active = i === tab
         const color  = active ? 'var(--primary)' : 'var(--text-muted)'
         return (
