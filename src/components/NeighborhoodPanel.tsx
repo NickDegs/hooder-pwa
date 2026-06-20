@@ -3,6 +3,7 @@ import { type HoodGroup, type Property, categoryMeta, formatPrice, formatIncome 
 import { useGame } from '../store/useGame'
 import { useDragSheet } from '../services/useDragSheet'
 import { livePrice, liveIncome } from '../services/economy'
+import { ownershipPremium } from '../data'
 import { useLang } from '../services/i18n'
 
 // Alt-sayfa snap noktaları (ekran yüksekliği oranı)
@@ -17,7 +18,8 @@ interface Props {
 }
 
 export default function NeighborhoodPanel({ hood, onClose, isDesktop }: Props) {
-  const { cash, isOwned, buy, sell, areaStatus, sendAgent } = useGame()
+  const { cash, isOwned, buy, sell, areaStatus, sendAgent, owned } = useGame()
+  const premium = ownershipPremium(owned.length)
   const { t } = useLang()
   const [toast, setToast]             = useState<string | null>(null)
   const [collapsed, setCollapsed]     = useState<Set<string>>(new Set())
@@ -223,7 +225,7 @@ export default function NeighborhoodPanel({ hood, onClose, isDesktop }: Props) {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {props.map(prop => {
                       const owned     = isOwned(prop.id)
-                      const lprice    = livePrice(prop.price)
+                      const lprice    = Math.round(livePrice(prop.price) * premium)
                       const canAfford = cash >= lprice
                       const area      = areaStatus(prop)
                       const locked    = !owned && !area.allowed

@@ -833,6 +833,14 @@ export function nearestHood(hoods: HoodGroup[], lat: number, lng: number): HoodG
   return best
 }
 
+// ── Denge: Tycoon primi (anti-tekel) ──────────────────────────────────────────
+// Sahip oldukça sonraki mülk pahalanır → gerçek parayla spam yapıp 1 günde tüm
+// dünyayı almak astronomik pahalı olur. İlk 10 mülk normal, sonra her mülk +%2.
+export function ownershipPremium(ownedCount: number): number {
+  const over = Math.max(0, ownedCount - 10)
+  return +(1 + Math.min(over, 400) * 0.02).toFixed(3)   // 60 mülk→2x, 110→3x, 210→5x (max ~9x)
+}
+
 // ── Formatters ────────────────────────────────────────────────────────────────
 
 export function formatPrice(n: number): string {

@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { allProperties, allCities, categoryMeta, type PropertyCategory, formatPrice, formatIncome } from '../data'
 import { livePrice, liveIncome } from '../services/economy'
+import { ownershipPremium } from '../data'
 import { useLang } from '../services/i18n'
 import { useGame } from '../store/useGame'
 import GlassCard from '../components/GlassCard'
@@ -27,7 +28,8 @@ const SORTS: { key: SortKey; label: string }[] = [
 
 export default function Market() {
   const { t } = useLang()
-  const { cash, isOwned, buy } = useGame()
+  const { cash, isOwned, buy, owned } = useGame()
+  const premium = ownershipPremium(owned.length)
   const [search,  setSearch]  = useState('')
   const [cat,     setCat]     = useState<PropertyCategory | null>(null)
   const [city,    setCity]    = useState<string | null>(null)
@@ -154,7 +156,7 @@ export default function Market() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }}>
           {filtered.map(prop => {
             const owned     = isOwned(prop.id)
-            const canAfford = cash >= livePrice(prop.price)
+            const canAfford = cash >= Math.round(livePrice(prop.price) * premium)
             const accent    = prop.accentHex
             return (
               <GlassCard key={prop.id}>
@@ -179,7 +181,7 @@ export default function Market() {
 
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div>
-                    <div className="t-bold" style={{ color: 'var(--text)' }}>{formatPrice(livePrice(prop.price))}</div>
+                    <div className="t-bold" style={{ color: 'var(--text)' }}>{formatPrice(Math.round(livePrice(prop.price) * premium))}</div>
                     <div className="t-caption" style={{ color: 'var(--green)' }}>{formatIncome(liveIncome(prop.incomePerDay))}</div>
                   </div>
                   {owned ? (
@@ -242,7 +244,7 @@ export default function Market() {
                 flex: 2, padding: 'var(--sp-md)', borderRadius: 'var(--r-lg)',
                 background: 'var(--primary)',
               }}>
-                <span className="t-btn-md" style={{ color: '#000' }}>Satın Al — {formatPrice(livePrice(confirm.price))}</span>
+                <span className="t-btn-md" style={{ color: '#000' }}>Satın Al — {formatPrice(Math.round(livePrice(confirm.price) * premium))}</span>
               </button>
             </div>
           </GlassCard>

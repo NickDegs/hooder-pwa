@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { allProperties, type Property } from '../data'
+import { allProperties, ownershipPremium, type Property } from '../data'
 import { getRegisteredProperty, registerProperties } from '../services/localProperties'
 import { pushState as cloudPush, pullState as cloudPull, isCloudOn } from '../services/cloudBackup'
 import { API_BASE } from '../services/apiBase'
@@ -76,6 +76,19 @@ let currentToken   = ''
 
 function makeKey(userId: string, serverId: string) {
   return serverId ? `hooder_game_${userId}_${serverId}` : `hooder_game_${userId}`
+}
+
+// ── Günlük alım limiti (spam backstop) ────────────────────────────────────────
+const MAX_BUYS_PER_DAY = 50
+function today(): string { return new Date().toISOString().slice(0, 10) }
+function buyRec(): { day: string; n: number } {
+  try { const r = JSON.parse(localStorage.getItem('hooder_buys') || '{}'); return r.day === today() ? r : { day: today(), n: 0 } }
+  catch { return { day: today(), n: 0 } }
+}
+export function dailyBuysLeft(): number { return Math.max(0, MAX_BUYS_PER_DAY - buyRec().n) }
+function recordBuy(): void {
+  const r = buyRec(); r.n += 1
+  try { localStorage.setItem('hooder_buys', JSON.stringify(r)) } catch { /* ignore */ }
 }
 
 function computeNetWorth(cash: number, owned: OwnedProperty[]) {
@@ -243,11 +256,16 @@ export const useGame = create<GameState>((set, get) => ({
 
   buy(property: Property) {
     const st = get()
-    if (st.cash < property.price || st.isOwned(property.id)) return false
+    if (st.isOwned(property.id)) return false
     if (!st.areaStatus(property).allowed) return false   // bölge kilitli → önce emlakçı / git
-    const op: OwnedProperty = { id: property.id, property, purchasedAt: Date.now(), totalEarned: 0 }
+    if (dailyBuysLeft() <= 0) return false                // günlük spam limiti (backstop)
+    // Tycoon primi: çok mülk → pahalı (anti-tekel; gerçek parayla 1 günde dünya alınmaz)
+    const cost = Math.round(property.price * ownershipPremium(st.owned.length))
+    if (st.cash < cost) return false
+    const op: OwnedProperty = { id: property.id, property: { ...property, price: cost }, purchasedAt: Date.now(), totalEarned: 0 }
     const owned = [...st.owned, op]
-    const cash  = st.cash - property.price
+    const cash  = st.cash - cost
+    recordBuy()
     set({ owned, cash, netWorth: computeNetWorth(cash, owned), dailyIncome: computeDailyIncome(owned) })
     persist()
     return true
