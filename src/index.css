@@ -109,6 +109,37 @@ input {
   }
 }
 
+/* ── "Mercek patlaması" — cam yüzeyinde dolaşan specular ışık süpürmesi ──
+   iOS 26 Liquid Glass hissi: yüzeyde yavaşça geçen parlak kırılma çizgisi. */
+.lg-sheen { position: relative; }
+.lg-sheen::after {
+  content: '';
+  position: absolute; inset: 0; border-radius: inherit;
+  z-index: 0; pointer-events: none;
+  background: linear-gradient(115deg,
+    transparent 32%,
+    rgba(255,255,255,0.08) 45%,
+    rgba(255,255,255,0.24) 50%,
+    rgba(255,255,255,0.08) 55%,
+    transparent 68%);
+  background-size: 260% 100%;
+  animation: lgSweep 7s ease-in-out infinite;
+  mix-blend-mode: screen;
+}
+@keyframes lgSweep {
+  0%   { background-position: 170% 0; opacity: 0; }
+  12%  { opacity: 1; }
+  60%, 100% { background-position: -70% 0; opacity: 0; }
+}
+/* Cam üst kenar specular highlight */
+.lg-edge {
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.38),
+    inset 0 0 0 0.5px rgba(255,255,255,0.12),
+    0 -16px 60px rgba(0,0,0,0.40) !important;
+}
+@media (prefers-reduced-motion: reduce) { .lg-sheen::after { animation: none; opacity: 0; } }
+
 /* ── Scrollable area inside panels ── */
 .scroll-y {
   overflow-y: auto;

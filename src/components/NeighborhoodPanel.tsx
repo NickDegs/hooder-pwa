@@ -70,9 +70,9 @@ export default function NeighborhoodPanel({ hood, onClose, isDesktop }: Props) {
     position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 60,
     height: `${(heightFrac * 100).toFixed(1)}dvh`,
     display: 'flex', flexDirection: 'column', borderRadius: '22px 22px 0 0', overflow: 'hidden',
-    background: 'rgba(6,10,20,0.22)',
-    backdropFilter: 'blur(40px) saturate(200%)',
-    WebkitBackdropFilter: 'blur(40px) saturate(200%)',
+    background: 'rgba(6,10,20,0.14)',
+    backdropFilter: 'blur(34px) saturate(195%)',
+    WebkitBackdropFilter: 'blur(34px) saturate(195%)',
     border: '0.5px solid rgba(255,255,255,0.22)', borderBottom: 'none',
     boxShadow: '0 -16px 60px rgba(0,0,0,0.45), inset 0 0.5px 0 rgba(255,255,255,0.24)',
     transition: dragging ? 'none' : 'height 0.32s cubic-bezier(0.22,1,0.36,1)',
@@ -85,7 +85,7 @@ export default function NeighborhoodPanel({ hood, onClose, isDesktop }: Props) {
         <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 55, background: 'transparent' }} />
       )}
 
-      <div className="lg-refract" style={panelStyle}>
+      <div className="lg-refract lg-sheen lg-edge" style={panelStyle}>
 
         {/* ── Sürükleme tutamacı: yukarı çek → tam ekran, aşağı çek → kapat ── */}
         {!isDesktop && (

@@ -239,9 +239,9 @@ export default function App() {
     position: 'fixed', bottom: 0, left: 0, right: 0,
     height: isDesktop ? 'var(--panel-h)' : `${(screenSheet.frac * 100).toFixed(1)}dvh`, zIndex: 50,
     display: 'flex', flexDirection: 'column',
-    background: 'rgba(4,8,18,0.36)',
-    backdropFilter: 'blur(54px) saturate(210%)',
-    WebkitBackdropFilter: 'blur(54px) saturate(210%)',
+    background: 'rgba(4,8,18,0.24)',
+    backdropFilter: 'blur(44px) saturate(200%)',
+    WebkitBackdropFilter: 'blur(44px) saturate(200%)',
     borderTop: '0.5px solid rgba(255,255,255,0.18)',
     borderRadius: 'var(--r-2xl) var(--r-2xl) 0 0',
     boxShadow: '0 -12px 60px rgba(0,0,0,0.65), inset 0 0.5px 0 rgba(255,255,255,0.2)',
@@ -478,7 +478,7 @@ export default function App() {
       )}
 
       {/* ── Ekran paneli (harita dışı sekmeler) ─────────────────── */}
-      <div style={screenPanelStyle}>
+      <div className="lg-refract lg-sheen lg-edge" style={screenPanelStyle}>
         {/* Çekme tutacağı — yukarı çek: tam ekran · aşağı çek: haritaya dön */}
         <div
           {...(isDesktop ? {} : screenSheet.handlers)}

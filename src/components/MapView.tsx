@@ -46,13 +46,22 @@ const Z_PROP_MOB = 13.5
 // yerine katı yarı-saydam koyu arka plan kullanılır (görsel olarak neredeyse
 // aynı, blur maliyeti yok). Gerçek cam efekti yalnız büyük panellerde/HUD'da
 // (az sayıda eleman) kalır.
+// MAKSİMUM SAYDAM cam: backdrop-filter:blur YOK (yüzlerce marker → iOS çökmesi).
+// Bunun yerine çok şeffaf zemin + üstte diyagonal "sheen" (cam parıltısı) + parlak
+// specular kenar. Okunabilirlik metindeki güçlü text-shadow ile sağlanır (TXT_GLOW).
 const lg = (extra = '') => `
-  background: rgba(8,12,24,0.92);
-  border: 0.5px solid rgba(255,255,255,0.18);
-  box-shadow: 0 6px 20px rgba(0,0,0,0.5),
-              inset 0 0.5px 0 rgba(255,255,255,0.18);
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.02) 38%, rgba(255,255,255,0) 60%),
+    radial-gradient(120% 90% at 50% 0%, rgba(255,255,255,0.10), rgba(255,255,255,0) 55%),
+    rgba(10,14,26,0.26);
+  border: 0.6px solid rgba(255,255,255,0.30);
+  box-shadow: 0 6px 22px rgba(0,0,0,0.40),
+              inset 0 0.7px 0 rgba(255,255,255,0.45),
+              inset 0 -1px 2px rgba(0,0,0,0.20);
   ${extra}
 `
+// Maksimum saydamlıkta metni okunur tutan güçlü ışık halesi
+const TXT_GLOW = 'text-shadow:0 1px 3px rgba(0,0,0,0.85),0 0 10px rgba(0,0,0,0.5)'
 
 // Country glass pill — EN ÜST kademe, en büyük/belirgin
 function makeCountryEl(g: CountryGroup): HTMLElement {
@@ -67,10 +76,10 @@ function makeCountryEl(g: CountryGroup): HTMLElement {
   `
   el.innerHTML = `
     <div style="display:flex;align-items:center;gap:10px">
-      <span style="font-size:32px">${g.flag}</span>
-      <span style="color:#fff;font-size:22px;font-weight:900;letter-spacing:-0.6px;text-shadow:0 1px 4px rgba(0,0,0,0.6)">${g.name}</span>
+      <span style="font-size:32px;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.6))">${g.flag}</span>
+      <span style="color:#fff;font-size:22px;font-weight:900;letter-spacing:-0.6px;${TXT_GLOW}">${g.name}</span>
     </div>
-    <div style="color:rgba(255,255,255,0.6);font-size:12px;font-weight:600;margin-top:3px">${g.cityCount} şehir · ${g.properties.length} mülk</div>
+    <div style="color:rgba(255,255,255,0.78);font-size:12px;font-weight:600;margin-top:3px;${TXT_GLOW}">${g.cityCount} şehir · ${g.properties.length} mülk</div>
   `
   wrap.appendChild(el)
   wrap.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.06) translateY(-2px)' })
@@ -91,10 +100,10 @@ function makeCityEl(g: CityGroup, count: number): HTMLElement {
   `
   el.innerHTML = `
     <div style="display:flex;align-items:center;gap:8px">
-      <span style="font-size:24px">${g.flag}</span>
-      <span style="color:#fff;font-size:17px;font-weight:900;letter-spacing:-0.4px;text-shadow:0 1px 3px rgba(0,0,0,0.5)">${g.city}</span>
+      <span style="font-size:24px;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.6))">${g.flag}</span>
+      <span style="color:#fff;font-size:17px;font-weight:900;letter-spacing:-0.4px;${TXT_GLOW}">${g.city}</span>
     </div>
-    <div style="color:rgba(255,255,255,0.55);font-size:11px;font-weight:600;margin-top:2px">${count} mülk</div>
+    <div style="color:rgba(255,255,255,0.72);font-size:11px;font-weight:600;margin-top:2px;${TXT_GLOW}">${count} mülk</div>
   `
   wrap.appendChild(el)
   wrap.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.07) translateY(-2px)' })
@@ -119,7 +128,7 @@ function makeHoodEl(h: HoodGroup, ownedCount: number, isSelected: boolean): HTML
   `
   el.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-      <span style="color:#fff;font-size:12px;font-weight:700">${h.neighborhood}</span>
+      <span style="color:#fff;font-size:13px;font-weight:800;${TXT_GLOW}">${h.neighborhood}</span>
       ${isSelected ? '<span style="font-size:10px;color:#3494ff">●</span>' : ''}
     </div>
     <div style="display:flex;align-items:center;gap:5px;margin-top:4px">
@@ -149,10 +158,10 @@ function makePropEl(prop: Property, isOwned: boolean): HTMLElement {
     white-space:nowrap;max-width:150px;
   `
   el.innerHTML = `
-    <span style="font-size:12px">${meta.emoji}</span>
+    <span style="font-size:12px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.6))">${meta.emoji}</span>
     <div>
-      <div style="color:#fff;font-size:10px;font-weight:700;overflow:hidden;text-overflow:ellipsis;max-width:105px">${prop.name}</div>
-      <div style="color:${isOwned?'#30d158':'rgba(255,255,255,0.45)'};font-size:9px">${isOwned ? '✓ Senin' : formatPrice(prop.price)}</div>
+      <div style="color:#fff;font-size:10px;font-weight:700;overflow:hidden;text-overflow:ellipsis;max-width:105px;${TXT_GLOW}">${prop.name}</div>
+      <div style="color:${isOwned?'#5ff08a':'rgba(255,255,255,0.7)'};font-size:9px;${TXT_GLOW}">${isOwned ? '✓ Senin' : formatPrice(prop.price)}</div>
     </div>
   `
   wrap.appendChild(el)
