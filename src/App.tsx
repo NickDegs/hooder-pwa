@@ -5,7 +5,7 @@ import { allCities, setDynamicProperties, type City, type Property, type HoodGro
 import { formatPrice } from './data'
 import { fetchLocalProperties, allDynamicProperties } from './services/localProperties'
 import { useDragSheet } from './services/useDragSheet'
-import { fetchRates } from './services/economy'
+import { initEconomy } from './services/economy'
 
 import MapView            from './components/MapView'
 import TabBar             from './components/TabBar'
@@ -60,8 +60,8 @@ export default function App() {
     }
   }, [user?.uid]) // eslint-disable-line
 
-  // Canlı döviz kurlarını erkenden çek (emlak fiyatları piyasa endeksiyle dalgalanır)
-  useEffect(() => { fetchRates() }, [])
+  // Sanal ekonomiyi başlat (gerçek dünyadan tohumla → oyun-içi drift/işlem belirler)
+  useEffect(() => { initEconomy() }, [])
 
   // Tab ekran paneli (Piyasa/Portföy/Sıralama/Mağaza/Ayarlar) için sürüklenebilir
   // alt-sayfa: yukarı çek → tam ekran, aşağı çek → haritaya dön.
