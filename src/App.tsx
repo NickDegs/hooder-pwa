@@ -4,6 +4,7 @@ import { useGame } from './store/useGame'
 import { allCities, setDynamicProperties, type City, type Property, type HoodGroup } from './data'
 import { formatPrice } from './data'
 import { fetchLocalProperties, allDynamicProperties } from './services/localProperties'
+import { useDragSheet } from './services/useDragSheet'
 
 import MapView            from './components/MapView'
 import TabBar             from './components/TabBar'
@@ -57,9 +58,13 @@ export default function App() {
     }
   }, [user?.uid]) // eslint-disable-line
 
+  // Tab ekran paneli (Piyasa/Portföy/Sıralama/Mağaza/Ayarlar) için sürüklenebilir
+  // alt-sayfa: yukarı çek → tam ekran, aşağı çek → haritaya dön.
+  const screenSheet = useDragSheet(0.76, 0.97, 0.55, () => handleTabChange(0))
+
   useEffect(() => {
-    if (tab !== 0) { setSelectedProp(null); setSelectedHood(null); setClaimTarget(null); setLiveHood(null) }
-  }, [tab])
+    if (tab !== 0) { setSelectedProp(null); setSelectedHood(null); setClaimTarget(null); setLiveHood(null); screenSheet.reset() }
+  }, [tab]) // eslint-disable-line
 
   // Konum izni verilirse: oto kendi konumuna uç + oradaki yüksek-değerli
   // binaları/otelleri yükle (İstanbul'daki mülklerle aynı tasarımda).
@@ -232,7 +237,7 @@ export default function App() {
   // Panel içerik alanı: haritadan çıkıldığında alta kayarak açılır
   const screenPanelStyle: CSSProperties = {
     position: 'fixed', bottom: 0, left: 0, right: 0,
-    height: 'var(--panel-h)', zIndex: 50,
+    height: isDesktop ? 'var(--panel-h)' : `${(screenSheet.frac * 100).toFixed(1)}dvh`, zIndex: 50,
     display: 'flex', flexDirection: 'column',
     background: 'rgba(4,8,18,0.36)',
     backdropFilter: 'blur(54px) saturate(210%)',
@@ -241,7 +246,7 @@ export default function App() {
     borderRadius: 'var(--r-2xl) var(--r-2xl) 0 0',
     boxShadow: '0 -12px 60px rgba(0,0,0,0.65), inset 0 0.5px 0 rgba(255,255,255,0.2)',
     transform: isMap ? 'translateY(100%)' : 'translateY(0)',
-    transition: 'transform 0.58s cubic-bezier(0.22,1,0.36,1)',
+    transition: screenSheet.dragging ? 'transform 0.58s cubic-bezier(0.22,1,0.36,1)' : 'transform 0.58s cubic-bezier(0.22,1,0.36,1), height 0.32s cubic-bezier(0.22,1,0.36,1)',
     paddingBottom: 'var(--tab-h)',
     overflow: 'hidden',
   }
@@ -474,8 +479,11 @@ export default function App() {
 
       {/* ── Ekran paneli (harita dışı sekmeler) ─────────────────── */}
       <div style={screenPanelStyle}>
-        {/* Çekme tutacağı */}
-        <div style={{ flexShrink: 0, padding: '10px 0 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+        {/* Çekme tutacağı — yukarı çek: tam ekran · aşağı çek: haritaya dön */}
+        <div
+          {...(isDesktop ? {} : screenSheet.handlers)}
+          style={{ flexShrink: 0, padding: '10px 0 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, touchAction: isDesktop ? 'auto' : 'none', cursor: isDesktop ? 'default' : 'grab' }}
+        >
           <div style={{ width: 36, height: 4, borderRadius: 99, background: 'rgba(255,255,255,0.2)' }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 15, fontWeight: 900, color: 'var(--text)' }}>{SCREEN_TITLES[tab]}</span>

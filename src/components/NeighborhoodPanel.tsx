@@ -1,6 +1,12 @@
 import { useState } from 'react'
 import { type HoodGroup, type Property, categoryMeta, formatPrice, formatIncome } from '../data'
 import { useGame } from '../store/useGame'
+import { useDragSheet } from '../services/useDragSheet'
+
+// Alt-sayfa snap noktaları (ekran yüksekliği oranı)
+const SNAP_FULL = 0.94   // yukarı çek → neredeyse tam ekran liste
+const SNAP_HALF = 0.56   // varsayılan → harita arkada görünür
+const SNAP_CLOSE = 0.34  // aşağı çek → bu eşiğin altında kapat (haritaya dön)
 
 interface Props {
   hood:      HoodGroup | null
@@ -12,6 +18,7 @@ export default function NeighborhoodPanel({ hood, onClose, isDesktop }: Props) {
   const { cash, isOwned, buy, sell } = useGame()
   const [toast, setToast]             = useState<string | null>(null)
   const [collapsed, setCollapsed]     = useState<Set<string>>(new Set())
+  const { frac: heightFrac, dragging, handlers } = useDragSheet(SNAP_HALF, SNAP_FULL, SNAP_CLOSE, onClose)
 
   if (!hood) return null
   const h = hood
@@ -61,14 +68,14 @@ export default function NeighborhoodPanel({ hood, onClose, isDesktop }: Props) {
     animation: 'slideFromRight 0.55s cubic-bezier(0.22,1,0.36,1) forwards',
   } : {
     position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 60,
-    height: '56dvh',
+    height: `${(heightFrac * 100).toFixed(1)}dvh`,
     display: 'flex', flexDirection: 'column', borderRadius: '22px 22px 0 0', overflow: 'hidden',
     background: 'rgba(6,10,20,0.22)',
     backdropFilter: 'blur(40px) saturate(200%)',
     WebkitBackdropFilter: 'blur(40px) saturate(200%)',
     border: '0.5px solid rgba(255,255,255,0.22)', borderBottom: 'none',
     boxShadow: '0 -16px 60px rgba(0,0,0,0.45), inset 0 0.5px 0 rgba(255,255,255,0.24)',
-    animation: 'slideUp 0.55s cubic-bezier(0.22,1,0.36,1) forwards',
+    transition: dragging ? 'none' : 'height 0.32s cubic-bezier(0.22,1,0.36,1)',
     paddingBottom: 'calc(86px + env(safe-area-inset-bottom, 0px))',
   }
 
@@ -80,11 +87,21 @@ export default function NeighborhoodPanel({ hood, onClose, isDesktop }: Props) {
 
       <div className="lg-refract" style={panelStyle}>
 
+        {/* ── Sürükleme tutamacı: yukarı çek → tam ekran, aşağı çek → kapat ── */}
+        {!isDesktop && (
+          <div
+            {...handlers}
+            style={{
+              flexShrink: 0, padding: '10px 0 8px', cursor: 'grab',
+              touchAction: 'none', display: 'flex', justifyContent: 'center',
+            }}
+          >
+            <div style={{ width: 42, height: 5, borderRadius: 99, background: 'rgba(255,255,255,0.28)' }} />
+          </div>
+        )}
+
         {/* ── Header: hierarchical breadcrumb ─────────────────────────────── */}
-        <div style={{ padding: '14px 18px 14px', borderBottom: '0.5px solid rgba(255,255,255,0.1)', flexShrink: 0 }}>
-          {!isDesktop && (
-            <div style={{ width: 36, height: 4, borderRadius: 99, background: 'rgba(255,255,255,0.2)', margin: '0 auto 12px' }} />
-          )}
+        <div style={{ padding: '4px 18px 14px', borderBottom: '0.5px solid rgba(255,255,255,0.1)', flexShrink: 0 }}>
 
           {/* Close */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 6 }}>
