@@ -207,6 +207,7 @@ const EXTRA: Record<string, Record<string, string>> = {
   cloud_code:  { tr:'Yedek Kodun', en:'Your Backup Code', es:'Tu Código', fr:'Ton Code', de:'Dein Code', it:'Il Tuo Codice', pt:'Seu Código', ru:'Ваш код', ar:'رمزك', zh:'你的代码', ja:'あなたのコード', ko:'내 코드', az:'Yedək Kodun', uk:'Ваш код', fa:'کد شما', hi:'आपका कोड' },
   cloud_restore:{ tr:'Koddan Geri Yükle', en:'Restore from Code', es:'Restaurar con Código', fr:'Restaurer', de:'Wiederherstellen', it:'Ripristina', pt:'Restaurar', ru:'Восстановить', ar:'استعادة بالرمز', zh:'用代码恢复', ja:'コードで復元', ko:'코드로 복원', az:'Koddan Bərpa', uk:'Відновити', fa:'بازیابی با کد', hi:'कोड से पुनर्स्थापित' },
   copied:      { tr:'Kopyalandı', en:'Copied', es:'Copiado', fr:'Copié', de:'Kopiert', it:'Copiato', pt:'Copiado', ru:'Скопировано', ar:'تم النسخ', zh:'已复制', ja:'コピー済み', ko:'복사됨', az:'Kopyalandı', uk:'Скопійовано', fa:'کپی شد', hi:'कॉपी किया' },
+  processing:  { tr:'İşlemde', en:'Processing', es:'En proceso', fr:'En cours', de:'In Bearbeitung', it:'In corso', pt:'Processando', ru:'В процессе', ar:'قيد المعالجة', zh:'处理中', ja:'処理中', ko:'처리 중', az:'İşlənir', uk:'В процесі', fa:'در حال انجام', hi:'प्रक्रिया में' },
 }
 
 export function t(key: string): string {

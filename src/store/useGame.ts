@@ -11,6 +11,14 @@ export interface OwnedProperty {
   totalEarned: number
 }
 
+// Süren emlak işlemi (değere orantılı süre — tekte alınmaz)
+export interface PendingBuy {
+  id:       string
+  property: Property   // kilitlenen fiyat
+  startAt:  number
+  durMs:    number
+}
+
 export interface ClaimedPlace {
   id:           string   // "place_<lat4>_<lng4>"
   name:         string
@@ -36,6 +44,7 @@ interface GameState {
   currentCountry:string   // anlık GPS ülke kodu
   unlockedAreas: string[] // emlakçı ile açılan bölgeler ('city:Ad' / 'country:TR')
   fx:            Record<string, { units: number; costUSD: number }> // döviz portföyü
+  pending:       PendingBuy[]  // süren emlak işlemleri
 
   // computed
   netWorth:      number
@@ -54,6 +63,9 @@ interface GameState {
   addCash:         (amount: number) => void
   reset:           () => void
   isOwned:         (id: string) => boolean
+  isPending:       (id: string) => boolean
+  pendingInfo:     (id: string) => { remainingMs: number; durMs: number } | null
+  tickPending:     () => void
   setCurrentArea:  (city: string, country: string) => void
   areaStatus:      (p: Property) => { allowed: boolean; needAgent: null | 'city' | 'country'; fee: number }
   sendAgent:       (p: Property) => boolean
@@ -129,6 +141,7 @@ function parseState(raw: Record<string, unknown>) {
     currentCountry:(raw.currentCountry as string)   ?? 'TR',
     unlockedAreas: (raw.unlockedAreas  as string[]) ?? [],
     fx:            (raw.fx as Record<string, { units: number; costUSD: number }>) ?? {},
+    pending:       (raw.pending as PendingBuy[]) ?? [],
     netWorth:      computeNetWorth(cash, owned),
     dailyIncome:   computeDailyIncome(owned),
     pendingIncome: computePendingIncome(owned, lastCollect),
@@ -148,6 +161,7 @@ export const useGame = create<GameState>((set, get) => ({
   currentCountry:'TR',
   unlockedAreas: [],
   fx:            {},
+  pending:       [],
   netWorth:      15_000_000,
   dailyIncome:   0,
   pendingIncome: 0,
@@ -256,19 +270,38 @@ export const useGame = create<GameState>((set, get) => ({
 
   buy(property: Property) {
     const st = get()
-    if (st.isOwned(property.id)) return false
+    if (st.isOwned(property.id) || st.isPending(property.id)) return false
     if (!st.areaStatus(property).allowed) return false   // bölge kilitli → önce emlakçı / git
     if (dailyBuysLeft() <= 0) return false                // günlük spam limiti (backstop)
     // Tycoon primi: çok mülk → pahalı (anti-tekel; gerçek parayla 1 günde dünya alınmaz)
     const cost = Math.round(property.price * ownershipPremium(st.owned.length))
     if (st.cash < cost) return false
-    const op: OwnedProperty = { id: property.id, property: { ...property, price: cost }, purchasedAt: Date.now(), totalEarned: 0 }
-    const owned = [...st.owned, op]
-    const cash  = st.cash - cost
+    // Süreli işlem: değere orantılı (pahalı mülk uzun sürer; tekte alınmaz)
+    const durMs = Math.min(600_000, Math.max(4000, Math.round(cost / 1_000_000 * 1500)))
+    const pending = [...st.pending, { id: property.id, property: { ...property, price: cost }, startAt: Date.now(), durMs }]
+    const cash = st.cash - cost   // ödeme işlem başında (emanet)
     recordBuy()
-    set({ owned, cash, netWorth: computeNetWorth(cash, owned), dailyIncome: computeDailyIncome(owned) })
+    set({ pending, cash, netWorth: computeNetWorth(cash, st.owned) })
     persist()
     return true
+  },
+
+  isPending(id: string) { return get().pending.some(p => p.id === id) },
+  pendingInfo(id: string) {
+    const p = get().pending.find(x => x.id === id)
+    if (!p) return null
+    return { remainingMs: Math.max(0, p.startAt + p.durMs - Date.now()), durMs: p.durMs }
+  },
+  tickPending() {
+    const st = get()
+    if (!st.pending.length) return
+    const now = Date.now()
+    const done = st.pending.filter(p => now >= p.startAt + p.durMs)
+    if (!done.length) return
+    const owned = [...st.owned, ...done.map(p => ({ id: p.id, property: p.property, purchasedAt: now, totalEarned: 0 }))]
+    const pending = st.pending.filter(p => now < p.startAt + p.durMs)
+    set({ owned, pending, netWorth: computeNetWorth(st.cash, owned), dailyIncome: computeDailyIncome(owned) })
+    persist()
   },
 
   sell(id: string) {
@@ -339,6 +372,7 @@ export const useGame = create<GameState>((set, get) => ({
       lastCollect:   Date.now(),
       unlockedAreas: [],
       fx:            {},
+      pending:       [],
       netWorth:      15_000_000,
       dailyIncome:   0,
       pendingIncome: 0,
@@ -352,12 +386,12 @@ export const useGame = create<GameState>((set, get) => ({
 }))
 
 function persist() {
-  const { playerName, cash, level, xp, owned, lastCollect, netWorth, claimed, currentCity, currentCountry, unlockedAreas, fx } = useGame.getState()
+  const { playerName, cash, level, xp, owned, lastCollect, netWorth, claimed, currentCity, currentCountry, unlockedAreas, fx, pending } = useGame.getState()
   const data = {
     playerName, cash, level, xp, lastCollect, netWorth,
     ownedPropertyIDs: owned.map(o => ({ id: o.id, purchasedAt: o.purchasedAt, totalEarned: o.totalEarned, prop: o.property })),
     claimedPlaces: claimed,
-    currentCity, currentCountry, unlockedAreas, fx,
+    currentCity, currentCountry, unlockedAreas, fx, pending,
   }
 
   // Always save locally as backup

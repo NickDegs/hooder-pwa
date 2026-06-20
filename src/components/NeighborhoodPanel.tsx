@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { type HoodGroup, type Property, categoryMeta, formatPrice, formatIncome } from '../data'
 import { useGame } from '../store/useGame'
 import { useDragSheet } from '../services/useDragSheet'
@@ -18,8 +18,10 @@ interface Props {
 }
 
 export default function NeighborhoodPanel({ hood, onClose, isDesktop }: Props) {
-  const { cash, isOwned, buy, sell, areaStatus, sendAgent, owned } = useGame()
+  const { cash, isOwned, buy, sell, areaStatus, sendAgent, owned, isPending, pendingInfo } = useGame()
   const premium = ownershipPremium(owned.length)
+  const [, forceTick] = useState(0)
+  useEffect(() => { const id = setInterval(() => forceTick(n => n + 1), 1000); return () => clearInterval(id) }, [])
   const { t } = useLang()
   const [toast, setToast]             = useState<string | null>(null)
   const [collapsed, setCollapsed]     = useState<Set<string>>(new Set())
@@ -228,7 +230,9 @@ export default function NeighborhoodPanel({ hood, onClose, isDesktop }: Props) {
                       const lprice    = Math.round(livePrice(prop.price) * premium)
                       const canAfford = cash >= lprice
                       const area      = areaStatus(prop)
-                      const locked    = !owned && !area.allowed
+                      const pend      = isPending(prop.id)
+                      const pinfo     = pend ? pendingInfo(prop.id) : null
+                      const locked    = !owned && !pend && !area.allowed
 
                       return (
                         <div key={prop.id} style={{
@@ -284,6 +288,18 @@ export default function NeighborhoodPanel({ hood, onClose, isDesktop }: Props) {
                                     background: 'rgba(255,69,58,0.12)', border: '0.5px solid rgba(255,69,58,0.3)',
                                     color: '#ff453a', fontSize: 10, fontWeight: 700,
                                   }}>{t('sell')}</button>
+                                ) : pend ? (
+                                  <div style={{
+                                    padding: '6px 10px', borderRadius: 10, whiteSpace: 'nowrap',
+                                    background: 'rgba(52,148,255,0.14)', border: '0.5px solid rgba(52,148,255,0.4)',
+                                    color: 'var(--primary)', fontSize: 10, fontWeight: 800,
+                                    display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1.3,
+                                  }}>
+                                    <span>⏳ {t('processing')}</span>
+                                    <span style={{ fontSize: 9, opacity: 0.85 }}>
+                                      {pinfo ? `${Math.floor(pinfo.remainingMs / 60000)}:${String(Math.floor((pinfo.remainingMs % 60000) / 1000)).padStart(2, '0')}` : ''}
+                                    </span>
+                                  </div>
                                 ) : locked ? (
                                   <button type="button" onClick={() => handleAgent(prop)} disabled={cash < area.fee} style={{
                                     padding: '7px 11px', borderRadius: 10, whiteSpace: 'nowrap',

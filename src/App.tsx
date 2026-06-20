@@ -66,6 +66,14 @@ export default function App() {
   // Sanal ekonomiyi başlat (gerçek dünyadan tohumla → oyun-içi drift/işlem belirler)
   useEffect(() => { initEconomy() }, [])
 
+  // Süren emlak işlemlerini saniyede bir kontrol et → süresi dolan tamamlanır
+  useEffect(() => {
+    const tick = () => useGame.getState().tickPending()
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [])
+
   // Push bildirimleri (yalnız native iOS) — izin + APNs kayıt + token backend'e
   useEffect(() => { if (user) initPush(user.token) }, [user?.uid]) // eslint-disable-line
 

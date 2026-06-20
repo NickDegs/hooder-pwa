@@ -127,6 +127,10 @@ function makeHoodEl(h: HoodGroup, ownedCount: number, isSelected: boolean): HTML
     ${lg(`border-color:${isSelected ? 'rgba(52,148,255,0.7)' : accent};`)}
     white-space:nowrap;
   `
+  // Sahiplik özeti: ne kadarına sahipsin (% + N/M)
+  const ownLabel = ownedCount > 0
+    ? `<span style="color:#5ff08a;font-size:9px;font-weight:800;${TXT_GLOW}">%${pct} senin · ${ownedCount}/${h.properties.length}</span>`
+    : `<span style="color:rgba(255,255,255,0.45);font-size:9px">${h.properties.length} mülk</span>`
   el.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
       <span style="color:#fff;font-size:13px;font-weight:800;${TXT_GLOW}">${h.neighborhood}</span>
@@ -136,8 +140,8 @@ function makeHoodEl(h: HoodGroup, ownedCount: number, isSelected: boolean): HTML
       <div style="flex:1;height:2.5px;background:rgba(255,255,255,0.1);border-radius:9px;overflow:hidden">
         <div style="width:${pct}%;height:100%;background:${ownedCount>0?'#30d158':'rgba(52,148,255,0.5)'};border-radius:9px"></div>
       </div>
-      <span style="color:rgba(255,255,255,0.45);font-size:9px">${h.properties.length}</span>
     </div>
+    <div style="margin-top:3px">${ownLabel}</div>
   `
   wrap.appendChild(el)
   wrap.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.07) translateY(-2px)' })
@@ -248,8 +252,10 @@ export default function MapView({
       })
       cityMkrs.current.set(g.city, new mapboxgl.Marker({ element: el, anchor: 'bottom' }).setLngLat([g.lng, g.lat]).addTo(map))
     })
+    const ownedSet = new Set(ownedIdsRef.current)
     hoods.forEach(h => {
-      const el = makeHoodEl(h, 0, h.key === highlightHood)
+      const oc = h.properties.reduce((n, p) => n + (ownedSet.has(p.id) ? 1 : 0), 0)
+      const el = makeHoodEl(h, oc, h.key === highlightHood)
       el.addEventListener('click', e => {
         e.stopPropagation()
         markerClicked.current = true
@@ -372,10 +378,11 @@ export default function MapView({
     }
   }, []) // eslint-disable-line
 
-  // Sahiplik değişince mülk markerlarını yenile
+  // Sahiplik değişince mülk + mahalle (% özeti) markerlarını yenile
   useEffect(() => {
     const map = mapRef.current
-    if (!map) return
+    if (!map || !map.isStyleLoaded()) return
+    buildCityHood(map)
     buildProps(map)
     applyVisibility(zoomRef.current)
   }, [ownedIds]) // eslint-disable-line
