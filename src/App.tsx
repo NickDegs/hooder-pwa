@@ -14,6 +14,7 @@ import MapView            from './components/MapView'
 import TabBar             from './components/TabBar'
 import DesktopSidebar     from './components/DesktopSidebar'
 import NeighborhoodPanel  from './components/NeighborhoodPanel'
+import PropertyPanel      from './components/PropertyPanel'
 import PlaceClaimPanel    from './components/PlaceClaimPanel'
 import type { MapClickInfo } from './components/MapView'
 import Login              from './screens/Login'
@@ -147,7 +148,11 @@ export default function App() {
   }
 
   function handleSelectProperty(p: Property) {
+    // Mülk etiketine basınca DETAY açılır — liste/mahalle paneli kapanır
     setSelectedProp(p)
+    setSelectedHood(null)
+    setClaimTarget(null)
+    setLiveHood(null)
     setTab(0)
   }
 
@@ -299,6 +304,11 @@ export default function App() {
               {tab === 5 && <Settings />}
             </div>
           </div>
+        )}
+
+        {/* Mülk DETAY paneli (mülk etiketine basınca — overlay) */}
+        {isMap && selectedProp && (
+          <PropertyPanel property={selectedProp} onClose={() => setSelectedProp(null)} isDesktop />
         )}
       </div>
     )
@@ -494,8 +504,17 @@ export default function App() {
         />
       )}
 
-      {/* ── Mahalle paneli (sadece marker/pin tıklamasında açılır) */}
-      {isMap && selectedHood && !claimTarget && (
+      {/* ── Mülk DETAY paneli (mülk etiketine basınca — listeden önce) ── */}
+      {isMap && selectedProp && (
+        <PropertyPanel
+          property={selectedProp}
+          onClose={() => setSelectedProp(null)}
+          isDesktop={false}
+        />
+      )}
+
+      {/* ── Mahalle paneli (mahalle etiketi tıklamasında açılır) ── */}
+      {isMap && selectedHood && !selectedProp && !claimTarget && (
         <NeighborhoodPanel
           hood={selectedHood}
           onClose={() => setSelectedHood(null)}

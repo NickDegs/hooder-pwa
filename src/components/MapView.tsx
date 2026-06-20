@@ -285,9 +285,7 @@ export default function MapView({
     const el = makePropEl(prop, owned)
     el.addEventListener('click', e => {
       e.stopPropagation(); markerClicked.current = true
-      cbSelect.current(prop)
-      const hood = hoodsRef.current.find(h => h.key === `${prop.city}::${prop.neighborhood}`)
-      if (hood) cbHood.current(hood)
+      cbSelect.current(prop)   // mülk etiketi → DİREKT detay paneli (liste değil)
     })
     return new mapboxgl.Marker({ element: el, anchor: 'bottom' }).setLngLat([prop.lng, prop.lat])
   }
@@ -300,7 +298,8 @@ export default function MapView({
     make: (t: T, map: mapboxgl.Map) => mapboxgl.Marker, cap: number,
   ) {
     if (!active) {
-      if (att.current.size) { att.current.forEach(k => pool.current.get(k)?.remove()); att.current.clear() }
+      // Kademe pasif → tüm marker'ları haritadan KALDIR ve havuzdan SİL (RAM boş)
+      if (pool.current.size) { pool.current.forEach(m => m.remove()); pool.current.clear(); att.current.clear() }
       return
     }
     const b = map.getBounds()
@@ -313,9 +312,10 @@ export default function MapView({
       const [lng, lat] = lnglatOf(it)
       if (inView(lng, lat)) { want.add(keyOf(it)); if (want.size >= cap) break }
     }
-    // Görünürden çıkanları haritadan kaldır (havuzda kalır, yeniden kullanılır)
-    att.current.forEach(k => { if (!want.has(k)) { pool.current.get(k)?.remove(); att.current.delete(k) } })
-    // Yeni görünenleri ekle
+    // Görünürden çıkanları haritadan kaldır + havuzdan SİL (ekran dışı = RAM yemez,
+    // "pasif". Geri gelince yeniden oluşturulur — cap'li olduğu için ucuz.)
+    att.current.forEach(k => { if (!want.has(k)) { pool.current.get(k)?.remove(); pool.current.delete(k); att.current.delete(k) } })
+    // Yeni görünenleri ekle (yalnız EKRANDAKİLER anlık çizilir)
     for (const it of data) {
       const k = keyOf(it)
       if (!want.has(k) || att.current.has(k)) continue
@@ -435,14 +435,13 @@ export default function MapView({
       map.on('moveend', () => {
         // 1) Ekrandaki marker'ları yeni viewport'a göre senkronla (culling)
         reconcile(map)
-        // 2) Mülkler zaten gömülü; yine de detaylı POI için (otel/landmark) bölge
-        //    yüklenmemişse canlı dene (gömülü mülkler yetiyorsa fetch boş döner).
+        // 2) Gezdiğin her yerde etiket: aktif kademede ekranda AZ etiket kaldıysa
+        //    (gömülü mülk yoksa) o bölgeyi canlı yükle. localProperties ~5km cache
+        //    + "yeni eklendiyse" kontrolü sayesinde aynı boş bölge tekrar yüklenmez.
         const z = map.getZoom()
         if (z < zHood || !cbMapExplore.current) return
-        const c = map.getCenter()
-        const near = nearestHood(hoodsRef.current, c.lat, c.lng)
-        const far = !near || Math.hypot(near.lat - c.lat, near.lng - c.lng) > 0.055 // ~6 km
-        if (far) cbMapExplore.current(c.lat, c.lng)
+        const visible = z < zProp ? attHood.current.size : attProp.current.size
+        if (visible < 6) { const c = map.getCenter(); cbMapExplore.current(c.lat, c.lng) }
       })
     })
 
