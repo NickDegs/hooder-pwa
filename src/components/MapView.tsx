@@ -6,6 +6,7 @@ import {
   type Property, type City, type HoodGroup, type CityGroup, type CountryGroup,
 } from '../data'
 import { formatPrice } from '../data'
+import { livePrice } from '../services/economy'
 
 export interface MapClickInfo {
   name:     string
@@ -161,7 +162,7 @@ function makePropEl(prop: Property, isOwned: boolean): HTMLElement {
     <span style="font-size:12px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.6))">${meta.emoji}</span>
     <div>
       <div style="color:#fff;font-size:10px;font-weight:700;overflow:hidden;text-overflow:ellipsis;max-width:105px;${TXT_GLOW}">${prop.name}</div>
-      <div style="color:${isOwned?'#5ff08a':'rgba(255,255,255,0.7)'};font-size:9px;${TXT_GLOW}">${isOwned ? '✓ Senin' : formatPrice(prop.price)}</div>
+      <div style="color:${isOwned?'#5ff08a':'rgba(255,255,255,0.7)'};font-size:9px;${TXT_GLOW}">${isOwned ? '✓ Senin' : formatPrice(livePrice(prop.price))}</div>
     </div>
   `
   wrap.appendChild(el)

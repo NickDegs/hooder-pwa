@@ -75,6 +75,18 @@ function SettingsIcon({ color }: { color: string }) {
   )
 }
 
+function FxIcon({ color }: { color: string }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+      stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9"/>
+      <path d="M14.6 9.1A2.6 2.6 0 0012 7.5c-1.3 0-2.4.8-2.4 1.9 0 2.6 5 1.4 5 4 0 1.2-1.1 2-2.6 2a2.6 2.6 0 01-2.6-1.6"/>
+      <line x1="12" y1="6" x2="12" y2="7.5"/>
+      <line x1="12" y1="16.5" x2="12" y2="18"/>
+    </svg>
+  )
+}
+
 // ── Tab definitions ───────────────────────────────────────────────────────────
 
 type IconComp = (props: { color: string }) => JSX.Element
@@ -83,6 +95,7 @@ const TABS: { label: string; Icon: IconComp }[] = [
   { label: 'Harita',    Icon: MapIcon      },
   { label: 'Piyasa',   Icon: MarketIcon   },
   { label: 'Portföy',  Icon: ChartIcon    },
+  { label: 'Döviz',    Icon: FxIcon       },
   { label: 'Sıralama', Icon: TrophyIcon   },
   { label: 'Mağaza',   Icon: StoreIcon    },
   { label: 'Ayarlar',  Icon: SettingsIcon },

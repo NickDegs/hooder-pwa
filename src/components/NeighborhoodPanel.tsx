@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { type HoodGroup, type Property, categoryMeta, formatPrice, formatIncome } from '../data'
 import { useGame } from '../store/useGame'
 import { useDragSheet } from '../services/useDragSheet'
+import { livePrice, liveIncome } from '../services/economy'
 
 // Alt-sayfa snap noktaları (ekran yüksekliği oranı)
 const SNAP_FULL = 0.94   // yukarı çek → neredeyse tam ekran liste
@@ -58,7 +59,8 @@ export default function NeighborhoodPanel({ hood, onClose, isDesktop }: Props) {
   }
 
   function handleBuy(prop: Property) {
-    const ok = buy(prop)
+    // Canlı piyasa fiyatıyla al (anlık dünya ekonomisi) — owned bu fiyatı kilitler
+    const ok = buy({ ...prop, price: livePrice(prop.price), incomePerDay: liveIncome(prop.incomePerDay) })
     if (ok) { setToast(`✓ ${prop.name} satın alındı!`); setTimeout(() => setToast(null), 2500) }
     else    { setToast('Yetersiz bakiye!');              setTimeout(() => setToast(null), 2000) }
   }
@@ -219,7 +221,8 @@ export default function NeighborhoodPanel({ hood, onClose, isDesktop }: Props) {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {props.map(prop => {
                       const owned     = isOwned(prop.id)
-                      const canAfford = cash >= prop.price
+                      const lprice    = livePrice(prop.price)
+                      const canAfford = cash >= lprice
                       const area      = areaStatus(prop)
                       const locked    = !owned && !area.allowed
 
@@ -251,8 +254,8 @@ export default function NeighborhoodPanel({ hood, onClose, isDesktop }: Props) {
                                 {/* Stat pills */}
                                 <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
                                   {[
-                                    { label: 'FİYAT',   value: formatPrice(prop.price),         color: '#fff' },
-                                    { label: 'GÜNLÜK',  value: formatIncome(prop.incomePerDay),  color: '#30d158' },
+                                    { label: 'FİYAT',   value: formatPrice(lprice),                       color: '#fff' },
+                                    { label: 'GÜNLÜK',  value: formatIncome(liveIncome(prop.incomePerDay)), color: '#30d158' },
                                     { label: 'ROI',     value: `${prop.roiPercent.toFixed(1)}%`, color: '#ffc434' },
                                     { label: 'PRESTİJ', value: '★'.repeat(prop.prestige),        color: '#bf5af2' },
                                   ].map(s => (

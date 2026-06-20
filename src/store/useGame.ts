@@ -34,6 +34,7 @@ interface GameState {
   currentCity:   string   // anlık GPS konum şehri/ili (burada serbest alım)
   currentCountry:string   // anlık GPS ülke kodu
   unlockedAreas: string[] // emlakçı ile açılan bölgeler ('city:Ad' / 'country:TR')
+  fx:            Record<string, { units: number; costUSD: number }> // döviz portföyü
 
   // computed
   netWorth:      number
@@ -55,6 +56,8 @@ interface GameState {
   setCurrentArea:  (city: string, country: string) => void
   areaStatus:      (p: Property) => { allowed: boolean; needAgent: null | 'city' | 'country'; fee: number }
   sendAgent:       (p: Property) => boolean
+  buyFx:           (code: string, usdAmount: number, rate: number) => boolean
+  sellFx:          (code: string, currentRate: number) => number   // gerçekleşen K/Z (USD)
 }
 
 // Bölge kilidi sabitleri
@@ -111,6 +114,7 @@ function parseState(raw: Record<string, unknown>) {
     currentCity:   (raw.currentCity    as string)   ?? 'Istanbul',
     currentCountry:(raw.currentCountry as string)   ?? 'TR',
     unlockedAreas: (raw.unlockedAreas  as string[]) ?? [],
+    fx:            (raw.fx as Record<string, { units: number; costUSD: number }>) ?? {},
     netWorth:      computeNetWorth(cash, owned),
     dailyIncome:   computeDailyIncome(owned),
     pendingIncome: computePendingIncome(owned, lastCollect),
@@ -129,6 +133,7 @@ export const useGame = create<GameState>((set, get) => ({
   currentCity:   'Istanbul',
   currentCountry:'TR',
   unlockedAreas: [],
+  fx:            {},
   netWorth:      15_000_000,
   dailyIncome:   0,
   pendingIncome: 0,
@@ -204,6 +209,32 @@ export const useGame = create<GameState>((set, get) => ({
     set({ unlockedAreas, cash, netWorth: computeNetWorth(cash, st.owned) })
     persist()
     return true
+  },
+
+  // Döviz al: usdAmount nakit ile, rate (1 USD = rate birim) → units alınır
+  buyFx(code: string, usdAmount: number, rate: number) {
+    const st = get()
+    if (usdAmount <= 0 || rate <= 0 || st.cash < usdAmount) return false
+    const prev = st.fx[code] ?? { units: 0, costUSD: 0 }
+    const fx = { ...st.fx, [code]: { units: prev.units + usdAmount * rate, costUSD: prev.costUSD + usdAmount } }
+    const cash = st.cash - usdAmount
+    set({ fx, cash, netWorth: computeNetWorth(cash, st.owned) })
+    persist()
+    return true
+  },
+
+  // Döviz sat: tüm pozisyon güncel kurla USD'ye çevrilir → gerçekleşen K/Z döner
+  sellFx(code: string, currentRate: number) {
+    const st = get()
+    const pos = st.fx[code]
+    if (!pos || pos.units <= 0 || currentRate <= 0) return NaN
+    const usd = pos.units / currentRate
+    const pl  = usd - pos.costUSD
+    const fx = { ...st.fx }; delete fx[code]
+    const cash = st.cash + usd
+    set({ fx, cash, netWorth: computeNetWorth(cash, st.owned) })
+    persist()
+    return pl
   },
 
   buy(property: Property) {
@@ -285,6 +316,7 @@ export const useGame = create<GameState>((set, get) => ({
       claimed:       [],
       lastCollect:   Date.now(),
       unlockedAreas: [],
+      fx:            {},
       netWorth:      15_000_000,
       dailyIncome:   0,
       pendingIncome: 0,
@@ -298,12 +330,12 @@ export const useGame = create<GameState>((set, get) => ({
 }))
 
 function persist() {
-  const { playerName, cash, level, xp, owned, lastCollect, netWorth, claimed, currentCity, currentCountry, unlockedAreas } = useGame.getState()
+  const { playerName, cash, level, xp, owned, lastCollect, netWorth, claimed, currentCity, currentCountry, unlockedAreas, fx } = useGame.getState()
   const data = {
     playerName, cash, level, xp, lastCollect, netWorth,
     ownedPropertyIDs: owned.map(o => ({ id: o.id, purchasedAt: o.purchasedAt, totalEarned: o.totalEarned, prop: o.property })),
     claimedPlaces: claimed,
-    currentCity, currentCountry, unlockedAreas,
+    currentCity, currentCountry, unlockedAreas, fx,
   }
 
   // Always save locally as backup

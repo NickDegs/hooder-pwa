@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { allProperties, allCities, categoryMeta, type PropertyCategory, formatPrice, formatIncome } from '../data'
+import { livePrice, liveIncome } from '../services/economy'
 import { useGame } from '../store/useGame'
 import GlassCard from '../components/GlassCard'
 
@@ -60,7 +61,7 @@ export default function Market() {
   }, [search, cat, city, sort, asc])
 
   function handleBuy(prop: typeof allProperties[0]) {
-    const ok = buy(prop)
+    const ok = buy({ ...prop, price: livePrice(prop.price), incomePerDay: liveIncome(prop.incomePerDay) })
     const msg = ok ? `${prop.name} satın alındı! ✅` : '❌ Yetersiz bakiye!'
     setToast(msg)
     setTimeout(() => setToast(null), 2500)
@@ -151,7 +152,7 @@ export default function Market() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }}>
           {filtered.map(prop => {
             const owned     = isOwned(prop.id)
-            const canAfford = cash >= prop.price
+            const canAfford = cash >= livePrice(prop.price)
             const accent    = prop.accentHex
             return (
               <GlassCard key={prop.id}>
@@ -176,8 +177,8 @@ export default function Market() {
 
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div>
-                    <div className="t-bold" style={{ color: 'var(--text)' }}>{formatPrice(prop.price)}</div>
-                    <div className="t-caption" style={{ color: 'var(--green)' }}>{formatIncome(prop.incomePerDay)}</div>
+                    <div className="t-bold" style={{ color: 'var(--text)' }}>{formatPrice(livePrice(prop.price))}</div>
+                    <div className="t-caption" style={{ color: 'var(--green)' }}>{formatIncome(liveIncome(prop.incomePerDay))}</div>
                   </div>
                   {owned ? (
                     <div style={{
@@ -239,7 +240,7 @@ export default function Market() {
                 flex: 2, padding: 'var(--sp-md)', borderRadius: 'var(--r-lg)',
                 background: 'var(--primary)',
               }}>
-                <span className="t-btn-md" style={{ color: '#000' }}>Satın Al — {formatPrice(confirm.price)}</span>
+                <span className="t-btn-md" style={{ color: '#000' }}>Satın Al — {formatPrice(livePrice(confirm.price))}</span>
               </button>
             </div>
           </GlassCard>

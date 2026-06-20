@@ -5,6 +5,7 @@ import { allCities, setDynamicProperties, type City, type Property, type HoodGro
 import { formatPrice } from './data'
 import { fetchLocalProperties, allDynamicProperties } from './services/localProperties'
 import { useDragSheet } from './services/useDragSheet'
+import { fetchRates } from './services/economy'
 
 import MapView            from './components/MapView'
 import TabBar             from './components/TabBar'
@@ -15,11 +16,12 @@ import type { MapClickInfo } from './components/MapView'
 import Login              from './screens/Login'
 import Market             from './screens/Market'
 import Portfolio          from './screens/Portfolio'
+import Forex              from './screens/Forex'
 import Rankings           from './screens/Rankings'
 import Store              from './screens/Store'
 import Settings           from './screens/Settings'
 
-const SCREEN_TITLES = ['Harita', 'Piyasa', 'Portföyüm', 'Sıralama', 'Mağaza', 'Ayarlar']
+const SCREEN_TITLES = ['Harita', 'Piyasa', 'Portföyüm', 'Döviz', 'Sıralama', 'Mağaza', 'Ayarlar']
 
 function useIsDesktop() {
   const [desktop, setDesktop] = useState(() => window.innerWidth >= 768)
@@ -57,6 +59,9 @@ export default function App() {
       load(user.uid, user.assignedServer ?? '', user.token ?? '')
     }
   }, [user?.uid]) // eslint-disable-line
+
+  // Canlı döviz kurlarını erkenden çek (emlak fiyatları piyasa endeksiyle dalgalanır)
+  useEffect(() => { fetchRates() }, [])
 
   // Tab ekran paneli (Piyasa/Portföy/Sıralama/Mağaza/Ayarlar) için sürüklenebilir
   // alt-sayfa: yukarı çek → tam ekran, aşağı çek → haritaya dön.
@@ -497,9 +502,10 @@ export default function App() {
         <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
           {tab === 1 && <Market />}
           {tab === 2 && <Portfolio />}
-          {tab === 3 && <Rankings />}
-          {tab === 4 && <Store />}
-          {tab === 5 && <Settings />}
+          {tab === 3 && <Forex />}
+          {tab === 4 && <Rankings />}
+          {tab === 5 && <Store />}
+          {tab === 6 && <Settings />}
         </div>
       </div>
 
