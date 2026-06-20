@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import { useLang } from '../services/i18n'
 import { useGame } from '../store/useGame'
 import { formatPrice, formatIncome, categoryMeta } from '../data'
 import GlassCard from '../components/GlassCard'
 import StatBadge from '../components/StatBadge'
 
 export default function Portfolio() {
+  const { t } = useLang()
   const { netWorth, cash, dailyIncome, pendingIncome, owned, collectIncome, sell } = useGame()
   const [toast,      setToast]      = useState<string | null>(null)
   const [sellTarget, setSellTarget] = useState<string | null>(null)
@@ -66,7 +68,7 @@ export default function Portfolio() {
         {owned.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 'var(--sp-4x) 0' }}>
             <div style={{ fontSize: 56, marginBottom: 'var(--sp-lg)' }}>🏗️</div>
-            <div className="t-h3" style={{ color: 'var(--text-sub)', marginBottom: 'var(--sp-sm)' }}>Henüz mülk yok</div>
+            <div className="t-h3" style={{ color: 'var(--text-sub)', marginBottom: 'var(--sp-sm)' }}>{t('no_props')}</div>
             <div className="t-body" style={{ color: 'var(--text-muted)' }}>
               Piyasa ekranından mülk satın alarak portföyünüzü oluşturun.
             </div>

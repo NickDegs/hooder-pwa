@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useLang } from '../services/i18n'
 import { useAuth } from '../services/auth'
 import GlassCard from '../components/GlassCard'
 
@@ -25,6 +26,7 @@ function AppleLogo({ size = 20, color = '#fff' }: { size?: number; color?: strin
 }
 
 export default function Login() {
+  const { t } = useLang()
   const { loginEmail, registerEmail, loginGoogle, loginApple, loginGuest, loading } = useAuth()
   const [tab,      setTab]      = useState<Tab>('email')
   const [mode,     setMode]     = useState<Mode>('login')
@@ -62,10 +64,10 @@ export default function Login() {
   }
 
   const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
-    { id: 'email',  label: 'E-posta', icon: <span style={{ fontSize: 13 }}>✉️</span> },
+    { id: 'email',  label: t('email'), icon: <span style={{ fontSize: 13 }}>✉️</span> },
     { id: 'apple',  label: 'Apple',   icon: <AppleLogo size={14} color="currentColor" /> },
     { id: 'google', label: 'Google',  icon: <GoogleLogo size={14} /> },
-    { id: 'guest',  label: 'Misafir', icon: <span style={{ fontSize: 13 }}>👤</span> },
+    { id: 'guest',  label: t('login_guest').split(' ')[0], icon: <span style={{ fontSize: 13 }}>👤</span> },
   ]
 
   const inputStyle: React.CSSProperties = {
@@ -207,17 +209,17 @@ export default function Login() {
                       fontSize: 13, transition: 'all 0.15s',
                     }}
                   >
-                    {m === 'login' ? 'Giriş Yap' : 'Kayıt Ol'}
+                    {m === 'login' ? t('signin') : t('register')}
                   </button>
                 ))}
               </div>
               {mode === 'register' && (
-                <input type="text" placeholder="Kullanıcı adı" value={username}
+                <input type="text" placeholder={t("register")} value={username}
                   onChange={e => setUsername(e.target.value)} required style={inputStyle} />
               )}
-              <input type="email" placeholder="E-posta" value={email}
+              <input type="email" placeholder={t('email')} value={email}
                 onChange={e => setEmail(e.target.value)} required style={inputStyle} />
-              <input type="password" placeholder="Şifre" value={password}
+              <input type="password" placeholder={t('password')} value={password}
                 onChange={e => setPassword(e.target.value)} required minLength={6} style={inputStyle} />
               <button type="submit" disabled={loading} style={{
                 width: '100%', padding: 'var(--sp-md)',
@@ -227,7 +229,7 @@ export default function Login() {
                 transition: 'opacity 0.2s',
               }}>
                 <span className="t-btn-md" style={{ color: '#fff' }}>
-                  {loading ? 'Bekle...' : mode === 'login' ? 'Giriş Yap' : 'Hesap Oluştur'}
+                  {loading ? '...' : mode === 'login' ? t('signin') : t('register')}
                 </span>
               </button>
             </form>
@@ -253,7 +255,7 @@ export default function Login() {
               >
                 <AppleLogo size={22} color="#fff" />
                 <span className="t-btn-md" style={{ color: '#fff', fontSize: 16 }}>
-                  {loading ? 'Bekle...' : 'Apple ile Giriş Yap'}
+                  {loading ? '...' : t('login_apple')}
                 </span>
               </button>
               <p className="t-caption" style={{ color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.5 }}>
@@ -282,7 +284,7 @@ export default function Login() {
               >
                 <GoogleLogo size={22} />
                 <span className="t-btn-md" style={{ color: '#1f1f1f', fontSize: 16 }}>
-                  {loading ? 'Bekle...' : 'Google ile Giriş Yap'}
+                  {loading ? '...' : t('login_google')}
                 </span>
               </button>
               <p className="t-caption" style={{ color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.5 }}>
@@ -312,7 +314,7 @@ export default function Login() {
               >
                 <span style={{ fontSize: 22 }}>👤</span>
                 <span className="t-btn-md" style={{ color: '#fff', fontSize: 16 }}>
-                  Misafir Olarak Oyna
+                  {t('login_guest')}
                 </span>
               </button>
             </div>

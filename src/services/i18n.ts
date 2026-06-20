@@ -177,8 +177,31 @@ export function setLang(code: Lang) {
   listeners.forEach(l => l())
 }
 
+// Derin ekran metinleri — anahtar→dil (kısmi kapsam, eksikse İngilizce'ye düşer)
+const EXTRA: Record<string, Record<string, string>> = {
+  cancel:      { tr:'İptal', en:'Cancel', es:'Cancelar', fr:'Annuler', de:'Abbrechen', it:'Annulla', pt:'Cancelar', ru:'Отмена', ar:'إلغاء', zh:'取消', ja:'キャンセル', ko:'취소', az:'Ləğv et', uk:'Скасувати', fa:'لغو', hi:'रद्द करें' },
+  all:         { tr:'Tümü', en:'All', es:'Todos', fr:'Tout', de:'Alle', it:'Tutti', pt:'Todos', ru:'Все', ar:'الكل', zh:'全部', ja:'すべて', ko:'전체', az:'Hamısı', uk:'Усі', fa:'همه', hi:'सभी' },
+  all_cities:  { tr:'Tüm Şehirler', en:'All Cities', es:'Todas las Ciudades', fr:'Toutes les Villes', de:'Alle Städte', it:'Tutte le Città', pt:'Todas as Cidades', ru:'Все города', ar:'كل المدن', zh:'所有城市', ja:'全都市', ko:'모든 도시', az:'Bütün Şəhərlər', uk:'Усі міста', fa:'همه شهرها', hi:'सभी शहर' },
+  insufficient2:{ tr:'Yetersiz', en:'Low funds', es:'Sin fondos', fr:'Fonds bas', de:'Zu wenig', it:'Fondi bassi', pt:'Sem fundos', ru:'Мало средств', ar:'رصيد منخفض', zh:'余额不足', ja:'残高不足', ko:'잔액 부족', az:'Balans az', uk:'Мало коштів', fa:'موجودی کم', hi:'धन कम' },
+  owned_have:  { tr:'Sahipsiniz', en:'Owned', es:'En propiedad', fr:'Possédé', de:'Im Besitz', it:'Posseduto', pt:'Possuído', ru:'В собственности', ar:'مملوك', zh:'已拥有', ja:'所有済み', ko:'보유중', az:'Sahibsiniz', uk:'У власності', fa:'مالک هستید', hi:'स्वामित्व' },
+  no_props:    { tr:'Henüz mülk yok', en:'No properties yet', es:'Aún sin propiedades', fr:'Aucune propriété', de:'Noch keine Immobilien', it:'Ancora nessuna proprietà', pt:'Ainda sem imóveis', ru:'Пока нет объектов', ar:'لا عقارات بعد', zh:'暂无房产', ja:'物件なし', ko:'아직 부동산 없음', az:'Hələ əmlak yox', uk:'Ще немає об’єктів', fa:'هنوز ملکی نیست', hi:'अभी कोई संपत्ति नहीं' },
+  collect_income:{ tr:'Geliri Topla', en:'Collect Income', es:'Cobrar Ingresos', fr:'Encaisser', de:'Einkommen Sammeln', it:'Riscuoti', pt:'Coletar Renda', ru:'Собрать доход', ar:'تحصيل الدخل', zh:'领取收入', ja:'収入を集める', ko:'수입 받기', az:'Gəliri Topla', uk:'Зібрати дохід', fa:'دریافت درآمد', hi:'आय लें' },
+  most_popular:{ tr:'EN POPÜLER', en:'POPULAR', es:'POPULAR', fr:'POPULAIRE', de:'BELIEBT', it:'POPOLARE', pt:'POPULAR', ru:'ПОПУЛЯРНО', ar:'الأكثر شيوعاً', zh:'热门', ja:'人気', ko:'인기', az:'POPULYAR', uk:'ПОПУЛЯРНЕ', fa:'محبوب', hi:'लोकप्रिय' },
+  store_closed:{ tr:'Mağaza geçici olarak kapalı', en:'Store temporarily closed', es:'Tienda cerrada temporalmente', fr:'Boutique fermée temporairement', de:'Shop vorübergehend geschlossen', it:'Negozio chiuso', pt:'Loja fechada', ru:'Магазин временно закрыт', ar:'المتجر مغلق مؤقتاً', zh:'商店暂时关闭', ja:'ストアは一時休止中', ko:'상점 임시 휴무', az:'Mağaza müvəqqəti bağlı', uk:'Магазин тимчасово закрито', fa:'فروشگاه موقتاً بسته است', hi:'स्टोर अस्थायी रूप से बंद' },
+  your_rank:   { tr:'Sıralaman', en:'Your Rank', es:'Tu Posición', fr:'Ton Classement', de:'Dein Rang', it:'La Tua Posizione', pt:'Sua Posição', ru:'Ваш ранг', ar:'ترتيبك', zh:'你的排名', ja:'あなたの順位', ko:'내 순위', az:'Reytinqin', uk:'Ваш ранг', fa:'رتبه شما', hi:'आपकी रैंक' },
+  players:     { tr:'oyuncu', en:'players', es:'jugadores', fr:'joueurs', de:'Spieler', it:'giocatori', pt:'jogadores', ru:'игроков', ar:'لاعب', zh:'名玩家', ja:'プレイヤー', ko:'명', az:'oyunçu', uk:'гравців', fa:'بازیکن', hi:'खिलाड़ी' },
+  login_guest: { tr:'Misafir Olarak Oyna', en:'Play as Guest', es:'Jugar como Invitado', fr:'Jouer en Invité', de:'Als Gast Spielen', it:'Gioca come Ospite', pt:'Jogar como Convidado', ru:'Играть как гость', ar:'العب كضيف', zh:'以访客身份游玩', ja:'ゲストとしてプレイ', ko:'게스트로 플레이', az:'Qonaq kimi Oyna', uk:'Грати як гість', fa:'بازی به‌عنوان مهمان', hi:'अतिथि के रूप में खेलें' },
+  login_google:{ tr:'Google ile Giriş', en:'Sign in with Google', es:'Entrar con Google', fr:'Connexion Google', de:'Mit Google anmelden', it:'Accedi con Google', pt:'Entrar com Google', ru:'Войти через Google', ar:'الدخول عبر Google', zh:'用 Google 登录', ja:'Googleでログイン', ko:'Google로 로그인', az:'Google ilə Giriş', uk:'Увійти через Google', fa:'ورود با Google', hi:'Google से साइन इन' },
+  login_apple: { tr:'Apple ile Giriş', en:'Sign in with Apple', es:'Entrar con Apple', fr:'Connexion Apple', de:'Mit Apple anmelden', it:'Accedi con Apple', pt:'Entrar com Apple', ru:'Войти через Apple', ar:'الدخول عبر Apple', zh:'用 Apple 登录', ja:'Appleでログイン', ko:'Apple로 로그인', az:'Apple ilə Giriş', uk:'Увійти через Apple', fa:'ورود با Apple', hi:'Apple से साइन इन' },
+  email:       { tr:'E-posta', en:'Email', es:'Correo', fr:'E-mail', de:'E-Mail', it:'E-mail', pt:'E-mail', ru:'Эл. почта', ar:'البريد', zh:'邮箱', ja:'メール', ko:'이메일', az:'E-poçt', uk:'Ел. пошта', fa:'ایمیل', hi:'ईमेल' },
+  password:    { tr:'Şifre', en:'Password', es:'Contraseña', fr:'Mot de passe', de:'Passwort', it:'Password', pt:'Senha', ru:'Пароль', ar:'كلمة المرور', zh:'密码', ja:'パスワード', ko:'비밀번호', az:'Parol', uk:'Пароль', fa:'رمز عبور', hi:'पासवर्ड' },
+  signin:      { tr:'Giriş Yap', en:'Sign In', es:'Entrar', fr:'Se Connecter', de:'Anmelden', it:'Accedi', pt:'Entrar', ru:'Войти', ar:'تسجيل الدخول', zh:'登录', ja:'ログイン', ko:'로그인', az:'Giriş', uk:'Увійти', fa:'ورود', hi:'साइन इन' },
+  register:    { tr:'Kayıt Ol', en:'Register', es:'Registrarse', fr:'S’inscrire', de:'Registrieren', it:'Registrati', pt:'Registrar', ru:'Регистрация', ar:'تسجيل', zh:'注册', ja:'登録', ko:'가입', az:'Qeydiyyat', uk:'Реєстрація', fa:'ثبت‌نام', hi:'रजिस्टर' },
+  net_worth:   { tr:'Net Değer', en:'Net Worth', es:'Patrimonio', fr:'Valeur Nette', de:'Nettowert', it:'Patrimonio', pt:'Património', ru:'Капитал', ar:'صافي الثروة', zh:'净资产', ja:'純資産', ko:'순자산', az:'Xalis Dəyər', uk:'Капітал', fa:'ارزش خالص', hi:'कुल संपत्ति' },
+}
+
 export function t(key: string): string {
-  return S[_lang]?.[key] ?? S.en[key] ?? key
+  return S[_lang]?.[key] ?? EXTRA[key]?.[_lang] ?? EXTRA[key]?.en ?? S.en[key] ?? key
 }
 
 // Bileşenlerin dil değişince yeniden render olması için

@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { allProperties, allCities, categoryMeta, type PropertyCategory, formatPrice, formatIncome } from '../data'
 import { livePrice, liveIncome } from '../services/economy'
+import { useLang } from '../services/i18n'
 import { useGame } from '../store/useGame'
 import GlassCard from '../components/GlassCard'
 
@@ -25,6 +26,7 @@ const SORTS: { key: SortKey; label: string }[] = [
 ]
 
 export default function Market() {
+  const { t } = useLang()
   const { cash, isOwned, buy } = useGame()
   const [search,  setSearch]  = useState('')
   const [cat,     setCat]     = useState<PropertyCategory | null>(null)
@@ -104,7 +106,7 @@ export default function Market() {
 
         {/* Category chips */}
         <div style={{ display: 'flex', gap: 'var(--sp-sm)', overflowX: 'auto', paddingBottom: 4, marginBottom: 'var(--sp-sm)' }}>
-          <button className={`chip ${!cat ? 'active' : ''}`} onClick={() => setCat(null)}>Tümü</button>
+          <button className={`chip ${!cat ? 'active' : ''}`} onClick={() => setCat(null)}>{t('all')}</button>
           {(Object.keys(categoryMeta) as PropertyCategory[]).map(c => (
             <button key={c} className={`chip ${cat === c ? 'active' : ''}`} onClick={() => setCat(cat === c ? null : c)}>
               {categoryMeta[c].emoji} {categoryMeta[c].label}
@@ -114,7 +116,7 @@ export default function Market() {
 
         {/* City chips */}
         <div style={{ display: 'flex', gap: 'var(--sp-sm)', overflowX: 'auto', paddingBottom: 4, marginBottom: 'var(--sp-sm)' }}>
-          <button className={`chip ${!city ? 'active' : ''}`} onClick={() => setCity(null)}>Tüm Şehirler</button>
+          <button className={`chip ${!city ? 'active' : ''}`} onClick={() => setCity(null)}>{t('all_cities')}</button>
           {allCities.map(c => (
             <button key={c.id} className={`chip ${city === c.name ? 'active' : ''}`} onClick={() => setCity(city === c.name ? null : c.name)}>
               {c.flag} {c.name}
@@ -200,7 +202,7 @@ export default function Market() {
                       }}
                     >
                       <span className="t-btn-sm" style={{ color: canAfford ? '#000' : 'var(--text-muted)' }}>
-                        {canAfford ? 'Satın Al' : 'Yetersiz'}
+                        {canAfford ? t('buy_full') : t('insufficient2')}
                       </span>
                     </button>
                   )}

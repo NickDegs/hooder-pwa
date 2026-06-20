@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useLang } from '../services/i18n'
 import { useGame } from '../store/useGame'
 import { formatPrice } from '../data'
 import GlassCard from '../components/GlassCard'
@@ -27,6 +28,7 @@ interface Package {
 }
 
 export default function Store() {
+  const { t } = useLang()
   const { addCash } = useGame()
   const [packages,  setPackages]  = useState<Package[]>([])
   const [loading,   setLoading]   = useState(true)
@@ -182,7 +184,7 @@ export default function Store() {
         ) : packages.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 'var(--sp-4x)' }}>
             <div style={{ fontSize: 44, marginBottom: 12 }}>📡</div>
-            <div className="t-h4" style={{ color: 'var(--text-sub)', marginBottom: 8 }}>Mağaza geçici olarak kapalı</div>
+            <div className="t-h4" style={{ color: 'var(--text-sub)', marginBottom: 8 }}>{t('store_closed')}</div>
             <div className="t-caption" style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>
               Sunucuya bağlanılamadı. Lütfen birazdan tekrar dene.
             </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useLang } from '../services/i18n'
 import { useGame } from '../store/useGame'
 import { useAuth } from '../services/auth'
 import { leaderBots, formatPrice } from '../data'
@@ -24,6 +25,7 @@ interface Entry {
 }
 
 export default function Rankings() {
+  const { t } = useLang()
   const { playerName, netWorth, owned, serverId } = useGame()
   const { user } = useAuth()
   const [apiEntries, setApiEntries] = useState<ApiEntry[] | null>(null)
@@ -92,7 +94,7 @@ export default function Rankings() {
         <GlassCard style={{ marginBottom: 'var(--sp-lg)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
-              <div className="t-label" style={{ color: 'var(--text-muted)', marginBottom: 4 }}>Sıralaman</div>
+              <div className="t-label" style={{ color: 'var(--text-muted)', marginBottom: 4 }}>{t('your_rank')}</div>
               <div className="t-display" style={{ color: 'var(--primary)', lineHeight: 1 }}>
                 {playerRank > 0 ? `#${playerRank}` : '—'}
               </div>
