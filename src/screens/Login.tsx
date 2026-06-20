@@ -1,3 +1,4 @@
+import { isNativeIOS } from '../services/platform'
 import { useState } from 'react'
 import { useLang } from '../services/i18n'
 import { useAuth } from '../services/auth'
@@ -63,10 +64,12 @@ export default function Login() {
     catch (err: unknown) { setError(err instanceof Error ? err.message : 'Apple girişi başarısız') }
   }
 
+  // Google web popup'ı WKWebView'de güvenilir değil → native iOS'ta gizle
+  // (Apple zorunlu sağlayıcı native çalışır; Google opsiyonel). Bkz Apple 2.1(a).
   const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: 'email',  label: t('email'), icon: <span style={{ fontSize: 13 }}>✉️</span> },
     { id: 'apple',  label: 'Apple',   icon: <AppleLogo size={14} color="currentColor" /> },
-    { id: 'google', label: 'Google',  icon: <GoogleLogo size={14} /> },
+    ...(isNativeIOS ? [] : [{ id: 'google' as Tab, label: 'Google', icon: <GoogleLogo size={14} /> }]),
     { id: 'guest',  label: t('login_guest').split(' ')[0], icon: <span style={{ fontSize: 13 }}>👤</span> },
   ]
 

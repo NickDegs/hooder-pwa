@@ -93,9 +93,50 @@ export async function signInWithGoogle(): Promise<AuthUser> {
   }
 }
 
+// Rastgele nonce + SHA-256 (native Apple Sign In için)
+function randNonce(len = 32): string {
+  const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-._'
+  const a = new Uint8Array(len); crypto.getRandomValues(a)
+  return Array.from(a, x => chars[x % chars.length]).join('')
+}
+async function sha256hex(s: string): Promise<string> {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s))
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
 export async function signInWithApple(): Promise<AuthUser> {
   const auth = await getFirebaseAuth()
   if (!auth) throw new Error('Firebase yapılandırılmamış')
+  const { isNativeIOS } = await import('./platform')
+
+  // ── Native iOS/iPad: gerçek Sign in with Apple (WKWebView popup'ı patlamaz) ──
+  if (isNativeIOS) {
+    const { SignInWithApple } = await import('@capacitor-community/apple-sign-in')
+    const { OAuthProvider, signInWithCredential } = await import('firebase/auth')
+    const rawNonce = randNonce()
+    const hashedNonce = await sha256hex(rawNonce)
+    const res = await SignInWithApple.authorize({
+      clientId: 'app.realvirtuality.landlord',
+      redirectURI: 'https://realvirtuality.app',
+      scopes: 'email name',
+      nonce: hashedNonce,
+      state: randNonce(16),
+    })
+    const idToken = res.response?.identityToken
+    if (!idToken) throw new Error('Apple kimlik doğrulaması alınamadı')
+    const provider = new OAuthProvider('apple.com')
+    const cred = provider.credential({ idToken, rawNonce })
+    const result = await signInWithCredential(auth, cred)
+    const fullName = [res.response?.givenName, res.response?.familyName].filter(Boolean).join(' ')
+    return {
+      uid:         result.user.uid,
+      displayName: result.user.displayName || fullName || 'Oyuncu',
+      email:       result.user.email || res.response?.email || '',
+      provider:    'apple',
+    }
+  }
+
+  // ── Web: popup ──
   const { OAuthProvider, signInWithPopup } = await import('firebase/auth')
   const provider = new OAuthProvider('apple.com')
   provider.addScope('email')
