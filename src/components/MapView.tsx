@@ -396,11 +396,17 @@ export default function MapView({
         if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'none')
       })
 
-      // Su (deniz/göl) katmanlarını sapta → mülk/mahalle marker'ları su üstüne konmaz
+      // Su (deniz/göl) tespiti: satellite stilinde sorgulanabilir su dolgusu yok →
+      // mapbox-streets'ten GÖRÜNMEZ (opacity 0) bir su katmanı ekle, sadece
+      // queryRenderedFeatures için. Mülk/mahalle marker'ları su üstüne konmaz.
       try {
-        waterLayers.current = (map.getStyle().layers || [])
-          .filter(l => /water|ocean/i.test(l.id) && (l.type === 'fill' || l.type === 'background'))
-          .map(l => l.id)
+        if (!map.getSource('mb-water-src')) {
+          map.addSource('mb-water-src', { type: 'vector', url: 'mapbox://mapbox.mapbox-streets-v8' })
+        }
+        if (!map.getLayer('mb-water-q')) {
+          map.addLayer({ id: 'mb-water-q', type: 'fill', source: 'mb-water-src', 'source-layer': 'water', paint: { 'fill-opacity': 0 } })
+        }
+        waterLayers.current = ['mb-water-q']
       } catch { waterLayers.current = [] }
 
       // ── Veriyi hazırla + ekrandaki marker'ları kur (viewport culling) ──────

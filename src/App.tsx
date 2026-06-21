@@ -4,7 +4,6 @@ import { useGame } from './store/useGame'
 import { allCities, setDynamicProperties, buildGroups, nearestHood, type City, type Property, type HoodGroup } from './data'
 import { formatPrice } from './data'
 import { fetchLocalProperties, allDynamicProperties } from './services/localProperties'
-import { syncWorldProperties, ensureAreaProperties } from './worldProperties'
 import { useDragSheet } from './services/useDragSheet'
 import { useLang } from './services/i18n'
 import { initEconomy } from './services/economy'
@@ -68,17 +67,6 @@ export default function App() {
 
   // Sanal ekonomiyi başlat (gerçek dünyadan tohumla → oyun-içi drift/işlem belirler)
   useEffect(() => { initEconomy() }, [])
-
-  // Gömülü dünya mülkleri: açılışta hepsi yüklenir (anında, donmasız, offline) +
-  // günde 1 otomatik tazelenir (id'ler sabit → sahiplik korunur, fiyat/ilan güncellenir).
-  useEffect(() => {
-    if (syncWorldProperties()) { setDynamicProperties(allDynamicProperties()); setLocalVersion(v => v + 1) }
-    // Uzun oturumda gün değişimini yakalamak için saatlik kontrol
-    const id = setInterval(() => {
-      if (syncWorldProperties()) { setDynamicProperties(allDynamicProperties()); setLocalVersion(v => v + 1) }
-    }, 3_600_000)
-    return () => clearInterval(id)
-  }, [])
 
   // Süren emlak işlemlerini saniyede bir kontrol et → süresi dolan tamamlanır
   useEffect(() => {
@@ -163,21 +151,27 @@ export default function App() {
     setSelectedHood(null)  // close hood panel while claim panel is open
   }
 
-  // Haritada boş bir yere tıkla → o KOORDİNATTAKİ bölgeyi ANINDA doldur (prosedürel,
-  // ağ yok) ve en yakın mahalleyi aç. Artık tıkladığın yer gösterilir, kendi konumun değil.
-  function handleMapPick(lat: number, lng: number) {
-    if (ensureAreaProperties(lat, lng)) { setDynamicProperties(allDynamicProperties()); setLocalVersion(v => v + 1) }
+  // Haritada boş bir yere tıkla → o bölgenin GERÇEK mülklerini (Mapbox POI: gerçek
+  // binalar, karada, doğru adlar) çek ve en yakın mahalleyi aç.
+  async function handleMapPick(lat: number, lng: number) {
+    await loadArea(lat, lng)
     const near = nearestHood(buildGroups().hoods, lat, lng)
     if (near) handleSelectHood(near)
   }
 
-  // Gezinti (pan) bitince: bakılan bölgeyi ANINDA doldur (prosedürel, offline,
-  // garantili) → nereye bakarsan oranın etiketi anında belirir. PANEL AÇILMAZ.
-  // NOT: Burada ARTIK network fetch YOK — her moveend'de fetch, sayfanın
-  // networkidle'a ulaşmasını engelliyordu (tarayıcı/scanner asılı kalıyordu).
-  // Prosedürel üretim zaten anında ve offline etiket veriyor.
-  function handleMapExplore(lat: number, lng: number) {
-    if (ensureAreaProperties(lat, lng)) { setDynamicProperties(allDynamicProperties()); setLocalVersion(v => v + 1) }
+  // Gezinti (pan) bitince: bakılan bölgenin GERÇEK mülklerini çek (panel açmadan).
+  function handleMapExplore(lat: number, lng: number) { void loadArea(lat, lng) }
+
+  // Ortak: bir koordinatın gerçek POI mülklerini çek (binalar/oteller — KARADA,
+  // doğru konum + doğru ad). Aynı bölge ~5km cache (localProperties) ile tekrar
+  // çekilmez. Yeni mülk geldiyse markerları tazele.
+  async function loadArea(lat: number, lng: number) {
+    if (pickBusy.current) return
+    pickBusy.current = true
+    const before = allDynamicProperties().length
+    try { await fetchLocalProperties(lat, lng) } catch { /* sessiz */ }
+    pickBusy.current = false
+    if (allDynamicProperties().length > before) { setDynamicProperties(allDynamicProperties()); setLocalVersion(v => v + 1) }
   }
 
   // ── Desktop ─────────────────────────────────────────────────────────────────

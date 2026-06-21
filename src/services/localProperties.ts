@@ -5,6 +5,7 @@
 // (marker + liste + satın alınabilir).
 
 import { type Property, type PropertyCategory, categoryMeta } from '../data'
+import { getLang, t } from './i18n'
 
 const TOKEN = import.meta.env.VITE_MAPBOX_TOKEN ?? ''
 
@@ -55,7 +56,7 @@ interface AreaContext { city: string; district: string; province: string; countr
 
 // Mapbox reverse geocoding → ilçe / il / şehir / ülke
 async function reverseGeocode(lat: number, lng: number): Promise<AreaContext> {
-  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?types=country,region,district,place,locality,neighborhood&language=tr&access_token=${TOKEN}`
+  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?types=country,region,district,place,locality,neighborhood&language=${getLang()}&access_token=${TOKEN}`
   const def: AreaContext = { city: 'Bölgen', district: 'Çevre', province: '', country: '', flag: '📍' }
   try {
     const r = await fetch(url)
@@ -107,7 +108,36 @@ function toProperty(f: any, ctx: AreaContext): Property | null {
   }
 }
 
-// Konumdaki yüksek-değerli mülkleri çek → kayıt defterine ekle → döndür
+// Bina (apartman) → satın alınabilir mülk. İsimsiz bina footprint'i → semt adıyla
+// "{Semt} Apartmanı No.X" gibi adlandırılır (gerçek konum, gerçek semt).
+function buildingToProperty(f: any, ctx: AreaContext): Property | null {
+  const [lng, lat] = f.geometry?.coordinates ?? []
+  if (lng == null || lat == null) return null
+  const p = f.properties ?? {}
+  const seed = hashStr(`b:${lat.toFixed(5)}:${lng.toFixed(5)}`)
+  const num = (seed % 90) + 1
+  // Tip: konut / iş yeri / rezidans (yükseklik varsa rezidans/iş merkezi)
+  const height = Number(p.height || p.render_height || 0)
+  const tk = height > 60 ? 'residence' : height > 25 ? 'plaza' : 'apartments'
+  const cat: PropertyCategory = tk === 'plaza' ? 'office' : 'building'
+  const base = tk === 'residence' ? 28_000_000 : tk === 'plaza' ? 22_000_000 : 7_000_000
+  const factor = 0.6 + (seed % 1000) / 1000 * 1.6
+  const price = Math.max(2_000_000, Math.round((base * factor) / 100_000) * 100_000)
+  const income = Math.max(1500, Math.round(price * 0.0009))
+  return {
+    id: `bld_${lat.toFixed(5)}_${lng.toFixed(5)}`,
+    name: `${ctx.district} ${t('wt_' + tk)} No.${num}`,
+    address: `${ctx.district}, ${ctx.city}`,
+    category: cat, neighborhood: ctx.district, city: ctx.city, country: ctx.country,
+    price, incomePerDay: income, prestige: tk === 'apartments' ? 1 : 3,
+    lat, lng,
+    description: `${ctx.city} — ${categoryMeta[cat].label.toLowerCase()}.`,
+    accentHex: categoryMeta[cat].accent,
+    roiPercent: +(income * 365 / price * 100).toFixed(1),
+  }
+}
+
+// Konumdaki GERÇEK mülkleri çek (POI + binalar) → her şey satın alınabilir
 export async function fetchLocalProperties(lat: number, lng: number): Promise<{ props: Property[]; ctx: AreaContext } | null> {
   if (!TOKEN) return null
   if (alreadyFetched(lat, lng)) return { props: allDynamicProperties(), ctx: lastCtx }
@@ -115,22 +145,22 @@ export async function fetchLocalProperties(lat: number, lng: number): Promise<{ 
 
   const ctx = await reverseGeocode(lat, lng)
   lastCtx = ctx
-  const url = `https://api.mapbox.com/v4/mapbox.mapbox-streets-v8/tilequery/${lng},${lat}.json?radius=1500&limit=50&dedupe=true&layers=poi_label&access_token=${TOKEN}`
+  // poi_label (oteller/ofisler/landmark — isimli) + building (apartman/bina — gerçek konum)
+  const url = `https://api.mapbox.com/v4/mapbox.mapbox-streets-v8/tilequery/${lng},${lat}.json?radius=900&limit=80&dedupe=true&layers=poi_label,building&access_token=${TOKEN}`
   try {
     const r = await fetch(url)
     const j = await r.json()
     const seen = new Set<string>()
     const props = (j.features ?? [])
-      .map((f: any) => toProperty(f, ctx))
+      .map((f: any) => (f.properties?.tilequery?.layer === 'building') ? buildingToProperty(f, ctx) : toProperty(f, ctx))
       .filter((p: Property | null): p is Property => {
         if (!p) return false
         if (seen.has(p.id)) return false
         seen.add(p.id)
         return true
       })
-      // en değerli ilk → İstanbul gibi premium hissi
       .sort((a: Property, b: Property) => b.price - a.price)
-      .slice(0, 40)
+      .slice(0, 60)
     registerProperties(props)
     return { props, ctx }
   } catch { return null }
