@@ -59,12 +59,16 @@ jobs:
 
       # ── İmza secret'ları hazır mı? (keystore + servis hesabı) ────────────────
       - name: Check signing secrets
+        env:
+          KS: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          SA: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
         run: |
-          if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ] && [ -n "${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}" ]; then
+          if [ -n "$KS" ] && [ -n "$SA" ]; then
             echo "HAVE_KS=true" >> $GITHUB_ENV
+            echo "✓ İmza+servis hesabı secret'ları var → imzalı AAB + Play yükleme"
           else
             echo "HAVE_KS=false" >> $GITHUB_ENV
-            echo "⚠️ Keystore/servis hesabı secret'ları yok → imzasız AAB üretilecek (Play'e yüklenmez). Secret'lar eklenince otomatik imzalanıp yüklenecek."
+            echo "⚠️ Secret yok → imzasız AAB (Play'e yüklenmez)."
           fi
 
       # ── İmzalı AAB (secret varsa) ────────────────────────────────────────────
