@@ -78,15 +78,17 @@ jobs:
           KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KS_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           echo "$KS_B64" | base64 -d > android/app/release.keystore
+          KP="${KEY_PASS:-$KS_PASS}"   # key password ayrı verilmediyse store password
           cd android
           chmod +x gradlew
           ./gradlew bundleRelease --no-daemon \
             -Pandroid.injected.signing.store.file=$(pwd)/app/release.keystore \
             -Pandroid.injected.signing.store.password="$KS_PASS" \
             -Pandroid.injected.signing.key.alias="$KS_ALIAS" \
-            -Pandroid.injected.signing.key.password="$KS_PASS"
+            -Pandroid.injected.signing.key.password="$KP"
           rm -f app/release.keystore
 
       # ── İmzasız AAB (secret yoksa — doğrulama/artifact için) ─────────────────
