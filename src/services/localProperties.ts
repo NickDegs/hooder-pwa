@@ -5,7 +5,7 @@
 // (marker + liste + satın alınabilir).
 
 import { type Property, type PropertyCategory, categoryMeta } from '../data'
-import { getLang, t } from './i18n'
+import { catLabel, t, geoLang } from './i18n'
 
 const TOKEN = import.meta.env.VITE_MAPBOX_TOKEN ?? ''
 
@@ -56,7 +56,7 @@ interface AreaContext { city: string; district: string; province: string; countr
 
 // Mapbox reverse geocoding → ilçe / il / şehir / ülke
 async function reverseGeocode(lat: number, lng: number): Promise<AreaContext> {
-  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?types=country,region,district,place,locality,neighborhood&language=${getLang()}&access_token=${TOKEN}`
+  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?types=country,region,district,place,locality,neighborhood&language=${geoLang()}&access_token=${TOKEN}`
   const def: AreaContext = { city: 'Bölgen', district: 'Çevre', province: '', country: '', flag: '📍' }
   try {
     const r = await fetch(url)
@@ -102,7 +102,7 @@ function toProperty(f: any, ctx: AreaContext): Property | null {
     country: ctx.country,
     price, incomePerDay: income, prestige,
     lat, lng,
-    description: `${ctx.city} bölgesinde ${categoryMeta[meta.cat].label.toLowerCase()}. Konumundaki değerli yatırım fırsatı.`,
+    description: `${ctx.city} · ${catLabel(meta.cat)}`,
     accentHex: categoryMeta[meta.cat].accent,
     roiPercent: roi,
   }
@@ -131,7 +131,7 @@ function buildingToProperty(f: any, ctx: AreaContext): Property | null {
     category: cat, neighborhood: ctx.district, city: ctx.city, country: ctx.country,
     price, incomePerDay: income, prestige: tk === 'apartments' ? 1 : 3,
     lat, lng,
-    description: `${ctx.city} — ${categoryMeta[cat].label.toLowerCase()}.`,
+    description: `${ctx.city} · ${catLabel(cat)}`,
     accentHex: categoryMeta[cat].accent,
     roiPercent: +(income * 365 / price * 100).toFixed(1),
   }

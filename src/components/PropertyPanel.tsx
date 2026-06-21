@@ -3,7 +3,7 @@ import type { Property } from '../data'
 import { formatPrice, formatIncome, ownershipPremium, countryName } from '../data'
 import { useGame } from '../store/useGame'
 import { livePrice, liveIncome } from '../services/economy'
-import { t } from '../services/i18n'
+import { t, catLabel } from '../services/i18n'
 import { useAuth } from '../services/auth'
 import { makeOffer, makeAuction } from '../services/market'
 import GlassCard from './GlassCard'
@@ -82,7 +82,7 @@ export default function PropertyPanel({ property, onClose, isDesktop = false }: 
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                 <span>{emoji}</span>
-                <span className="t-label" style={{ color: property.accentHex }}>{property.category.toUpperCase()}</span>
+                <span className="t-label" style={{ color: property.accentHex }}>{catLabel(property.category).toUpperCase()}</span>
               </div>
               <div className="t-h3" style={{ color: 'var(--text)', marginBottom: 2 }}>{property.name}</div>
               <div className="t-caption" style={{ color: 'var(--text-sub)', marginBottom: 1 }}>{property.address}</div>

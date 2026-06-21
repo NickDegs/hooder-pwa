@@ -179,6 +179,19 @@ export function setLang(code: Lang) {
 
 // Derin ekran metinleri — anahtar→dil (kısmi kapsam, eksikse İngilizce'ye düşer)
 const EXTRA: Record<string, Record<string, string>> = {
+  // ── Mülk kategorileri (16 dilde — açıklama + kategori rozeti) ──
+  cat_hotel:{ tr:'Otel', en:'Hotel', es:'Hotel', fr:'Hôtel', de:'Hotel', it:'Hotel', pt:'Hotel', ru:'Отель', ar:'فندق', zh:'酒店', ja:'ホテル', ko:'호텔', az:'Otel', uk:'Готель', fa:'هتل', hi:'होटल' },
+  cat_office:{ tr:'Ofis', en:'Office', es:'Oficina', fr:'Bureau', de:'Büro', it:'Ufficio', pt:'Escritório', ru:'Офис', ar:'مكتب', zh:'办公楼', ja:'オフィス', ko:'오피스', az:'Ofis', uk:'Офіс', fa:'دفتر', hi:'कार्यालय' },
+  cat_retail:{ tr:'Mağaza', en:'Store', es:'Tienda', fr:'Magasin', de:'Geschäft', it:'Negozio', pt:'Loja', ru:'Магазин', ar:'متجر', zh:'商店', ja:'店舗', ko:'상점', az:'Mağaza', uk:'Магазин', fa:'فروشگاه', hi:'दुकान' },
+  cat_building:{ tr:'Bina', en:'Building', es:'Edificio', fr:'Immeuble', de:'Gebäude', it:'Edificio', pt:'Edifício', ru:'Здание', ar:'مبنى', zh:'楼宇', ja:'ビル', ko:'건물', az:'Bina', uk:'Будівля', fa:'ساختمان', hi:'इमारत' },
+  cat_landmark:{ tr:'Eser', en:'Landmark', es:'Monumento', fr:'Monument', de:'Wahrzeichen', it:'Monumento', pt:'Marco', ru:'Достопримечательность', ar:'معلم', zh:'地标', ja:'ランドマーク', ko:'랜드마크', az:'Abidə', uk:'Пам’ятка', fa:'نشانه', hi:'स्थल' },
+  cat_park:{ tr:'Park', en:'Park', es:'Parque', fr:'Parc', de:'Park', it:'Parco', pt:'Parque', ru:'Парк', ar:'حديقة', zh:'公园', ja:'公園', ko:'공원', az:'Park', uk:'Парк', fa:'پارک', hi:'पार्क' },
+  cat_stadium:{ tr:'Stadyum', en:'Stadium', es:'Estadio', fr:'Stade', de:'Stadion', it:'Stadio', pt:'Estádio', ru:'Стадион', ar:'ملعب', zh:'体育场', ja:'スタジアム', ko:'경기장', az:'Stadion', uk:'Стадіон', fa:'استادیوم', hi:'स्टेडियम' },
+  cat_residential:{ tr:'Konut', en:'Residential', es:'Residencial', fr:'Résidentiel', de:'Wohnhaus', it:'Residenziale', pt:'Residencial', ru:'Жильё', ar:'سكني', zh:'住宅', ja:'住宅', ko:'주거', az:'Yaşayış', uk:'Житло', fa:'مسکونی', hi:'आवासीय' },
+  cat_land:{ tr:'Arsa', en:'Land', es:'Terreno', fr:'Terrain', de:'Grundstück', it:'Terreno', pt:'Terreno', ru:'Земля', ar:'أرض', zh:'土地', ja:'土地', ko:'토지', az:'Torpaq', uk:'Земля', fa:'زمین', hi:'भूमि' },
+  cat_industrial:{ tr:'Endüstri', en:'Industrial', es:'Industrial', fr:'Industriel', de:'Industrie', it:'Industriale', pt:'Industrial', ru:'Промышленность', ar:'صناعي', zh:'工业', ja:'工業', ko:'산업', az:'Sənaye', uk:'Промисловість', fa:'صنعتی', hi:'औद्योगिक' },
+  cat_marina:{ tr:'Marina', en:'Marina', es:'Marina', fr:'Marina', de:'Marina', it:'Marina', pt:'Marina', ru:'Марина', ar:'مرسى', zh:'码头', ja:'マリーナ', ko:'마리나', az:'Marina', uk:'Марина', fa:'مارینا', hi:'मरीना' },
+  cat_street:{ tr:'Cadde', en:'Street', es:'Calle', fr:'Rue', de:'Straße', it:'Via', pt:'Rua', ru:'Улица', ar:'شارع', zh:'街道', ja:'通り', ko:'거리', az:'Küçə', uk:'Вулиця', fa:'خیابان', hi:'सड़क' },
   // ── Prosedürel mülk adları: semt + tip (16 dilin HEPSİNDE) ──
   wd_central:{ tr:'Merkez', en:'Central', es:'Centro', fr:'Centre', de:'Zentrum', it:'Centro', pt:'Centro', ru:'Центр', ar:'المركز', zh:'中心', ja:'中央', ko:'중심', az:'Mərkəz', uk:'Центр', fa:'مرکزی', hi:'केंद्र' },
   wd_riverside:{ tr:'Nehirkenarı', en:'Riverside', es:'Ribera', fr:'Rive', de:'Ufer', it:'Lungofiume', pt:'Beira-rio', ru:'Набережная', ar:'ضفة النهر', zh:'河畔', ja:'川沿い', ko:'강변', az:'Çay kənarı', uk:'Набережна', fa:'کنار رود', hi:'नदी किनारा' },
@@ -266,6 +279,18 @@ const EXTRA: Record<string, Record<string, string>> = {
 
 export function t(key: string): string {
   return S[_lang]?.[key] ?? EXTRA[key]?.[_lang] ?? EXTRA[key]?.en ?? S.en[key] ?? key
+}
+
+// Mülk kategorisi → oyuncunun dilinde etiket (cat_* anahtarı varsa onu kullan)
+export function catLabel(category: string): string {
+  const k = 'cat_' + category
+  return EXTRA[k]?.[_lang] ?? EXTRA[k]?.en ?? category
+}
+
+// Mapbox geocoding için dil kodu (bazı diller özel kod ister)
+export function geoLang(): string {
+  const m: Record<string, string> = { zh: 'zh-Hans' }
+  return m[_lang] ?? _lang
 }
 
 // Bileşenlerin dil değişince yeniden render olması için
