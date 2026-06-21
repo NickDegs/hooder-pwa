@@ -24,6 +24,7 @@ interface Props {
   onMapClick?:           (info: MapClickInfo) => void
   onMapPick?:            (lat: number, lng: number) => void  // haritada boş bir yere tıkla → o bölgeyi yükle/aç
   onMapExplore?:         (lat: number, lng: number) => void  // gezinti (pan) bitince o bölgeyi yükle (panel açmadan, canlı etiket)
+  onVisibleProps?:       (props: Property[]) => void  // ekranda görünen mülkler (liste için, değere göre sıralı)
   onMapCenter?:          (hood: HoodGroup | null) => void
   flyToCity:             City | null
   highlightHood?:        string | null
@@ -181,7 +182,7 @@ function makePropEl(prop: Property, isOwned: boolean): HTMLElement {
 // ── Component ──────────────────────────────────────────────────────────────────
 
 export default function MapView({
-  selectedProperty, onSelectProperty, onSelectNeighborhood, onMapClick, onMapPick, onMapExplore, onMapCenter, flyToCity, highlightHood, ownedIds = [], isDesktop = false, localVersion = 0,
+  selectedProperty, onSelectProperty, onSelectNeighborhood, onMapClick, onMapPick, onMapExplore, onVisibleProps, onMapCenter, flyToCity, highlightHood, ownedIds = [], isDesktop = false, localVersion = 0,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef       = useRef<mapboxgl.Map | null>(null)
@@ -193,6 +194,7 @@ export default function MapView({
   const cbMapClick    = useRef(onMapClick)
   const cbMapPick     = useRef(onMapPick)
   const cbMapExplore  = useRef(onMapExplore)
+  const cbVisibleProps = useRef(onVisibleProps); cbVisibleProps.current = onVisibleProps
   const cbMapCenter   = useRef(onMapCenter)
   cbSelect.current    = onSelectProperty
   cbHood.current      = onSelectNeighborhood
@@ -358,6 +360,19 @@ export default function MapView({
     syncTier(map, false, cityMkrs,    attCity,    [], () => '', () => [0, 0], makeCityMarker, 1)
     syncTier(map, false, hoodMkrs,    attHood,    [], () => '', () => [0, 0], makeHoodMarker, 1)
     syncTier(map, propTier, propMkrs, attProp, propsData.current, p => p.id, p => [p.lng, p.lat], makePropMarker, big ? 90 : 48, true)
+
+    // Liste için: ekranda görünen mülkleri DEĞERE göre (büyükten küçüğe) bildir
+    if (cbVisibleProps.current) {
+      if (!propTier) { cbVisibleProps.current([]) }
+      else {
+        const b = map.getBounds()
+        const dLat = b ? (b.getNorth() - b.getSouth()) * 0.12 : 0, dLng = b ? (b.getEast() - b.getWest()) * 0.12 : 0
+        const inView = b ? propsData.current.filter(p =>
+          p.lat >= b.getSouth() - dLat && p.lat <= b.getNorth() + dLat && p.lng >= b.getWest() - dLng && p.lng <= b.getEast() + dLng) : []
+        inView.sort((a, c) => livePrice(c.price) - livePrice(a.price))
+        cbVisibleProps.current(inView.slice(0, 120))
+      }
+    }
   }
 
   // Bir havuzu tamamen boşalt (sahiplik/seçim değişince renk güncellensin diye)

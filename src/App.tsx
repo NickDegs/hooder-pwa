@@ -13,6 +13,7 @@ import MapView            from './components/MapView'
 import TabBar             from './components/TabBar'
 import DesktopSidebar     from './components/DesktopSidebar'
 import NeighborhoodPanel  from './components/NeighborhoodPanel'
+import PropertyListPanel  from './components/PropertyListPanel'
 import PropertyPanel      from './components/PropertyPanel'
 import PlaceClaimPanel    from './components/PlaceClaimPanel'
 import type { MapClickInfo } from './components/MapView'
@@ -55,6 +56,8 @@ export default function App() {
   const [claimTarget,    setClaimTarget]    = useState<MapClickInfo | null>(null)
   const [flyToCity,      setFlyToCity]      = useState<City | null>(allCities[0])
   const [showCityPicker, setShowCityPicker] = useState(false)
+  const [visibleProps,   setVisibleProps]   = useState<Property[]>([])  // ekranda görünen mülkler (liste)
+  const [showList,       setShowList]        = useState(false)          // harita ↔ liste
 
   useEffect(() => {
     if (!user) return
@@ -190,6 +193,7 @@ export default function App() {
             onMapClick={handleMapClick}
             onMapPick={handleMapPick}
             onMapExplore={handleMapExplore}
+            onVisibleProps={setVisibleProps}
             onMapCenter={h => { if (h) setSelectedHood(h) }}
             flyToCity={flyToCity}
             highlightHood={selectedHood?.key ?? null}
@@ -287,6 +291,21 @@ export default function App() {
         {isMap && selectedProp && (
           <PropertyPanel property={selectedProp} onClose={() => setSelectedProp(null)} isDesktop />
         )}
+
+        {/* LİSTE butonu + paneli (harita alternatifi) */}
+        {isMap && !selectedProp && !showList && (
+          <button onClick={() => setShowList(true)} style={{
+            position:'absolute', right:20, top:20, zIndex:60, display:'flex', alignItems:'center', gap:7,
+            padding:'10px 16px', borderRadius:99, background:'rgba(8,12,24,0.5)',
+            backdropFilter:'blur(40px) saturate(200%)', WebkitBackdropFilter:'blur(40px) saturate(200%)',
+            border:'0.5px solid rgba(255,255,255,0.2)', boxShadow:'0 6px 24px rgba(0,0,0,0.4)' }}>
+            <span style={{ fontSize:16 }}>📋</span>
+            <span className="t-btn-md" style={{ color:'#fff', fontSize:14 }}>{t('list_view')}{visibleProps.length ? ` (${visibleProps.length})` : ''}</span>
+          </button>
+        )}
+        {isMap && showList && (
+          <PropertyListPanel props={visibleProps} onSelect={(p) => { setShowList(false); handleSelectProperty(p) }} onClose={() => setShowList(false)} isDesktop />
+        )}
       </div>
     )
   }
@@ -323,6 +342,7 @@ export default function App() {
         onMapClick={handleMapClick}
         onMapPick={handleMapPick}
         onMapExplore={handleMapExplore}
+        onVisibleProps={setVisibleProps}
         onMapCenter={h => setLiveHood(h)}
         flyToCity={flyToCity}
         highlightHood={(selectedHood ?? liveHood)?.key ?? null}
@@ -477,6 +497,29 @@ export default function App() {
         <PlaceClaimPanel
           info={claimTarget}
           onClose={() => setClaimTarget(null)}
+          isDesktop={false}
+        />
+      )}
+
+      {/* ── LİSTE butonu (harita alternatifi — baktığın bölgenin mülkleri) ── */}
+      {isMap && !selectedProp && !showList && (
+        <button onClick={() => setShowList(true)} style={{
+          position:'fixed', right:14, bottom:'calc(var(--tab-h) + 18px)', zIndex:60,
+          display:'flex', alignItems:'center', gap:7, padding:'11px 16px', borderRadius:99,
+          background:'rgba(8,12,24,0.55)', backdropFilter:'blur(40px) saturate(200%)', WebkitBackdropFilter:'blur(40px) saturate(200%)',
+          border:'0.5px solid rgba(255,255,255,0.2)', boxShadow:'0 6px 24px rgba(0,0,0,0.45)',
+        }}>
+          <span style={{ fontSize:16 }}>📋</span>
+          <span className="t-btn-md" style={{ color:'#fff', fontSize:14 }}>{t('list_view')}{visibleProps.length ? ` (${visibleProps.length})` : ''}</span>
+        </button>
+      )}
+
+      {/* ── LİSTE paneli ── */}
+      {isMap && showList && (
+        <PropertyListPanel
+          props={visibleProps}
+          onSelect={(p) => { setShowList(false); handleSelectProperty(p) }}
+          onClose={() => setShowList(false)}
           isDesktop={false}
         />
       )}
