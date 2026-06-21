@@ -23,7 +23,7 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'   # Capacitor 8 Android Java 21 ister
 
       # ── Web derleme (Capacitor: base=/, aynı PWA kodu) ──────────────────────
       - name: Web build (Capacitor)
