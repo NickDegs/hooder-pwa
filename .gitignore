@@ -6,3 +6,9 @@ dist/
 
 tools/shots/
 tools/scan-report.json
+
+# Store asset artifacts (CI/araç çıktısı)
+tools/store-shots/
+*.keystore
+*-cert.pem
+hooder-upload-cert.pem
