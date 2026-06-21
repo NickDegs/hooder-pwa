@@ -1,0 +1,112 @@
+name: Android → Google Play
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # ── Web derleme (Capacitor: base=/, aynı PWA kodu) ──────────────────────
+      - name: Web build (Capacitor)
+        run: npm ci && npm run build
+        env:
+          VITE_MAPBOX_TOKEN: ${{ secrets.VITE_MAPBOX_TOKEN }}
+          VITE_TARGET: capacitor
+
+      # ── Capacitor Android projesini oluştur (android/ CI'da üretilir) ────────
+      - name: Capacitor Android setup
+        run: |
+          npm i @capacitor/android@8
+          npx cap add android
+          npx cap sync android
+
+      # ── App ikonu üret (assets/icon.png → mipmap) ────────────────────────────
+      - name: Generate app icons
+        run: npx @capacitor/assets@3 generate --android --assetPath assets || echo "ikon üretimi atlandı"
+
+      # ── Sürüm numarası: versionCode > 20 (Play'de mevcut vc20'yi geçer) ──────
+      - name: Set version
+        run: |
+          VC=$((1000 + ${{ github.run_number }}))   # her zaman > 20, monoton artar
+          VN="4.0.${{ github.run_number }}"
+          GRADLE="android/app/build.gradle"
+          sed -i -E "s/versionCode [0-9]+/versionCode $VC/" "$GRADLE"
+          sed -i -E "s/versionName \"[^\"]*\"/versionName \"$VN\"/" "$GRADLE"
+          echo "versionCode=$VC versionName=$VN"
+          # Konum izni (WebView geolocation — kendi konumuna uçma) ───────────────
+          MAN="android/app/src/main/AndroidManifest.xml"
+          grep -q ACCESS_COARSE_LOCATION "$MAN" || \
+            sed -i 's#<application#<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>\n    <application#' "$MAN"
+
+      # ── İmza secret'ları hazır mı? (keystore + servis hesabı) ────────────────
+      - name: Check signing secrets
+        run: |
+          if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ] && [ -n "${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}" ]; then
+            echo "HAVE_KS=true" >> $GITHUB_ENV
+          else
+            echo "HAVE_KS=false" >> $GITHUB_ENV
+            echo "⚠️ Keystore/servis hesabı secret'ları yok → imzasız AAB üretilecek (Play'e yüklenmez). Secret'lar eklenince otomatik imzalanıp yüklenecek."
+          fi
+
+      # ── İmzalı AAB (secret varsa) ────────────────────────────────────────────
+      - name: Build signed AAB
+        if: env.HAVE_KS == 'true'
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KS_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          echo "$KS_B64" | base64 -d > android/app/release.keystore
+          cd android
+          chmod +x gradlew
+          ./gradlew bundleRelease --no-daemon \
+            -Pandroid.injected.signing.store.file=$(pwd)/app/release.keystore \
+            -Pandroid.injected.signing.store.password="$KS_PASS" \
+            -Pandroid.injected.signing.key.alias="$KS_ALIAS" \
+            -Pandroid.injected.signing.key.password="$KS_PASS"
+          rm -f app/release.keystore
+
+      # ── İmzasız AAB (secret yoksa — doğrulama/artifact için) ─────────────────
+      - name: Build unsigned AAB
+        if: env.HAVE_KS == 'false'
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew bundleRelease --no-daemon || ./gradlew bundleDebug --no-daemon
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hooder-aab
+          path: android/app/build/outputs/bundle/**/*.aab
+          if-no-files-found: warn
+
+      # ── Google Play internal kanalına yükle (secret varsa) ───────────────────
+      - name: Upload to Google Play (internal)
+        if: env.HAVE_KS == 'true'
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: app.realvirtuality.landlord
+          releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
+          track: internal
+          status: completed
