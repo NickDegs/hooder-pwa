@@ -151,12 +151,11 @@ export default function App() {
     setSelectedHood(null)  // close hood panel while claim panel is open
   }
 
-  // Haritada boş bir yere tıkla → o bölgenin GERÇEK mülklerini (Mapbox POI: gerçek
-  // binalar, karada, doğru adlar) çek ve en yakın mahalleyi aç.
+  // Haritada boş bir yere tıkla → o bölgenin GERÇEK mülklerini çek → MARKER'lar
+  // belirir. Uzaktaki İstanbul listesine DÜŞMEZ; kullanıcı mülk etiketine tıklayınca
+  // detay açılır. (Etiket hiyerarşisi ülke→il→ilçe→mahalle→sokak Mapbox'tan gelir.)
   async function handleMapPick(lat: number, lng: number) {
     await loadArea(lat, lng)
-    const near = nearestHood(buildGroups().hoods, lat, lng)
-    if (near) handleSelectHood(near)
   }
 
   // Gezinti (pan) bitince: bakılan bölgenin GERÇEK mülklerini çek (panel açmadan).

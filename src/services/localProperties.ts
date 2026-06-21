@@ -146,7 +146,8 @@ export async function fetchLocalProperties(lat: number, lng: number): Promise<{ 
   const ctx = await reverseGeocode(lat, lng)
   lastCtx = ctx
   // poi_label (oteller/ofisler/landmark — isimli) + building (apartman/bina — gerçek konum)
-  const url = `https://api.mapbox.com/v4/mapbox.mapbox-streets-v8/tilequery/${lng},${lat}.json?radius=900&limit=80&dedupe=true&layers=poi_label,building&access_token=${TOKEN}`
+  // NOT: Mapbox tilequery 'limit' MAX 50 — üzeri 422 döner (mülk gelmez).
+  const url = `https://api.mapbox.com/v4/mapbox.mapbox-streets-v8/tilequery/${lng},${lat}.json?radius=1000&limit=50&dedupe=true&layers=poi_label,building&access_token=${TOKEN}`
   try {
     const r = await fetch(url)
     const j = await r.json()

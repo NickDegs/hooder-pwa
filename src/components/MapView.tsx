@@ -347,23 +347,17 @@ export default function MapView({
     const z = map.getZoom(); zoomRef.current = z
     const op = z <= 11 ? 0.26 : z >= 16 ? 0.66 : 0.26 + ((z - 11) / 5) * 0.40
     document.documentElement.style.setProperty('--mk-op', op.toFixed(3))
-    const tier = z < Z_COUNTRY ? 0 : z < zHood ? 1 : z < zProp ? 2 : 3
-    // Mobilde ekrandaki marker sayısını düşük tut → 3D haritada zoom/pan sırasında
-    // her karede daha az eleman yeniden konumlanır → drop/donma olmaz.
     const big = isDesktop
-    // ── Mülk kademesinde LOD (detay seviyesi): orta yakınlıkta yalnız BÜYÜK
-    //    mülkler (otel/landmark/ofis/rezidans), en dipte (zDeep+) apartman/küçük
-    //    bina dahil HER ŞEY → etiketler ekranı kaplamaz. ──
-    const zDeep = isDesktop ? 14.5 : 15.0
-    const propSet = (tier === 3 && z < zDeep)
-      ? propsData.current.filter(p =>
-          p.category === 'hotel' || p.category === 'landmark' || p.category === 'office' ||
-          p.category === 'stadium' || p.prestige >= 3 || p.price >= 30_000_000)
-      : propsData.current
-    syncTier(map, tier === 0, countryMkrs, attCountry, countriesData.current, c => c.country, c => [c.lng, c.lat], makeCountryMarker, big ? 40 : 22)
-    syncTier(map, tier === 1, cityMkrs,    attCity,    citiesData.current,    c => c.city,    c => [c.lng, c.lat], makeCityMarker,    big ? 55 : 32)
-    syncTier(map, tier === 2, hoodMkrs,    attHood,    hoodsRef.current,       h => h.key,     h => [h.lng, h.lat], makeHoodMarker,    big ? 55 : 32, true)
-    syncTier(map, tier === 3, propMkrs,    attProp,    propSet,                p => p.id,      p => [p.lng, p.lat], makePropMarker,    big ? 80 : 42, true)
+    // ── KALICI ÇÖZÜM: ülke/il/ilçe/mahalle/sokak etiketleri MAPBOX'ın gerçek
+    //    katmanlarından gelir (tüm dünya, LOD'lu). Biz YALNIZCA "en yakın" zoom'da
+    //    (zProp+) satın alınabilir MÜLK marker'larını gösteririz — orada NE KADAR
+    //    mülk varsa hepsi (cap ekranı doldurmayı engeller). ──
+    const propTier = z >= zProp
+    // Şehir/ülke/mahalle custom marker'ları KAPALI (Mapbox etiketleri kullanılır)
+    syncTier(map, false, countryMkrs, attCountry, [], () => '', () => [0, 0], makeCountryMarker, 1)
+    syncTier(map, false, cityMkrs,    attCity,    [], () => '', () => [0, 0], makeCityMarker, 1)
+    syncTier(map, false, hoodMkrs,    attHood,    [], () => '', () => [0, 0], makeHoodMarker, 1)
+    syncTier(map, propTier, propMkrs, attProp, propsData.current, p => p.id, p => [p.lng, p.lat], makePropMarker, big ? 90 : 48, true)
   }
 
   // Bir havuzu tamamen boşalt (sahiplik/seçim değişince renk güncellensin diye)
@@ -394,13 +388,14 @@ export default function MapView({
     map.on('load', () => {
       map.resize()
 
-      // ── Mapbox POI / yer imi noktalarını gizle (her ikisi için: mobil + masaüstü) ──
+      // KALICI ÇÖZÜM (Barış): Mapbox'ın GERÇEK etiket hiyerarşisi tüm dünyada
+      // zoom'a göre gösterilsin → ülke → il/şehir → ilçe → mahalle → sokak.
+      // Bunlar zaten stilde var ve LOD'lu. Yalnız POI/havalimanı/transit gizlenir
+      // (kalabalık yapar; en yakında kendi MÜLK marker'larımız gösterilir).
       ;[
         'poi-label',
         'airport-label',
         'transit-label',
-        'settlement-minor-label',
-        'settlement-subdivision-label',
       ].forEach(id => {
         if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'none')
       })
@@ -455,19 +450,10 @@ export default function MapView({
       // Mobil: hood zoom eşiğinde (Z_HOOD_MOB=14) mini-kart gösterilir; debounce daha uzun
       const moveDebouce = isDesktop ? 120 : 200
       let lastMoveTime = 0
-      map.on('move', () => {
-        const now = Date.now()
-        if (now - lastMoveTime < moveDebouce) return
-        lastMoveTime = now
-        const z = map.getZoom()
-        if (z >= zHood) {
-          const c = map.getCenter()
-          const nearest = nearestHood(hoodsRef.current, c.lat, c.lng)
-          cbMapCenter.current?.(nearest)
-        } else {
-          cbMapCenter.current?.(null)
-        }
-      })
+      // Live mini-kart KAPALI: mahalle/ilçe adı artık Mapbox etiketinde görünüyor;
+      // "en yakın hood" kartı uzak yanlış bölge gösterebiliyordu.
+      void moveDebouce; void lastMoveTime
+      map.on('move', () => { cbMapCenter.current?.(null) })
 
       // ── Gezinti bitince (canlı): merkez bölgede etiket yoksa o bölgeyi yükle ──
       // Panel AÇILMAZ; sadece o civarın mülk markerları/etiketleri belirir. Çok
