@@ -1,13 +1,29 @@
 import { useState, useEffect } from 'react'
 import { API_BASE as API } from './apiBase'
+import { setAccountCloudId } from './cloudBackup'
 
 export interface AuthUser {
   uid:             string
   displayName:     string
   email:           string
-  provider:        'google' | 'apple' | 'guest' | 'email'
+  provider:        'google' | 'apple' | 'guest' | 'email' | 'phone'
   token?:          string
   assignedServer?: string
+}
+
+// ── SMS (telefon) auth — backend Twilio. Apple/Google KALDIRILDI; sosyal giriş
+//    olmadığı için Apple Sign In zorunluluğu da kalkar. ──
+export async function requestSmsCode(phone: string): Promise<{ ok?: boolean; error?: string }> {
+  try {
+    const r = await fetch(`${API}/sms/request`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone }) })
+    return await r.json()
+  } catch { return { error: 'Bağlantı hatası' } }
+}
+export async function loginWithSms(phone: string, code: string): Promise<AuthUser> {
+  const r = await fetch(`${API}/sms/verify`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone, code }) })
+  const j = await r.json().catch(() => ({}))
+  if (!r.ok || j.error) throw new Error(j.error || 'Doğrulama başarısız')
+  return { uid: j.user.uid, displayName: j.user.username, email: '', provider: 'phone', token: j.token, assignedServer: j.assigned_server }
 }
 
 // ── Firebase lazy init ────────────────────────────────────────────────────────
@@ -193,6 +209,9 @@ export function useAuth() {
   }, [])
 
   const saveUser = (u: AuthUser | null) => {
+    // Girişli (token'lı) kullanıcı → bulut yedeğini HESABINA bağla (telefon uid'i)
+    // böylece aynı numarayla başka cihazda veri otomatik gelir.
+    if (u && u.token && u.uid) setAccountCloudId(u.uid)
     setGlobalUser(u)
   }
 
@@ -212,18 +231,12 @@ export function useAuth() {
     } finally { setLoading(false) }
   }
 
-  const loginGoogle = async () => {
+  // SMS (telefon) ile giriş — kod iste + doğrula
+  const requestSms = async (phone: string) => requestSmsCode(phone)
+  const loginSms = async (phone: string, code: string) => {
     setLoading(true)
     try {
-      const u = await signInWithGoogle()
-      saveUser(u)
-    } finally { setLoading(false) }
-  }
-
-  const loginApple = async () => {
-    setLoading(true)
-    try {
-      const u = await signInWithApple()
+      const u = await loginWithSms(phone, code)
       saveUser(u)
     } finally { setLoading(false) }
   }
@@ -253,8 +266,8 @@ export function useAuth() {
     loading,
     loginEmail,
     registerEmail,
-    loginGoogle,
-    loginApple,
+    requestSms,
+    loginSms,
     loginGuest,
     signOut,
     deleteAccount,

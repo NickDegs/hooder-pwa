@@ -27,6 +27,12 @@ export function setCloudOn(on: boolean): void {
   try { localStorage.setItem(ON_KEY, on ? '1' : '0') } catch { /* ignore */ }
   if (on) getCloudId()
 }
+// Girişli kullanıcının verisini HESABINA (telefon uid'i) bağla → aynı numarayla
+// başka cihazda giriş yapınca veri otomatik gelir. Misafirde cihaz-kodu kalır.
+export function setAccountCloudId(uid: string): void {
+  if (!uid) return
+  try { localStorage.setItem(ID_KEY, uid); localStorage.setItem(ON_KEY, '1') } catch { /* ignore */ }
+}
 export function setCloudCode(code: string): boolean {
   const c = (code || '').trim().toUpperCase()
   if (!/^[A-Z0-9_-]{8,64}$/.test(c)) return false

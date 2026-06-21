@@ -77,6 +77,8 @@ jobs:
           PBXPROJ="ios/App/App.xcodeproj/project.pbxproj"
           # Deployment target
           sed -i '' -E "s/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]+;/IPHONEOS_DEPLOYMENT_TARGET = 16.4;/g" "$PBXPROJ"
+          # SADECE iPHONE (iPad kaldırıldı) → TARGETED_DEVICE_FAMILY = 1
+          sed -i '' -E "s/TARGETED_DEVICE_FAMILY = \"?[0-9,]+\"?;/TARGETED_DEVICE_FAMILY = 1;/g" "$PBXPROJ"
           # Development team
           sed -i '' "s/DEVELOPMENT_TEAM = \"\";/DEVELOPMENT_TEAM = SZF4T3P583;/g" "$PBXPROJ"
           sed -i '' "s/DevelopmentTeam = \"\";/DevelopmentTeam = SZF4T3P583;/g" "$PBXPROJ"
