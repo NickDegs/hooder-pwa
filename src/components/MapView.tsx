@@ -351,10 +351,19 @@ export default function MapView({
     // Mobilde ekrandaki marker sayısını düşük tut → 3D haritada zoom/pan sırasında
     // her karede daha az eleman yeniden konumlanır → drop/donma olmaz.
     const big = isDesktop
+    // ── Mülk kademesinde LOD (detay seviyesi): orta yakınlıkta yalnız BÜYÜK
+    //    mülkler (otel/landmark/ofis/rezidans), en dipte (zDeep+) apartman/küçük
+    //    bina dahil HER ŞEY → etiketler ekranı kaplamaz. ──
+    const zDeep = isDesktop ? 14.5 : 15.0
+    const propSet = (tier === 3 && z < zDeep)
+      ? propsData.current.filter(p =>
+          p.category === 'hotel' || p.category === 'landmark' || p.category === 'office' ||
+          p.category === 'stadium' || p.prestige >= 3 || p.price >= 30_000_000)
+      : propsData.current
     syncTier(map, tier === 0, countryMkrs, attCountry, countriesData.current, c => c.country, c => [c.lng, c.lat], makeCountryMarker, big ? 40 : 22)
     syncTier(map, tier === 1, cityMkrs,    attCity,    citiesData.current,    c => c.city,    c => [c.lng, c.lat], makeCityMarker,    big ? 55 : 32)
     syncTier(map, tier === 2, hoodMkrs,    attHood,    hoodsRef.current,       h => h.key,     h => [h.lng, h.lat], makeHoodMarker,    big ? 55 : 32, true)
-    syncTier(map, tier === 3, propMkrs,    attProp,    propsData.current,      p => p.id,      p => [p.lng, p.lat], makePropMarker,    big ? 80 : 42, true)
+    syncTier(map, tier === 3, propMkrs,    attProp,    propSet,                p => p.id,      p => [p.lng, p.lat], makePropMarker,    big ? 80 : 42, true)
   }
 
   // Bir havuzu tamamen boşalt (sahiplik/seçim değişince renk güncellensin diye)
