@@ -42,6 +42,26 @@ export default function Store() {
   const [buying,    setBuying]    = useState<string | null>(null)
   const [toast,     setToast]     = useState<string | null>(null)
   const [toastOk,   setToastOk]   = useState(true)
+  const [giftCode,  setGiftCode]  = useState('')
+  const [giftBusy,  setGiftBusy]  = useState(false)
+
+  async function redeemGift() {
+    const code = giftCode.trim().toUpperCase()
+    if (!code || giftBusy) return
+    setGiftBusy(true)
+    try {
+      const r = await fetch(`${API}/gift/redeem`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code, uid: getUserId() }) })
+      const j = await r.json().catch(() => ({}))
+      if (j.ok) {
+        addCash(j.reward_cash); setGiftCode('')
+        setToastOk(true); setToast(`🎁 +${formatPrice(j.reward_cash)} ${t('gift_won')}`)
+      } else {
+        setToastOk(false); setToast(j.error || t('gift_invalid'))
+      }
+    } catch { setToastOk(false); setToast(t('gift_invalid')) }
+    setGiftBusy(false)
+    setTimeout(() => setToast(null), 4000)
+  }
 
   useEffect(() => {
     fetch(`${API}/packages`)
@@ -184,6 +204,23 @@ export default function Store() {
                 border: 'none', opacity: daily.available ? 1 : 0.6,
               }}
             >{t('daily_claim')}</button>
+          </div>
+        </GlassCard>
+
+        {/* HEDİYE KODU — eş-dost hediyesi: sunucu üretir, burada girilir, doğrulanır */}
+        <GlassCard style={{ marginBottom: 'var(--sp-lg)' }}>
+          <div className="t-bold" style={{ color: 'var(--text)', marginBottom: 6 }}>🎁 {t('gift_title')}</div>
+          <div className="t-caption" style={{ color: 'var(--text-muted)', marginBottom: 10 }}>{t('gift_desc')}</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input value={giftCode} onChange={e => setGiftCode(e.target.value.toUpperCase())} placeholder={t('gift_ph')}
+              onKeyDown={e => { if (e.key === 'Enter') redeemGift() }}
+              style={{ flex: 1, padding: 'var(--sp-md)', background: 'rgba(255,255,255,0.06)', border: '0.5px solid var(--border)',
+                borderRadius: 'var(--r-md)', color: 'var(--text)', fontSize: 15, outline: 'none', letterSpacing: 1, textTransform: 'uppercase' }} />
+            <button onClick={redeemGift} disabled={giftBusy || !giftCode.trim()} style={{
+              padding: 'var(--sp-md) var(--sp-lg)', borderRadius: 'var(--r-lg)',
+              background: giftCode.trim() ? 'var(--primary)' : 'rgba(255,255,255,0.08)', opacity: giftBusy ? 0.6 : 1, whiteSpace: 'nowrap' }}>
+              <span className="t-btn-md" style={{ color: giftCode.trim() ? '#000' : 'var(--text-muted)' }}>{giftBusy ? '...' : t('gift_redeem')}</span>
+            </button>
           </div>
         </GlassCard>
 
