@@ -8,6 +8,13 @@ import {
 import { formatPrice } from '../data'
 import { livePrice } from '../services/economy'
 import { worldCities, worldCountries, flagFromCC } from '../worldData'
+import { useLang } from '../services/i18n'
+
+// Oyuncu dili → Mapbox harita etiketi dili (desteklenenler). Desteklenmeyen
+// (tr/hi/az/uk/fa) → yerel adlar (varsayılan) kalır, harita yine okunur.
+const MAP_LANG: Record<string, string> = {
+  en:'en', es:'es', fr:'fr', de:'de', it:'it', pt:'pt', ru:'ru', ar:'ar', zh:'zh-Hans', ja:'ja', ko:'ko',
+}
 
 export interface MapClickInfo {
   name:     string
@@ -184,9 +191,17 @@ function makePropEl(prop: Property, isOwned: boolean): HTMLElement {
 export default function MapView({
   selectedProperty, onSelectProperty, onSelectNeighborhood, onMapClick, onMapPick, onMapExplore, onVisibleProps, onMapCenter, flyToCity, highlightHood, ownedIds = [], isDesktop = false, localVersion = 0,
 }: Props) {
+  const { lang } = useLang()
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef       = useRef<mapboxgl.Map | null>(null)
   const initialized  = useRef(false)
+
+  // Harita etiketlerini oyuncunun diline çevir (dünya geneli)
+  function applyMapLang(map: mapboxgl.Map) {
+    const ml = MAP_LANG[lang]
+    if (!ml) return
+    try { (map as unknown as { setLanguage: (l: string) => void }).setLanguage(ml) } catch { /* yoksa yerel adlar */ }
+  }
 
   // Stable refs for callbacks (avoid stale closures without re-running effect)
   const cbSelect      = useRef(onSelectProperty)
@@ -415,6 +430,9 @@ export default function MapView({
         if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'none')
       })
 
+      // Harita etiketlerini oyuncunun diline çevir (tüm dünya)
+      applyMapLang(map)
+
       // Su (deniz/göl) tespiti: satellite stilinde sorgulanabilir su dolgusu yok →
       // mapbox-streets'ten GÖRÜNMEZ (opacity 0) bir su katmanı ekle, sadece
       // queryRenderedFeatures için. Mülk/mahalle marker'ları su üstüne konmaz.
@@ -527,6 +545,12 @@ export default function MapView({
     clearPool(hoodMkrs, attHood)
     reconcile(map)
   }, [highlightHood]) // eslint-disable-line
+
+  // Oyuncu dili değişince harita etiketlerini yeniden çevir (tüm dünya)
+  useEffect(() => {
+    const map = mapRef.current
+    if (map && map.isStyleLoaded()) applyMapLang(map)
+  }, [lang]) // eslint-disable-line
 
   // Fly to city
   useEffect(() => {
