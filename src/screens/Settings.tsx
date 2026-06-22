@@ -51,8 +51,11 @@ export default function Settings() {
     setGBusy(true); setGErr(''); setGCodes([])
     try { localStorage.setItem('hooder_admin', adminTok) } catch { /* yoksay */ }
     try {
-      const r = await fetch(`${API}/gift/create`, { method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Admin-Token': adminTok },
+      // Admin-numara kullanıcısı: bearer token ile yetkili. Aksi halde manuel anahtar.
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (user?.isAdmin && user.token) headers['Authorization'] = `Bearer ${user.token}`
+      if (adminTok) headers['X-Admin-Token'] = adminTok
+      const r = await fetch(`${API}/gift/create`, { method: 'POST', headers,
         body: JSON.stringify({ reward_cash: Math.round(gReward * 1_000_000), max_uses: gUses, count: gCount }) })
       const j = await r.json().catch(() => ({}))
       if (j.ok) setGCodes(j.codes || [])
@@ -110,11 +113,15 @@ export default function Settings() {
           <StatRow label="Günlük Gelir"  value={formatIncome(dailyIncome)}       accent="var(--green)" />
         </GlassCard>
 
-        {/* Yönetici: Hediye Kodu Üret (kaç kullanım/ödül/adet SEN belirlersin) */}
-        <SectionLabel>🎁 HEDİYE KODU ÜRET (YÖNETİCİ)</SectionLabel>
+        {/* Yönetici: Hediye Kodu Üret — admin numarasıyla giren hesaba OTOMATİK açılır
+            (backend admin-numbers.conf), ya da manuel yönetici anahtarıyla. */}
+        {(user?.isAdmin || adminTok) && (<>
+        <SectionLabel>{`🎁 HEDİYE KODU ÜRET (YÖNETİCİ)${user?.isAdmin ? ' · ✓ Admin' : ''}`}</SectionLabel>
         <GlassCard style={{ marginBottom: 'var(--sp-lg)' }}>
+          {!user?.isAdmin && (
           <input type="password" value={adminTok} onChange={e => setAdminTok(e.target.value)} placeholder="Yönetici anahtarı"
             style={{ width: '100%', boxSizing: 'border-box', padding: 'var(--sp-md)', background: 'rgba(255,255,255,0.06)', border: '0.5px solid var(--border)', borderRadius: 'var(--r-md)', color: 'var(--text)', fontSize: 14, outline: 'none', marginBottom: 10 }} />
+          )}
           <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
             {[
               { l: 'Ödül (M$)', v: gReward, set: setGReward, min: 1 },
@@ -128,9 +135,10 @@ export default function Settings() {
               </div>
             ))}
           </div>
-          <button onClick={genCodes} disabled={gBusy || !adminTok} style={{ width: '100%', padding: 'var(--sp-md)', borderRadius: 'var(--r-lg)', background: adminTok ? 'var(--primary)' : 'rgba(255,255,255,0.08)', opacity: gBusy ? 0.6 : 1 }}>
-            <span className="t-btn-md" style={{ color: adminTok ? '#000' : 'var(--text-muted)' }}>{gBusy ? '...' : 'Kod Üret'}</span>
-          </button>
+          {(() => { const ok = !!(user?.isAdmin || adminTok); return (
+          <button onClick={genCodes} disabled={gBusy || !ok} style={{ width: '100%', padding: 'var(--sp-md)', borderRadius: 'var(--r-lg)', background: ok ? 'var(--primary)' : 'rgba(255,255,255,0.08)', opacity: gBusy ? 0.6 : 1 }}>
+            <span className="t-btn-md" style={{ color: ok ? '#000' : 'var(--text-muted)' }}>{gBusy ? '...' : 'Kod Üret'}</span>
+          </button>) })()}
           {gErr && <p className="t-caption" style={{ color: 'var(--red)', textAlign: 'center', marginTop: 8 }}>{gErr}</p>}
           {gCodes.length > 0 && (
             <div style={{ marginTop: 10, padding: 10, background: 'rgba(48,209,88,0.1)', border: '0.5px solid rgba(48,209,88,0.3)', borderRadius: 'var(--r-md)' }}>
@@ -143,6 +151,7 @@ export default function Settings() {
             </div>
           )}
         </GlassCard>
+        </>)}
 
         {/* Account */}
         {user && (

@@ -9,6 +9,7 @@ export interface AuthUser {
   provider:        'google' | 'apple' | 'guest' | 'email' | 'phone'
   token?:          string
   assignedServer?: string
+  isAdmin?:        boolean
 }
 
 // ── SMS (telefon) auth — backend Twilio. Apple/Google KALDIRILDI; sosyal giriş
@@ -23,7 +24,7 @@ export async function loginWithSms(phone: string, code: string): Promise<AuthUse
   const r = await fetch(`${API}/sms/verify`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone, code }) })
   const j = await r.json().catch(() => ({}))
   if (!r.ok || j.error) throw new Error(j.error || 'Doğrulama başarısız')
-  return { uid: j.user.uid, displayName: j.user.username, email: '', provider: 'phone', token: j.token, assignedServer: j.assigned_server }
+  return { uid: j.user.uid, displayName: j.user.username, email: '', provider: 'phone', token: j.token, assignedServer: j.assigned_server, isAdmin: !!j.is_admin }
 }
 
 // ── Firebase lazy init ────────────────────────────────────────────────────────
