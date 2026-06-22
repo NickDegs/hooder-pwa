@@ -504,7 +504,7 @@ export default function App() {
       {/* ── LİSTE butonu (harita alternatifi — baktığın bölgenin mülkleri) ── */}
       {isMap && !selectedProp && !showList && (
         <button onClick={() => setShowList(true)} style={{
-          position:'fixed', right:14, bottom:'calc(var(--tab-h) + 18px)', zIndex:60,
+          position:'fixed', right:14, bottom:'calc(var(--tab-h) + 40px)', zIndex:60,
           display:'flex', alignItems:'center', gap:7, padding:'11px 16px', borderRadius:99,
           background:'rgba(8,12,24,0.55)', backdropFilter:'blur(40px) saturate(200%)', WebkitBackdropFilter:'blur(40px) saturate(200%)',
           border:'0.5px solid rgba(255,255,255,0.2)', boxShadow:'0 6px 24px rgba(0,0,0,0.45)',

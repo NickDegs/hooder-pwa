@@ -16,10 +16,12 @@ export function registerProperties(props: Property[]) { props.forEach(p => regis
 export function getRegisteredProperty(id: string): Property | undefined { return registry.get(id) }
 export function allDynamicProperties(): Property[] { return [...registry.values()] }
 
-// Daha önce çekilen alanları tekrar çekme (cache)
+// Daha önce çekilen alanları tekrar çekme (cache). NOT: fetch yarıçapı ~1km
+// olduğundan eşik de ~1km olmalı — yoksa biraz kaydırınca "zaten çekildi" sanıp
+// komşu alanı çekmez ve mülk marker'ları görünmezdi.
 const fetchedAreas: { lat: number; lng: number }[] = []
 function alreadyFetched(lat: number, lng: number): boolean {
-  return fetchedAreas.some(a => Math.hypot(a.lat - lat, a.lng - lng) < 0.05) // ~5km
+  return fetchedAreas.some(a => Math.hypot(a.lat - lat, a.lng - lng) < 0.009) // ~1km
 }
 
 // Mapbox POI class → oyun kategorisi + temel fiyat (yüksek-değer vurgusu) + prestij
