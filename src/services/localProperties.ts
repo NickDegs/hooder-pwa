@@ -21,7 +21,10 @@ export function allDynamicProperties(): Property[] { return [...registry.values(
 // komşu alanı çekmez ve mülk marker'ları görünmezdi.
 const fetchedAreas: { lat: number; lng: number }[] = []
 function alreadyFetched(lat: number, lng: number): boolean {
-  return fetchedAreas.some(a => Math.hypot(a.lat - lat, a.lng - lng) < 0.009) // ~1km
+  // ~220 m: pratikte minimum. Her gerçek kaydırmada o anki haritanın mülkleri
+  // çekilir; yalnız AYNI noktada (moveend birden çok tetiklenince) tekrar fetch'i
+  // engeller. Böylece "o anki haritadaki her şey" görünür.
+  return fetchedAreas.some(a => Math.hypot(a.lat - lat, a.lng - lng) < 0.002)
 }
 
 // Mapbox POI class → oyun kategorisi + temel fiyat (yüksek-değer vurgusu) + prestij
