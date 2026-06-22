@@ -7,6 +7,7 @@ import { getSavedPref, getMaxHz, detectMaxHz, applyFps } from '../services/fps'
 import { LANGS, useLang } from '../services/i18n'
 import { getOffers, actOffer, type Offer } from '../services/market'
 import { formatPrice as fmtP } from '../data'
+import { API_BASE as API } from '../services/apiBase'
 
 export default function Settings() {
   const { playerName, cash, netWorth, owned, dailyIncome, level, setPlayerName, addCash, reset, serverId } = useGame()
@@ -35,6 +36,29 @@ export default function Settings() {
     const t = nameInput.trim()
     if (t) setPlayerName(t)
     setEditingName(false)
+  }
+
+  // ── Yönetici: hediye kodu üret (kaç kullanım/ödül/adet SEN belirlersin) ──
+  const [adminTok,  setAdminTok]  = useState(() => { try { return localStorage.getItem('hooder_admin') || '' } catch { return '' } })
+  const [gReward,   setGReward]   = useState(25)     // milyon
+  const [gUses,     setGUses]     = useState(1)      // kaç kullanım
+  const [gCount,    setGCount]    = useState(5)      // kaç kod
+  const [gCodes,    setGCodes]    = useState<string[]>([])
+  const [gBusy,     setGBusy]     = useState(false)
+  const [gErr,      setGErr]      = useState('')
+  async function genCodes() {
+    if (gBusy) return
+    setGBusy(true); setGErr(''); setGCodes([])
+    try { localStorage.setItem('hooder_admin', adminTok) } catch { /* yoksay */ }
+    try {
+      const r = await fetch(`${API}/gift/create`, { method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Token': adminTok },
+        body: JSON.stringify({ reward_cash: Math.round(gReward * 1_000_000), max_uses: gUses, count: gCount }) })
+      const j = await r.json().catch(() => ({}))
+      if (j.ok) setGCodes(j.codes || [])
+      else setGErr(j.error || 'Üretilemedi (yönetici anahtarını kontrol et)')
+    } catch { setGErr('Bağlantı hatası') }
+    setGBusy(false)
   }
 
   return (
@@ -84,6 +108,40 @@ export default function Settings() {
           <StatRow label="Toplam Mülk"   value={`${owned.length} adet`}         accent="var(--green)" />
           <Divider />
           <StatRow label="Günlük Gelir"  value={formatIncome(dailyIncome)}       accent="var(--green)" />
+        </GlassCard>
+
+        {/* Yönetici: Hediye Kodu Üret (kaç kullanım/ödül/adet SEN belirlersin) */}
+        <SectionLabel>🎁 HEDİYE KODU ÜRET (YÖNETİCİ)</SectionLabel>
+        <GlassCard style={{ marginBottom: 'var(--sp-lg)' }}>
+          <input type="password" value={adminTok} onChange={e => setAdminTok(e.target.value)} placeholder="Yönetici anahtarı"
+            style={{ width: '100%', boxSizing: 'border-box', padding: 'var(--sp-md)', background: 'rgba(255,255,255,0.06)', border: '0.5px solid var(--border)', borderRadius: 'var(--r-md)', color: 'var(--text)', fontSize: 14, outline: 'none', marginBottom: 10 }} />
+          <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+            {[
+              { l: 'Ödül (M$)', v: gReward, set: setGReward, min: 1 },
+              { l: 'Kaç kullanım', v: gUses, set: setGUses, min: 1 },
+              { l: 'Kaç kod', v: gCount, set: setGCount, min: 1 },
+            ].map(f => (
+              <div key={f.l} style={{ flex: 1 }}>
+                <div className="t-label" style={{ color: 'var(--text-muted)', marginBottom: 4 }}>{f.l}</div>
+                <input type="number" min={f.min} value={f.v} onChange={e => f.set(Math.max(f.min, parseInt(e.target.value) || f.min))}
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '8px', background: 'rgba(255,255,255,0.06)', border: '0.5px solid var(--border)', borderRadius: 'var(--r-md)', color: 'var(--text)', fontSize: 14, outline: 'none', textAlign: 'center' }} />
+              </div>
+            ))}
+          </div>
+          <button onClick={genCodes} disabled={gBusy || !adminTok} style={{ width: '100%', padding: 'var(--sp-md)', borderRadius: 'var(--r-lg)', background: adminTok ? 'var(--primary)' : 'rgba(255,255,255,0.08)', opacity: gBusy ? 0.6 : 1 }}>
+            <span className="t-btn-md" style={{ color: adminTok ? '#000' : 'var(--text-muted)' }}>{gBusy ? '...' : 'Kod Üret'}</span>
+          </button>
+          {gErr && <p className="t-caption" style={{ color: 'var(--red)', textAlign: 'center', marginTop: 8 }}>{gErr}</p>}
+          {gCodes.length > 0 && (
+            <div style={{ marginTop: 10, padding: 10, background: 'rgba(48,209,88,0.1)', border: '0.5px solid rgba(48,209,88,0.3)', borderRadius: 'var(--r-md)' }}>
+              <div className="t-caption" style={{ color: 'var(--green)', marginBottom: 6 }}>✅ {gCodes.length} kod üretildi · her biri {gReward}M · {gUses} kullanım</div>
+              <div onClick={() => { try { navigator.clipboard.writeText(gCodes.join('\n')) } catch { /* */ } }}
+                style={{ fontFamily: 'monospace', fontSize: 13, color: 'var(--text)', lineHeight: 1.7, cursor: 'pointer', wordBreak: 'break-all' }}>
+                {gCodes.join('  ·  ')}
+              </div>
+              <div className="t-label" style={{ color: 'var(--text-muted)', marginTop: 4 }}>(dokun → kopyala)</div>
+            </div>
+          )}
         </GlassCard>
 
         {/* Account */}
