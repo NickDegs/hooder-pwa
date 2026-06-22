@@ -112,13 +112,25 @@ jobs:
           ruby-version: '3.3'
           bundler-cache: true
 
-      # ── TestFlight yükleme ───────────────────────────────────────────────────
-      - name: Fastlane beta
+      # ── TestFlight yükleme (OTO-RETRY: geçici ağ/altool -1009 hatasında elle
+      #    müdahale gerekmesin diye 3 deneme; her denemede TAZE build no — Apple
+      #    'duplicate build' demesin). Push → otomatik TestFlight, manuel YOK. ──
+      - name: Fastlane beta (oto-retry)
         env:
           ASC_KEY_ID:     ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID:  ${{ secrets.ASC_ISSUER_ID }}
           ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
-        run: bundle exec fastlane beta
+        run: |
+          PLIST="ios/App/App/Info.plist"
+          for i in 1 2 3; do
+            BUILD=$(date -u +%Y%m%d%H%M%S)
+            /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD" "$PLIST" || true
+            echo "── TestFlight yükleme denemesi $i (build $BUILD) ──"
+            if bundle exec fastlane beta; then echo "✅ TestFlight'a yüklendi (deneme $i)"; exit 0; fi
+            echo "⚠️ Deneme $i başarısız (büyük olasılıkla geçici ağ); 45s sonra tekrar..."
+            sleep 45
+          done
+          echo "❌ 3 denemede de yüklenemedi"; exit 1
 
       # ── Build'i iç test grubuna ata (TestFlight'ta hemen görünsün) ───────────
       - name: Assign build to internal group
