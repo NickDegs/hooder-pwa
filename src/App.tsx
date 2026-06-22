@@ -16,6 +16,7 @@ import NeighborhoodPanel  from './components/NeighborhoodPanel'
 import PropertyListPanel  from './components/PropertyListPanel'
 import PropertyPanel      from './components/PropertyPanel'
 import PlaceClaimPanel    from './components/PlaceClaimPanel'
+import AnnounceBanner     from './components/AnnounceBanner'
 import type { MapClickInfo } from './components/MapView'
 import Login              from './screens/Login'
 import Market             from './screens/Market'
@@ -333,6 +334,9 @@ export default function App() {
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'var(--bg)', isolation: 'isolate' }}>
+
+      {/* ── Admin Hub duyuru bandı (üstte) ────────────────────────── */}
+      <AnnounceBanner />
 
       {/* ── Harita (her zaman arka planda) ────────────────────────── */}
       <MapView
