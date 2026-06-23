@@ -321,11 +321,13 @@ export default function App() {
               <span className="t-h3" style={{ color: 'var(--text)' }}>{t(TITLE_KEYS[tab])}</span>
             </div>
             <div style={{ flex: 1, overflow: 'hidden' }}>
-              {tab === 1 && <Market />}
-              {tab === 2 && <Portfolio />}
-              {tab === 3 && <Rankings />}
-              {tab === 4 && <Store />}
-              {tab === 5 && <Settings />}
+              <div key={tab} className="fade-in" style={{ height: '100%' }}>
+                {tab === 1 && <Market />}
+                {tab === 2 && <Portfolio />}
+                {tab === 3 && <Rankings />}
+                {tab === 4 && <Store />}
+                {tab === 5 && <Settings />}
+              </div>
             </div>
           </div>
         )}
@@ -667,12 +669,14 @@ export default function App() {
           <div style={{ width: '100%', height: '0.5px', background: 'rgba(255,255,255,0.1)' }} />
         </div>
         <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
-          {tab === 1 && <Market />}
-          {tab === 2 && <Portfolio />}
-          {tab === 3 && <Forex />}
-          {tab === 4 && <Rankings />}
-          {tab === 5 && <Store />}
-          {tab === 6 && <Settings />}
+          <div key={tab} className="fade-in" style={{ height: '100%' }}>
+            {tab === 1 && <Market />}
+            {tab === 2 && <Portfolio />}
+            {tab === 3 && <Forex />}
+            {tab === 4 && <Rankings />}
+            {tab === 5 && <Store />}
+            {tab === 6 && <Settings />}
+          </div>
         </div>
       </div>
 

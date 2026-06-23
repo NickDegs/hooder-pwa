@@ -193,14 +193,23 @@ export function getLastContext() { return lastCtx }
 export async function searchAreaProperties(query: string): Promise<{ props: Property[]; lat: number; lng: number; place: string } | null> {
   const q = query.trim()
   if (!TOKEN || q.length < 2) return null
-  const base = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?types=place,locality,neighborhood,district,region,country,address&limit=1&access_token=${TOKEN}`
+  const base = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?types=place,locality,neighborhood,district,region,country,address&limit=5&access_token=${TOKEN}`
+  // Şehir/semt seviyesi sonuçları ülke/bölgeye TERCİH et: mülk araması bir ülkenin
+  // merkezini değil, bir şehri/semti hedefler. (ör. "Roma" → Romanya ülkesi değil,
+  // Roma şehri.) Eşit relevance'ta Mapbox bazen ülkeyi üste alıyor; bunu düzeltir.
+  const CITY_TYPES = ['address', 'neighborhood', 'locality', 'place', 'district']
+  function pick(features: any[]): any | null {
+    if (!features.length) return null
+    const city = features.find(f => (f.place_type ?? []).some((t: string) => CITY_TYPES.includes(t)))
+    return city ?? features[0]
+  }
   // Önce kullanıcı dilinde dene; bazı diller (az/fa/hi/uk…) Mapbox'ta desteklenmeyip
   // boş dönebilir → o zaman DİLSİZ tekrar dene. Böylece her dilde, tüm dünyada yer bulunur.
   async function geocode(withLang: boolean): Promise<{ lng: number; lat: number; place: string } | null> {
     try {
       const r = await fetch(withLang ? `${base}&language=${geoLang()}` : base)
       const j = await r.json()
-      const f = (j.features ?? [])[0]
+      const f = pick(j.features ?? [])
       const c: number[] | undefined = f?.center
       if (!c || c.length < 2) return null
       return { lng: c[0], lat: c[1], place: f?.place_name ?? q }

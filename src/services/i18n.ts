@@ -234,7 +234,7 @@ const EXTRA: Record<string, Record<string, string>> = {
   wt_plaza:{ tr:'Plaza', en:'Plaza', es:'Plaza', fr:'Place', de:'Plaza', it:'Plaza', pt:'Praça', ru:'Плаза', ar:'بلازا', zh:'广场', ja:'プラザ', ko:'플라자', az:'Plaza', uk:'Плаза', fa:'پلازا', hi:'प्लाज़ा' },
   wt_gardens:{ tr:'Konutları', en:'Gardens', es:'Jardines', fr:'Jardins', de:'Gärten', it:'Giardini', pt:'Jardins', ru:'Сады', ar:'حدائق', zh:'花园', ja:'ガーデンズ', ko:'가든', az:'Bağlar', uk:'Сади', fa:'باغات', hi:'गार्डन' },
   // ── Kademeli emlakçı paketleri ({city}/{country} panelde değiştirilir) ──
-  agent_choose:{ tr:'Emlakçı Paketi Seç', en:'Choose an Agent Package', de:'Makler-Paket wählen', fr:'Choisir un forfait agent', es:'Elige un paquete de agente', ru:'Выберите пакет агента', ar:'اختر باقة وكيل', zh:'选择中介套餐', ja:'エージェントパックを選択' },
+  agent_choose:{ tr:'Emlakçı Paketi Seç', en:'Choose an Agent Package', de:'Makler-Paket wählen', fr:'Choisir un forfait agent', es:'Elige un paquete de agente', ru:'Выберите пакет агента', ar:'اختر باقة وكيل', zh:'选择中介套餐', ja:'エージェントパックを選択', it:'Scegli un pacchetto agente', pt:'Escolha um pacote de agente', ko:'에이전트 패키지 선택', hi:'एजेंट पैकेज चुनें', az:'Agent paketi seçin', uk:'Виберіть пакет агента', fa:'بسته نماینده را انتخاب کنید' },
   ag_c1_t:{ tr:'Tek Şehir Emlakçısı', en:'Single City Agent' },
   ag_c1_d:{ tr:'{city} açılır', en:'Unlocks {city}' },
   ag_c2_t:{ tr:'Bölge Emlakçısı', en:'Regional Agent' },

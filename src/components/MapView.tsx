@@ -490,15 +490,24 @@ export default function MapView({
       //    tekrar fetch yok, API yükü sınırlı. Tüm dünya için geçerli.
       const exploreThrottle = isDesktop ? 120 : 150
       let lastExplore = 0
+      // ANLIK ETİKET: marker'ları gezinti DEVAM EDERKEN de senkronla (reconcile).
+      // Eskiden reconcile yalnız moveend'de çalışıyordu → etiketler ancak durunca
+      // beliriyordu (gecikme; bazen hiç çıkmıyordu). Artık her ~55 ms'de bir (en ufak
+      // kıpırtıda) ekranda görünen ne varsa anında çizilir. reconcile cap'li (mobil
+      // 48 marker) + viewport-culling olduğundan akıcı kalır.
+      const reconcileThrottle = isDesktop ? 50 : 55
+      let lastReconcile = 0
       map.on('move', () => {
         cbMapCenter.current?.(null)
         const now = Date.now()
-        if (now - lastExplore < exploreThrottle) return
-        const z = map.getZoom()
-        if (z >= zHood && cbMapExplore.current) {
-          lastExplore = now
-          const c = map.getCenter()
-          cbMapExplore.current(c.lat, c.lng)
+        if (now - lastReconcile >= reconcileThrottle) { lastReconcile = now; reconcile(map) }
+        if (now - lastExplore >= exploreThrottle) {
+          const z = map.getZoom()
+          if (z >= zHood && cbMapExplore.current) {
+            lastExplore = now
+            const c = map.getCenter()
+            cbMapExplore.current(c.lat, c.lng)
+          }
         }
       })
 
