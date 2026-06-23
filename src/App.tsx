@@ -94,42 +94,64 @@ export default function App() {
     if (tab !== 0) { setSelectedProp(null); setSelectedHood(null); setClaimTarget(null); setLiveHood(null); screenSheet.reset() }
   }, [tab]) // eslint-disable-line
 
-  // Kendi konumuna git: gerçek konumu al, oradaki yüksek-değerli binaları/otelleri
-  // yükle ve (fly ise) haritada oraya uç. Hem ilk açılışta (oto) hem de ana
-  // ekrandaki "konumuma git" butonundan çağrılır.
+  // Bir koordinatı uygula: oradaki yüksek-değerli binaları/otelleri yükle, kullanıcı
+  // şehrini ayarla ve (fly ise) haritada oraya uç. Konumu localStorage'a önbelleğe
+  // alır → sonraki açılışlarda İZİN SORMADAN buradan okunur.
+  async function applyLocation(lat: number, lng: number, fly: boolean) {
+    try {
+      const res = await fetchLocalProperties(lat, lng)
+      if (res && res.props.length) {
+        setDynamicProperties(allDynamicProperties())
+        setLocalVersion(v => v + 1)
+      }
+      const ctx = res?.ctx
+      const city: City = {
+        id: 'me', name: ctx?.city || 'Konumum', country: ctx?.country || '',
+        flag: ctx?.flag || '📍', lat, lng, zoom: 15,
+      }
+      setUserCity(city)
+      if (fly) { setTab(0); setFlyToCity(city) }
+      setLiveOff(false)
+      if (ctx?.city) setCurrentArea(ctx.city, ctx.country || '')
+      try { localStorage.setItem('hooder_geo', JSON.stringify({ lat, lng })) } catch { /* yoksa geç */ }
+    } catch { /* sessiz geç */ }
+  }
+
+  // Kendi konumuna git: gerçek konumu (GPS) al → uygula. İzin penceresini YALNIZCA
+  // burada (ilk kez / butonla) tetikler. İlk açılışta önbellek varsa hiç çağrılmaz.
   const locating = useRef(false)
   function locateMe(fly: boolean) {
     if (typeof navigator === 'undefined' || !('geolocation' in navigator)) return
     if (locating.current) return
     locating.current = true
     navigator.geolocation.getCurrentPosition(async pos => {
-      const { latitude: lat, longitude: lng } = pos.coords
-      try {
-        const res = await fetchLocalProperties(lat, lng)
-        if (res && res.props.length) {
-          setDynamicProperties(allDynamicProperties())
-          setLocalVersion(v => v + 1)
-        }
-        const ctx = res?.ctx
-        const city: City = {
-          id: 'me', name: ctx?.city || 'Konumum', country: ctx?.country || '',
-          flag: ctx?.flag || '📍', lat, lng, zoom: 15,
-        }
-        setUserCity(city)
-        if (fly) { setTab(0); setFlyToCity(city) }
-        setLiveOff(false)
-        // Anlık konum bölgesi → burada serbest alım (dışı emlakçı ister)
-        if (ctx?.city) setCurrentArea(ctx.city, ctx.country || '')
-      } catch { /* sessiz geç */ }
+      await applyLocation(pos.coords.latitude, pos.coords.longitude, fly)
       locating.current = false
-    }, () => { locating.current = false /* izin yok → İstanbul'da kal */ },
+    }, () => { locating.current = false /* izin yok / hata → İstanbul'da kal */ },
        { enableHighAccuracy: false, timeout: 9000, maximumAge: 600000 })
   }
 
-  // İlk açılış: konum izni veriliyse oto kendi konumuna uç (henüz konum yoksa)
+  // İlk açılış: KONUM İZNİNİ SADECE BİR KEZ SOR.
+  // 1) Daha önce konum alındıysa (önbellek) → izin SORMADAN oraya uç/yükle.
+  // 2) Önbellek yoksa → izni kontrol et; reddedilmemişse YALNIZ BİR KEZ sor.
+  // Böylece her tekrar girişte konum penceresi açılmaz.
   useEffect(() => {
     if (!user || userCity) return
-    locateMe(true)
+    let cached: { lat: number; lng: number } | null = null
+    try { const s = localStorage.getItem('hooder_geo'); if (s) { const o = JSON.parse(s); if (typeof o?.lat === 'number' && typeof o?.lng === 'number') cached = o } } catch { /* geç */ }
+    if (cached) { void applyLocation(cached.lat, cached.lng, true); return }  // izin SORMADAN
+    let cancelled = false
+    ;(async () => {
+      try {
+        const perms = (navigator as unknown as { permissions?: { query: (d: { name: string }) => Promise<{ state: string }> } }).permissions
+        if (perms) {
+          const st = await perms.query({ name: 'geolocation' })
+          if (cancelled || st.state === 'denied') return  // reddetmiş → bir daha sorma
+        }
+      } catch { /* permissions API yoksa yine de bir kez sor */ }
+      if (!cancelled) locateMe(true)  // ilk ve tek sefer izin penceresi
+    })()
+    return () => { cancelled = true }
   }, [user?.uid]) // eslint-disable-line
 
   // Ana ekran "konumuma git" butonu: bilinen konuma anında uç (taze referans →
