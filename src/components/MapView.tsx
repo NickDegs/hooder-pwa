@@ -326,6 +326,7 @@ export default function MapView({
     pool: { current: Map<string, mapboxgl.Marker> }, att: { current: Set<string> },
     data: T[], keyOf: (t: T) => string, lnglatOf: (t: T) => [number, number],
     make: (t: T, map: mapboxgl.Map) => mapboxgl.Marker, cap: number, avoidWater = false,
+    minGapPx = 0,
   ) {
     if (!active) {
       // Kademe pasif → tüm marker'ları haritadan KALDIR ve havuzdan SİL (RAM boş)
@@ -337,6 +338,18 @@ export default function MapView({
     const dLat = (b.getNorth() - b.getSouth()) * 0.12, dLng = (b.getEast() - b.getWest()) * 0.12
     const inView = (lng: number, lat: number) =>
       lat >= b.getSouth() - dLat && lat <= b.getNorth() + dLat && lng >= b.getWest() - dLng && lng <= b.getEast() + dLng
+    // ÇAKIŞMA ÖNLEME (declutter): etiketler iç içe girip yığılmasın. data DEĞERE göre
+    // sıralı geldiğinden (en değerli önce), ekran-uzayında bir etikete çok yakın düşen
+    // daha düşük öncelikli etiket GİZLENİR → yoğun bölgede sade, okunur, en değerli
+    // mülkler görünür. Pill'ler enine geniş olduğundan yatay boşluk daha büyük tutulur.
+    const placed: { x: number; y: number }[] = []
+    const gapX = minGapPx, gapY = minGapPx * 0.52
+    const collides = (lng: number, lat: number): boolean => {
+      if (minGapPx <= 0) return false
+      const p = map.project([lng, lat])
+      for (const q of placed) { if (Math.abs(q.x - p.x) < gapX && Math.abs(q.y - p.y) < gapY) return true }
+      placed.push({ x: p.x, y: p.y }); return false
+    }
     const want = new Set<string>()
     for (const it of data) {
       const k = keyOf(it)
@@ -344,6 +357,7 @@ export default function MapView({
       const [lng, lat] = lnglatOf(it)
       if (!inView(lng, lat)) continue
       if (avoidWater && isWater(map, lng, lat)) { waterIds.current.add(k); continue } // deniz üstü → kalıcı atla
+      if (collides(lng, lat)) continue   // başka bir etiketle üst üste → gizle
       want.add(k); if (want.size >= cap) break
     }
     // Görünürden çıkanları haritadan kaldır + havuzdan SİL (ekran dışı = RAM yemez,
@@ -374,7 +388,8 @@ export default function MapView({
     syncTier(map, false, countryMkrs, attCountry, [], () => '', () => [0, 0], makeCountryMarker, 1)
     syncTier(map, false, cityMkrs,    attCity,    [], () => '', () => [0, 0], makeCityMarker, 1)
     syncTier(map, false, hoodMkrs,    attHood,    [], () => '', () => [0, 0], makeHoodMarker, 1)
-    syncTier(map, propTier, propMkrs, attProp, propsData.current, p => p.id, p => [p.lng, p.lat], makePropMarker, big ? 90 : 48, true)
+    // minGapPx: etiketler birbirine binmesin (pill genişliği ~120px → yatay ~96px boşluk)
+    syncTier(map, propTier, propMkrs, attProp, propsData.current, p => p.id, p => [p.lng, p.lat], makePropMarker, big ? 90 : 48, true, big ? 104 : 96)
 
     // Liste için: ekranda görünen mülkleri DEĞERE göre (büyükten küçüğe) bildir
     if (cbVisibleProps.current) {
