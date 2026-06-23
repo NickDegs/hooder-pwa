@@ -3,6 +3,7 @@ import { formatPrice, formatIncome, ownershipPremium } from '../data'
 import { livePrice, liveIncome } from '../services/economy'
 import { useGame } from '../store/useGame'
 import { t, catLabel } from '../services/i18n'
+import { useDragSheet } from '../services/useDragSheet'
 
 interface Props {
   props:    Property[]            // MapView'dan DEĞERE göre sıralı gelir (büyükten küçüğe)
@@ -17,12 +18,26 @@ const EMOJI: Record<string, string> = { hotel:'🏨', office:'🏢', retail:'�
 export default function PropertyListPanel({ props, onSelect, onClose, isDesktop = false }: Props) {
   const { isOwned, owned } = useGame()
   const premium = ownershipPremium(owned.length)
+  // Mobilde sürüklenebilir alt-sayfa: yukarı çek → tam ekran, AŞAĞI çek → kapat.
+  // (Hook her zaman çağrılır; masaüstünde değerleri kullanılmaz.)
+  const { dragging, handlers, fullDvh, hiddenPct } = useDragSheet(0.74, 0.94, 0.52, onClose)
 
   const wrap: React.CSSProperties = isDesktop
     ? { position:'fixed', top:80, right:'var(--sp-md)', width:400, maxHeight:'80dvh', zIndex:85, display:'flex', flexDirection:'column' }
-    : { position:'fixed', left:0, right:0, bottom:0, height:'74dvh', zIndex:85, display:'flex', flexDirection:'column' }
+    : {
+        position:'fixed', left:0, right:0, bottom:0, zIndex:85, display:'flex', flexDirection:'column',
+        height:`${fullDvh.toFixed(1)}dvh`,
+        transform:`translateY(${hiddenPct.toFixed(2)}dvh)`,
+        transition: dragging ? 'none' : 'transform 0.5s var(--ease-ios)',
+        willChange:'transform',
+      }
 
   return (
+    <>
+      {/* Mobilde dışarı dokunma → kapat (haritaya dönüş) */}
+      {!isDesktop && (
+        <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:84, background:'transparent' }} />
+      )}
     <div style={wrap}>
       <div style={{
         flex:1, display:'flex', flexDirection:'column', overflow:'hidden',
@@ -30,8 +45,14 @@ export default function PropertyListPanel({ props, onSelect, onClose, isDesktop 
         border:'0.5px solid rgba(255,255,255,0.16)', borderTopLeftRadius:24, borderTopRightRadius:24,
         borderRadius: isDesktop ? 20 : undefined, boxShadow:'0 -8px 40px rgba(0,0,0,0.5)',
       }}>
+        {/* Sürükleme tutamacı (mobil): aşağı çek → kapat, yukarı çek → tam ekran */}
+        {!isDesktop && (
+          <div {...handlers} style={{ flexShrink:0, padding:'10px 0 4px', cursor:'grab', touchAction:'none', display:'flex', justifyContent:'center' }}>
+            <div style={{ width:42, height:5, borderRadius:99, background:'rgba(255,255,255,0.28)' }} />
+          </div>
+        )}
         {/* Başlık */}
-        <div style={{ padding:'14px 16px 10px', display:'flex', alignItems:'center', justifyContent:'space-between', borderBottom:'0.5px solid rgba(255,255,255,0.1)' }}>
+        <div style={{ padding:'8px 16px 10px', display:'flex', alignItems:'center', justifyContent:'space-between', borderBottom:'0.5px solid rgba(255,255,255,0.1)' }}>
           <div>
             <div className="t-bold" style={{ color:'var(--text)', fontSize:16 }}>📋 {t('list_title')}</div>
             <div className="t-caption" style={{ color:'var(--text-muted)' }}>{props.length} {t('list_count')}</div>
@@ -70,5 +91,6 @@ export default function PropertyListPanel({ props, onSelect, onClose, isDesktop 
         </div>
       </div>
     </div>
+    </>
   )
 }

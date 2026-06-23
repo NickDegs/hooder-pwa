@@ -226,8 +226,11 @@ input {
 @keyframes slideFromRight { from { transform: translateX(48px); opacity: 0 } to { transform: translateX(0); opacity: 1 } }
 /* Liquid giriş: saydamlıktan + hafif blur'dan akışkan beliriş */
 @keyframes glassIn  { from { opacity: 0; transform: translateY(14px) scale(0.99); filter: blur(6px) } to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0) } }
-/* Harita marker/etiket belirişi: aniden patlamak yerine yumuşak yükselip büyür */
-@keyframes markerIn { from { opacity: 0; transform: translateY(7px) scale(0.86) } to { opacity: 1; transform: translateY(0) scale(1) } }
+/* Harita marker/etiket belirişi: yumuşak fade. NOT: SADECE opacity animasyonu —
+   transform animasyonu KULLANILMAZ; çünkü Mapbox marker'ı tam bu elementin
+   transform'uyla (translate) konumlandırır, transform'u ezersek marker'lar yanlış
+   yere yığılır ("etiketler kayboldu" hatası). Yumuşak beliriş opacity ile sağlanır. */
+@keyframes markerIn { from { opacity: 0 } to { opacity: 1 } }
 
 .fade-in   { animation: fadeIn 0.45s var(--ease-glass) forwards; }
 .slide-up  { animation: slideUp 0.55s var(--ease-glass) forwards; }
