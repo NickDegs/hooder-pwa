@@ -47,7 +47,7 @@ jobs:
       - name: Set version
         run: |
           VC=$((1000 + ${{ github.run_number }}))   # her zaman > 20, monoton artar
-          VN="4.0.${{ github.run_number }}"
+          VN="1.0"
           GRADLE="android/app/build.gradle"
           sed -i -E "s/versionCode [0-9]+/versionCode $VC/" "$GRADLE"
           sed -i -E "s/versionName \"[^\"]*\"/versionName \"$VN\"/" "$GRADLE"

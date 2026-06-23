@@ -60,7 +60,7 @@ jobs:
           BUILD=$(date -u +%Y%m%d%H%M)
           [ -f "$PLIST" ] && \
             /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD" "$PLIST" && \
-            /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 4.0.${{ github.run_number }}" "$PLIST" || \
+            /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0" "$PLIST" || \
             echo "Info.plist bulunamadı, atlıyorum"
           # Export compliance: şifreleme muaf → TestFlight'ta MISSING_EXPORT_COMPLIANCE
           # olmaz, build doğrudan iç teste atanabilir hale gelir.
