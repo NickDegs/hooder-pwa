@@ -555,6 +555,7 @@ export default function App() {
           display:'flex', alignItems:'center', justifyContent:'center',
           background:'rgba(8,12,24,0.55)', backdropFilter:'blur(40px) saturate(200%)', WebkitBackdropFilter:'blur(40px) saturate(200%)',
           border:'0.5px solid rgba(52,148,255,0.45)', boxShadow:'0 6px 24px rgba(0,0,0,0.45)',
+          animation:'slideUp 0.4s cubic-bezier(0.34,1.56,0.64,1) both',
         }}>
           <span style={{ fontSize:20, lineHeight:1 }}>📍</span>
         </button>
@@ -567,6 +568,7 @@ export default function App() {
           display:'flex', alignItems:'center', gap:7, padding:'11px 16px', borderRadius:99,
           background:'rgba(8,12,24,0.55)', backdropFilter:'blur(40px) saturate(200%)', WebkitBackdropFilter:'blur(40px) saturate(200%)',
           border:'0.5px solid rgba(255,255,255,0.2)', boxShadow:'0 6px 24px rgba(0,0,0,0.45)',
+          animation:'slideUp 0.4s cubic-bezier(0.34,1.56,0.64,1) both',
         }}>
           <span style={{ fontSize:16 }}>📋</span>
           <span className="t-btn-md" style={{ color:'#fff', fontSize:14 }}>{t('list_view')}{visibleProps.length ? ` (${visibleProps.length})` : ''}</span>

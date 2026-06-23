@@ -1,11 +1,12 @@
 import { useState, useMemo, useEffect, type CSSProperties } from 'react'
-import { allProperties, allCities, categoryMeta, type PropertyCategory, formatPrice, formatIncome } from '../data'
+import { allProperties, dynamicProperties, allCities, categoryMeta, type PropertyCategory, type Property, formatPrice, formatIncome } from '../data'
 import { livePrice, liveIncome } from '../services/economy'
 import { ownershipPremium } from '../data'
 import { useLang } from '../services/i18n'
 import { useGame } from '../store/useGame'
 import { useAuth } from '../services/auth'
 import { listAuctions, bidAuction, type Auction } from '../services/market'
+import { searchAreaProperties, allDynamicProperties } from '../services/localProperties'
 import GlassCard from '../components/GlassCard'
 
 // Ülke kodu → aranabilir adlar (TR + EN). Property.country kod tutar ('TR'),
@@ -66,9 +67,30 @@ export default function Market() {
   const [asc,     setAsc]     = useState(true)
   const [toast,   setToast]   = useState<string | null>(null)
   const [confirm, setConfirm] = useState<typeof allProperties[0] | null>(null)
+  // Konum-bazlı (dinamik) mülkler — harita gezintisinden gelenler + aramayla çekilenler.
+  // Başlangıçta haritada zaten yüklenmiş olanları al → Piyasa'da da görünsünler.
+  const [extra,    setExtra]    = useState<Property[]>(() => [...dynamicProperties, ...allDynamicProperties()])
+  const [searching, setSearching] = useState(false)
+
+  // Yer araması: "Ordu", "Kadıköy" gibi bir yer yazılınca o yerin koordinatını
+  // bulup oradaki gerçek mülkleri çek → listeye ekle (tüm dünya). Debounce'lu.
+  useEffect(() => {
+    const q = search.trim()
+    if (q.length < 2) { setSearching(false); return }
+    let cancelled = false
+    setSearching(true)
+    const id = setTimeout(async () => {
+      await searchAreaProperties(q)
+      if (!cancelled) { setExtra([...dynamicProperties, ...allDynamicProperties()]); setSearching(false) }
+    }, 450)
+    return () => { cancelled = true; clearTimeout(id) }
+  }, [search])
 
   const filtered = useMemo(() => {
-    let list = [...allProperties]
+    // allProperties (elle tanımlı) + dinamik/konum mülkleri (id'ye göre tekilleştir)
+    const seen = new Set<string>()
+    let list: Property[] = []
+    for (const p of [...allProperties, ...extra]) { if (!seen.has(p.id)) { seen.add(p.id); list.push(p) } }
     if (cat)  list = list.filter(p => p.category === cat)
     if (city) list = list.filter(p => p.city === city)
     if (search) {
@@ -91,7 +113,7 @@ export default function Market() {
       return asc ? v : -v
     })
     return list
-  }, [search, cat, city, sort, asc])
+  }, [search, cat, city, sort, asc, extra])
 
   function handleBuy(prop: typeof allProperties[0]) {
     const ok = buy({ ...prop, price: livePrice(prop.price), incomePerDay: liveIncome(prop.incomePerDay) })
@@ -157,7 +179,7 @@ export default function Market() {
 
         {/* Sort + count */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span className="t-caption" style={{ color: 'var(--text-muted)' }}>{filtered.length} mülk</span>
+          <span className="t-caption" style={{ color: 'var(--text-muted)' }}>{searching ? '🔎 aranıyor…' : `${filtered.length} mülk`}</span>
           <div style={{ display: 'flex', gap: 'var(--sp-xs)' }}>
             {SORTS.map(s => (
               <button
@@ -208,6 +230,20 @@ export default function Market() {
                 )
               })}
             </div>
+          </div>
+        )}
+        {filtered.length === 0 && (
+          <div style={{ textAlign: 'center', padding: 'var(--sp-4x) var(--sp-lg)', color: 'var(--text-muted)' }}>
+            <div style={{ fontSize: 30, marginBottom: 8 }}>{searching ? '🔎' : '🗺️'}</div>
+            <div className="t-body" style={{ color: 'var(--text-sub)' }}>
+              {searching ? 'Aranan yerin mülkleri yükleniyor…'
+                         : (search.trim() ? `"${search.trim()}" için mülk bulunamadı` : 'Mülk yok')}
+            </div>
+            {!searching && search.trim() && (
+              <div className="t-caption" style={{ color: 'var(--text-muted)', marginTop: 6 }}>
+                Şehir veya mahalle adını yazıp aratın (ör. Ordu, Kadıköy)
+              </div>
+            )}
           </div>
         )}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }}>

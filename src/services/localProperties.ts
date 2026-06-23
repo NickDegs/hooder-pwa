@@ -183,3 +183,25 @@ export async function fetchLocalProperties(lat: number, lng: number): Promise<{ 
 
 let lastCtx: AreaContext = { city: 'Bölgen', district: 'Çevre', province: '', country: '', flag: '📍' }
 export function getLastContext() { return lastCtx }
+
+// ── Metinle yer arama (Piyasa) ────────────────────────────────────────────────
+// Kullanıcı "Ordu", "Altınordu", "Kadıköy" gibi bir yer yazınca: önce forward
+// geocoding ile o yerin koordinatını bul, sonra oradaki GERÇEK mülkleri çek
+// (fetchLocalProperties — POI + binalar). Böylece elle tanımlı şehirler dışında
+// (tüm dünya) aranan yerin mülkleri Piyasa'da listelenir. Çekilenler registry'ye
+// kaydolur → allDynamicProperties() ile listeye girer.
+export async function searchAreaProperties(query: string): Promise<{ props: Property[]; lat: number; lng: number; place: string } | null> {
+  const q = query.trim()
+  if (!TOKEN || q.length < 2) return null
+  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?types=place,locality,neighborhood,district,region,country,address&language=${geoLang()}&limit=1&access_token=${TOKEN}`
+  try {
+    const r = await fetch(url)
+    const j = await r.json()
+    const f = (j.features ?? [])[0]
+    const center: number[] | undefined = f?.center
+    if (!center || center.length < 2) return null
+    const [lng, lat] = center
+    const res = await fetchLocalProperties(lat, lng)
+    return { props: res?.props ?? [], lat, lng, place: f?.place_name ?? q }
+  } catch { return null }
+}

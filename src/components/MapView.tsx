@@ -78,7 +78,7 @@ const TXT_GLOW = 'text-shadow:0 1px 3px rgba(0,0,0,0.85),0 0 10px rgba(0,0,0,0.5
 // Country glass pill — EN ÜST kademe, en büyük/belirgin
 function makeCountryEl(g: CountryGroup): HTMLElement {
   const wrap = document.createElement('div')
-  wrap.style.cssText = 'cursor:pointer;padding:6px;width:max-content;'
+  wrap.style.cssText = 'cursor:pointer;padding:6px;width:max-content;animation:markerIn 0.34s cubic-bezier(0.22,1,0.36,1) both;'
   const el = document.createElement('div')
   el.style.cssText = `
     display:flex;flex-direction:column;align-items:center;
@@ -102,7 +102,7 @@ function makeCountryEl(g: CountryGroup): HTMLElement {
 // City glass pill
 function makeCityEl(g: CityGroup, count: number): HTMLElement {
   const wrap = document.createElement('div')
-  wrap.style.cssText = 'cursor:pointer;padding:5px;width:max-content;'
+  wrap.style.cssText = 'cursor:pointer;padding:5px;width:max-content;animation:markerIn 0.34s cubic-bezier(0.22,1,0.36,1) both;'
   const el = document.createElement('div')
   el.style.cssText = `
     display:flex;flex-direction:column;align-items:center;
@@ -126,7 +126,7 @@ function makeCityEl(g: CityGroup, count: number): HTMLElement {
 // Neighbourhood card
 function makeHoodEl(h: HoodGroup, ownedCount: number, isSelected: boolean): HTMLElement {
   const wrap = document.createElement('div')
-  wrap.style.cssText = 'cursor:pointer;padding:4px;width:max-content;'
+  wrap.style.cssText = 'cursor:pointer;padding:4px;width:max-content;animation:markerIn 0.34s cubic-bezier(0.22,1,0.36,1) both;'
   const accent = ownedCount > 0 ? 'rgba(48,209,88,0.45)' : 'rgba(255,255,255,0.18)'
   const pct = Math.round((ownedCount / h.properties.length) * 100)
 
@@ -164,7 +164,7 @@ function makeHoodEl(h: HoodGroup, ownedCount: number, isSelected: boolean): HTML
 function makePropEl(prop: Property, isOwned: boolean): HTMLElement {
   const meta = categoryMeta[prop.category]
   const wrap = document.createElement('div')
-  wrap.style.cssText = 'cursor:pointer;padding:5px;width:max-content;'
+  wrap.style.cssText = 'cursor:pointer;padding:5px;width:max-content;animation:markerIn 0.34s cubic-bezier(0.22,1,0.36,1) both;'
   const el = document.createElement('div')
   el.style.cssText = `
     display:flex;align-items:center;gap:5px;
