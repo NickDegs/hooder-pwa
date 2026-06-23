@@ -481,12 +481,26 @@ export default function MapView({
       // ── Live pan → panel güncelle ─────────────────────────────────────────
       // Masaüstü: hood zoom eşiğinde (Z_HOOD_DSK=13) tam panel açılır
       // Mobil: hood zoom eşiğinde (Z_HOOD_MOB=14) mini-kart gösterilir; debounce daha uzun
-      const moveDebouce = isDesktop ? 120 : 200
-      let lastMoveTime = 0
       // Live mini-kart KAPALI: mahalle/ilçe adı artık Mapbox etiketinde görünüyor;
       // "en yakın hood" kartı uzak yanlış bölge gösterebiliyordu.
-      void moveDebouce; void lastMoveTime
-      map.on('move', () => { cbMapCenter.current?.(null) })
+      // ── ANLIK YÜKLEME: gezinti/zoom DEVAM EDERKEN bakılan bölgeyi akıtarak yükle.
+      //    Eskiden veri yalnız moveend'de (hareket tamamen durunca) gelirdi → durup
+      //    beklemek gerekiyordu. Artık pan sırasında throttle'lı tetiklenir → mülkler
+      //    sen hareket ederken belirir. Aynı ~220 m cache'li (localProperties) →
+      //    tekrar fetch yok, API yükü sınırlı. Tüm dünya için geçerli.
+      const exploreThrottle = isDesktop ? 120 : 150
+      let lastExplore = 0
+      map.on('move', () => {
+        cbMapCenter.current?.(null)
+        const now = Date.now()
+        if (now - lastExplore < exploreThrottle) return
+        const z = map.getZoom()
+        if (z >= zHood && cbMapExplore.current) {
+          lastExplore = now
+          const c = map.getCenter()
+          cbMapExplore.current(c.lat, c.lng)
+        }
+      })
 
       // ── Gezinti bitince (canlı): merkez bölgede etiket yoksa o bölgeyi yükle ──
       // Panel AÇILMAZ; sadece o civarın mülk markerları/etiketleri belirir. Çok

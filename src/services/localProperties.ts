@@ -21,10 +21,12 @@ export function allDynamicProperties(): Property[] { return [...registry.values(
 // komşu alanı çekmez ve mülk marker'ları görünmezdi.
 const fetchedAreas: { lat: number; lng: number }[] = []
 function alreadyFetched(lat: number, lng: number): boolean {
-  // ~220 m: pratikte minimum. Her gerçek kaydırmada o anki haritanın mülkleri
-  // çekilir; yalnız AYNI noktada (moveend birden çok tetiklenince) tekrar fetch'i
-  // engeller. Böylece "o anki haritadaki her şey" görünür.
-  return fetchedAreas.some(a => Math.hypot(a.lat - lat, a.lng - lng) < 0.002)
+  // ~33 m: MİNİMUM yükleme mesafesi (Barış). Haritada milim oynayınca bile o anki
+  // merkezin mülkleri ANINDA çekilir → "baktığın yer hep dolu". Yalnız neredeyse
+  // tıpatıp aynı noktada (moveend birden çok tetiklenince) tekrar fetch'i engeller.
+  // Daha küçük = daha sık fetch; pickBusy guard'ı eşzamanlı çağrıyı sınırlar,
+  // registry id-bazlı olduğundan tekrar eklenen mülk kopyalanmaz (API'yi sömürmez).
+  return fetchedAreas.some(a => Math.hypot(a.lat - lat, a.lng - lng) < 0.0003)
 }
 
 // Mapbox POI class → oyun kategorisi + temel fiyat (yüksek-değer vurgusu) + prestij
@@ -147,15 +149,22 @@ export async function fetchLocalProperties(lat: number, lng: number): Promise<{ 
   if (!TOKEN) return null
   if (alreadyFetched(lat, lng)) return { props: allDynamicProperties(), ctx: lastCtx }
   fetchedAreas.push({ lat, lng })
+  // Minimum mesafe (33 m) → çok kayıt birikir; her harekette lineer tarandığından
+  // son ~500 alanı tut (eski alanlar zaten registry'de mülk olarak duruyor).
+  if (fetchedAreas.length > 500) fetchedAreas.splice(0, fetchedAreas.length - 500)
 
-  const ctx = await reverseGeocode(lat, lng)
-  lastCtx = ctx
   // poi_label (oteller/ofisler/landmark — isimli) + building (apartman/bina — gerçek konum)
   // NOT: Mapbox tilequery 'limit' MAX 50 — üzeri 422 döner (mülk gelmez).
   const url = `https://api.mapbox.com/v4/mapbox.mapbox-streets-v8/tilequery/${lng},${lat}.json?radius=1000&limit=50&dedupe=true&layers=poi_label,building&access_token=${TOKEN}`
   try {
-    const r = await fetch(url)
-    const j = await r.json()
+    // ANLIK YÜKLEME: reverse-geocode (semt/şehir adı) ile tilequery (mülkler) BİRBİRİNDEN
+    // bağımsız → PARALEL çalıştır (Promise.all). Eskiden sıralıydı, iki gidiş-dönüş =
+    // iki kat gecikme idi. Tilequery ctx'e ihtiyaç duymaz (ctx sadece adlandırma için).
+    const [ctx, j] = await Promise.all([
+      reverseGeocode(lat, lng),
+      fetch(url).then(r => r.json()),
+    ])
+    lastCtx = ctx
     const seen = new Set<string>()
     const props = (j.features ?? [])
       .map((f: any) => (f.properties?.tilequery?.layer === 'building') ? buildingToProperty(f, ctx) : toProperty(f, ctx))
