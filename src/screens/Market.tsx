@@ -71,31 +71,37 @@ export default function Market() {
   // Başlangıçta haritada zaten yüklenmiş olanları al → Piyasa'da da görünsünler.
   const [extra,    setExtra]    = useState<Property[]>(() => [...dynamicProperties, ...allDynamicProperties()])
   const [searching, setSearching] = useState(false)
+  // Yer-araması sonuçları: aranan KONUMUN gerçek mülkleri. Bunlar sorgu metniyle
+  // YENİDEN filtrelenmez (ör. "Londra" arayınca dönen şehir adı "London" olsa bile
+  // o yerin mülkleri görünür). Tüm dünya + her dil.
+  const [searchHits, setSearchHits] = useState<Property[]>([])
 
-  // Yer araması: "Ordu", "Kadıköy" gibi bir yer yazılınca o yerin koordinatını
-  // bulup oradaki gerçek mülkleri çek → listeye ekle (tüm dünya). Debounce'lu.
+  // Yer araması: herhangi bir yer ("Ordu", "Kadıköy", "Tokyo", "London"…) yazılınca
+  // o yerin koordinatını bul (forward-geocode, kullanıcı dilinde) → oradaki gerçek
+  // mülkleri çek → listeyi aç. Debounce'lu. Tüm dünya geneli, her dil.
   useEffect(() => {
     const q = search.trim()
-    if (q.length < 2) { setSearching(false); return }
+    if (q.length < 2) { setSearching(false); setSearchHits([]); return }
     let cancelled = false
     setSearching(true)
     const id = setTimeout(async () => {
-      await searchAreaProperties(q)
-      if (!cancelled) { setExtra([...dynamicProperties, ...allDynamicProperties()]); setSearching(false) }
+      const res = await searchAreaProperties(q)
+      if (cancelled) return
+      setSearchHits(res?.props ?? [])
+      setExtra([...dynamicProperties, ...allDynamicProperties()])
+      setSearching(false)
     }, 450)
     return () => { cancelled = true; clearTimeout(id) }
   }, [search])
 
   const filtered = useMemo(() => {
-    // allProperties (elle tanımlı) + dinamik/konum mülkleri (id'ye göre tekilleştir)
+    const q = search.toLowerCase().trim()
     const seen = new Set<string>()
     let list: Property[] = []
-    for (const p of [...allProperties, ...extra]) { if (!seen.has(p.id)) { seen.add(p.id); list.push(p) } }
-    if (cat)  list = list.filter(p => p.category === cat)
-    if (city) list = list.filter(p => p.city === city)
-    if (search) {
-      const q = search.toLowerCase().trim()
-      list = list.filter(p =>
+    // 1) Metin eşleşmeleri: elle tanımlı + dinamik mülkler (ad/şehir/mahalle/ülke)
+    for (const p of [...allProperties, ...extra]) {
+      if (seen.has(p.id)) continue
+      const match = !q || (
         p.name.toLowerCase().includes(q) ||
         p.city.toLowerCase().includes(q) ||
         p.neighborhood.toLowerCase().includes(q) ||
@@ -103,7 +109,13 @@ export default function Market() {
         p.country.toLowerCase().includes(q) ||
         (COUNTRY_TERMS[p.country] ?? []).some(t => t.includes(q) || q.includes(t))
       )
+      if (match) { seen.add(p.id); list.push(p) }
     }
+    // 2) Yer-araması sonuçları: aranan konumun mülkleri — metinle yeniden eleme YOK
+    if (q) for (const p of searchHits) { if (!seen.has(p.id)) { seen.add(p.id); list.push(p) } }
+    // Kategori / şehir filtreleri
+    if (cat)  list = list.filter(p => p.category === cat)
+    if (city) list = list.filter(p => p.city === city)
     list.sort((a, b) => {
       let v = 0
       if (sort === 'price')    v = a.price - b.price
@@ -113,7 +125,7 @@ export default function Market() {
       return asc ? v : -v
     })
     return list
-  }, [search, cat, city, sort, asc, extra])
+  }, [search, cat, city, sort, asc, extra, searchHits])
 
   function handleBuy(prop: typeof allProperties[0]) {
     const ok = buy({ ...prop, price: livePrice(prop.price), incomePerDay: liveIncome(prop.incomePerDay) })

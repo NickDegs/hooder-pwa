@@ -193,15 +193,21 @@ export function getLastContext() { return lastCtx }
 export async function searchAreaProperties(query: string): Promise<{ props: Property[]; lat: number; lng: number; place: string } | null> {
   const q = query.trim()
   if (!TOKEN || q.length < 2) return null
-  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?types=place,locality,neighborhood,district,region,country,address&language=${geoLang()}&limit=1&access_token=${TOKEN}`
-  try {
-    const r = await fetch(url)
-    const j = await r.json()
-    const f = (j.features ?? [])[0]
-    const center: number[] | undefined = f?.center
-    if (!center || center.length < 2) return null
-    const [lng, lat] = center
-    const res = await fetchLocalProperties(lat, lng)
-    return { props: res?.props ?? [], lat, lng, place: f?.place_name ?? q }
-  } catch { return null }
+  const base = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?types=place,locality,neighborhood,district,region,country,address&limit=1&access_token=${TOKEN}`
+  // Önce kullanıcı dilinde dene; bazı diller (az/fa/hi/uk…) Mapbox'ta desteklenmeyip
+  // boş dönebilir → o zaman DİLSİZ tekrar dene. Böylece her dilde, tüm dünyada yer bulunur.
+  async function geocode(withLang: boolean): Promise<{ lng: number; lat: number; place: string } | null> {
+    try {
+      const r = await fetch(withLang ? `${base}&language=${geoLang()}` : base)
+      const j = await r.json()
+      const f = (j.features ?? [])[0]
+      const c: number[] | undefined = f?.center
+      if (!c || c.length < 2) return null
+      return { lng: c[0], lat: c[1], place: f?.place_name ?? q }
+    } catch { return null }
+  }
+  const hit = (await geocode(true)) ?? (await geocode(false))
+  if (!hit) return null
+  const res = await fetchLocalProperties(hit.lat, hit.lng)
+  return { props: res?.props ?? [], lat: hit.lat, lng: hit.lng, place: hit.place }
 }
