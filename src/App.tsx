@@ -94,10 +94,14 @@ export default function App() {
     if (tab !== 0) { setSelectedProp(null); setSelectedHood(null); setClaimTarget(null); setLiveHood(null); screenSheet.reset() }
   }, [tab]) // eslint-disable-line
 
-  // Konum izni verilirse: oto kendi konumuna uç + oradaki yüksek-değerli
-  // binaları/otelleri yükle (İstanbul'daki mülklerle aynı tasarımda).
-  useEffect(() => {
-    if (!user || userCity || typeof navigator === 'undefined' || !('geolocation' in navigator)) return
+  // Kendi konumuna git: gerçek konumu al, oradaki yüksek-değerli binaları/otelleri
+  // yükle ve (fly ise) haritada oraya uç. Hem ilk açılışta (oto) hem de ana
+  // ekrandaki "konumuma git" butonundan çağrılır.
+  const locating = useRef(false)
+  function locateMe(fly: boolean) {
+    if (typeof navigator === 'undefined' || !('geolocation' in navigator)) return
+    if (locating.current) return
+    locating.current = true
     navigator.geolocation.getCurrentPosition(async pos => {
       const { latitude: lat, longitude: lng } = pos.coords
       try {
@@ -109,16 +113,32 @@ export default function App() {
         const ctx = res?.ctx
         const city: City = {
           id: 'me', name: ctx?.city || 'Konumum', country: ctx?.country || '',
-          flag: ctx?.flag || '📍', lat, lng, zoom: 14,
+          flag: ctx?.flag || '📍', lat, lng, zoom: 15,
         }
         setUserCity(city)
-        setFlyToCity(city)
+        if (fly) { setTab(0); setFlyToCity(city) }
         setLiveOff(false)
         // Anlık konum bölgesi → burada serbest alım (dışı emlakçı ister)
         if (ctx?.city) setCurrentArea(ctx.city, ctx.country || '')
       } catch { /* sessiz geç */ }
-    }, () => { /* izin yok → İstanbul'da kal */ }, { enableHighAccuracy: false, timeout: 9000, maximumAge: 600000 })
+      locating.current = false
+    }, () => { locating.current = false /* izin yok → İstanbul'da kal */ },
+       { enableHighAccuracy: false, timeout: 9000, maximumAge: 600000 })
+  }
+
+  // İlk açılış: konum izni veriliyse oto kendi konumuna uç (henüz konum yoksa)
+  useEffect(() => {
+    if (!user || userCity) return
+    locateMe(true)
   }, [user?.uid]) // eslint-disable-line
+
+  // Ana ekran "konumuma git" butonu: bilinen konuma anında uç (taze referans →
+  // flyTo tetiklenir), ardından taze konumu/mülkleri arka planda yenile.
+  function handleGoToMyLocation() {
+    setTab(0)
+    if (userCity) setFlyToCity({ ...userCity, zoom: 15 })
+    locateMe(true)
+  }
 
   if (!user) return <Login />
 
@@ -503,6 +523,19 @@ export default function App() {
           onClose={() => setClaimTarget(null)}
           isDesktop={false}
         />
+      )}
+
+      {/* ── KONUMUMA GİT butonu (her zaman ana ekranda — gerçek konumuna uçar) ── */}
+      {isMap && !selectedProp && !showList && (
+        <button onClick={handleGoToMyLocation} aria-label="Konumuma git" style={{
+          position:'fixed', right:14, bottom:'calc(var(--tab-h) + 98px)', zIndex:60,
+          width:46, height:46, borderRadius:99,
+          display:'flex', alignItems:'center', justifyContent:'center',
+          background:'rgba(8,12,24,0.55)', backdropFilter:'blur(40px) saturate(200%)', WebkitBackdropFilter:'blur(40px) saturate(200%)',
+          border:'0.5px solid rgba(52,148,255,0.45)', boxShadow:'0 6px 24px rgba(0,0,0,0.45)',
+        }}>
+          <span style={{ fontSize:20, lineHeight:1 }}>📍</span>
+        </button>
       )}
 
       {/* ── LİSTE butonu (harita alternatifi — baktığın bölgenin mülkleri) ── */}

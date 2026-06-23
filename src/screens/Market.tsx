@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, type CSSProperties } from 'react'
 import { allProperties, allCities, categoryMeta, type PropertyCategory, formatPrice, formatIncome } from '../data'
 import { livePrice, liveIncome } from '../services/economy'
 import { ownershipPremium } from '../data'
@@ -18,6 +18,22 @@ const COUNTRY_TERMS: Record<string, string[]> = {
   JP: ['japonya', 'japan', 'jp', 'tokyo', 'tokyo'],
   FR: ['fransa', 'france', 'fr', 'paris'],
   AZ: ['azerbaycan', 'azerbaijan', 'az', 'baku', 'bakü'],
+}
+
+// ── Liste kartı (blur YOK) ────────────────────────────────────────────────────
+// KRİTİK iOS ÇÖZÜMÜ (Barış): Market 384 mülkü tek seferde listeler. Her satırda
+// backdrop-filter:blur kullanan GlassCard → iOS WKWebView'de yüzlerce canlı blur
+// kompozisyon katmanı = GPU/bellek patlaması → webview süreci ölür → uygulama
+// reload olup ana ekrana (harita) düşer. Bu yüzden liste satırlarında blur YOK;
+// katı yarı-saydam zemin kullanılır (görsel neredeyse aynı). Aynı yaklaşım
+// MapView marker'larında da uygulanıyor. Blur yalnız tekil panellerde (confirm) kalır.
+const LIST_CARD: CSSProperties = {
+  position: 'relative',
+  background: 'rgba(18,24,38,0.74)',
+  border: '0.5px solid rgba(255,255,255,0.14)',
+  borderRadius: 'var(--r-lg)',
+  padding: 'var(--sp-lg)',
+  boxShadow: '0 6px 20px rgba(0,0,0,0.28), inset 0 0.5px 0 rgba(255,255,255,0.18)',
 }
 
 type SortKey = 'price' | 'income' | 'roi' | 'prestige'
@@ -175,7 +191,7 @@ export default function Market() {
                 const left = Math.max(0, a.ends_at * 1000 - Date.now())
                 const hL = Math.floor(left / 3600000), mL = Math.floor((left % 3600000) / 60000)
                 return (
-                  <GlassCard key={a.id} style={{ borderColor: 'rgba(255,196,52,0.35)' }}>
+                  <div key={a.id} style={{ ...LIST_CARD, borderColor: 'rgba(255,196,52,0.35)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div className="t-bold" style={{ color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.property_name}</div>
@@ -188,7 +204,7 @@ export default function Market() {
                         {t('bid')}
                       </button>
                     </div>
-                  </GlassCard>
+                  </div>
                 )
               })}
             </div>
@@ -200,7 +216,7 @@ export default function Market() {
             const canAfford = cash >= Math.round(livePrice(prop.price) * premium)
             const accent    = prop.accentHex
             return (
-              <GlassCard key={prop.id}>
+              <div key={prop.id} style={LIST_CARD}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--sp-sm)' }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
@@ -250,7 +266,7 @@ export default function Market() {
                     </button>
                   )}
                 </div>
-              </GlassCard>
+              </div>
             )
           })}
         </div>
