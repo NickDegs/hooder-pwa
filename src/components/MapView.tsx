@@ -423,7 +423,8 @@ export default function MapView({
       zoom:      11,
       pitch:     52,
       bearing:   -5,
-      attributionControl: false,
+      // Mapbox/OSM attribution ZORUNLU (Mapbox ToS + Apple 5.2.5) → kompakt göster.
+      attributionControl: true,
     })
     mapRef.current = map
 
