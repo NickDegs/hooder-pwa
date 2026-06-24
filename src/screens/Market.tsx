@@ -7,7 +7,6 @@ import { useGame } from '../store/useGame'
 import { useAuth } from '../services/auth'
 import { listAuctions, bidAuction, type Auction } from '../services/market'
 import { searchAreaProperties, allDynamicProperties } from '../services/localProperties'
-import GlassCard from '../components/GlassCard'
 
 // Ülke kodu → aranabilir adlar (TR + EN). Property.country kod tutar ('TR'),
 // kullanıcı "türkiye"/"japonya" yazar → eşleştirebilmek için.
@@ -324,16 +323,17 @@ export default function Market() {
       {confirm && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 200,
-          background: 'rgba(0,0,0,0.6)',
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
+          // iOS FIX: tam-ekran backdrop-filter:blur KULLANMA — 3D harita üstünde
+          // GlassCard blur'u ile üst üste binince WKWebView'de kompozisyon çöker →
+          // SİYAH EKRAN. Katı koyu zemin kullanılır (blur yok).
+          background: 'rgba(6,8,16,0.82)',
           display: 'flex', alignItems: 'flex-end',
           padding: 'var(--sp-lg)',
           paddingBottom: 'calc(var(--sp-lg) + var(--safe-bottom))',
           animation: 'fadeIn 0.2s ease',
         }} onClick={() => setConfirm(null)}>
           <div style={{ width: '100%', maxWidth: 480, margin: '0 auto' }} onClick={e => e.stopPropagation()}>
-          <GlassCard>
+          <div style={LIST_CARD}>
             <div className="t-h3" style={{ color: 'var(--text)', marginBottom: 4 }}>Satın al: {confirm.name}</div>
             <div className="t-body" style={{ color: 'var(--text-muted)', marginBottom: 'var(--sp-lg)' }}>
               Mevcut nakit: {formatPrice(cash)}
@@ -352,7 +352,7 @@ export default function Market() {
                 <span className="t-btn-md" style={{ color: '#000' }}>Satın Al — {formatPrice(Math.round(livePrice(confirm.price) * premium))}</span>
               </button>
             </div>
-          </GlassCard>
+          </div>
           </div>
         </div>
       )}
