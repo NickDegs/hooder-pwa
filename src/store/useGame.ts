@@ -381,8 +381,9 @@ export const useGame = create<GameState>((set, get) => ({
       persist()
       return true
     }
-    // Süreli işlem: değere orantılı (pahalı mülk uzun sürer; tekte alınmaz)
-    const durMs = Math.min(600_000, Math.max(4000, Math.round(cost / 1_000_000 * 1500)))
+    // Süreli işlem: değere orantılı (pahalı mülk uzun sürer; tekte alınmaz).
+    // Süreler uzatıldı (Barış): oran 4500 ms/M · min 30 sn · max 30 dk.
+    const durMs = Math.min(1_800_000, Math.max(30_000, Math.round(cost / 1_000_000 * 4500)))
     const pending = [...st.pending, { id: property.id, property: { ...property, price: cost }, startAt: Date.now(), durMs }]
     set({ pending, cash, netWorth: computeNetWorth(cash, st.owned) })
     persist()
