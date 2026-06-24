@@ -416,9 +416,15 @@ export default function MapView({
     initialized.current = true
     mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN ?? ''
 
+    // Harita stili: uydu (varsayılan, şık) veya LITE (vektör/dark, hızlı yüklenir —
+    // yavaş bağlantı için). Ayarlardan değiştirilir; localStorage'da tutulur.
+    const SAT_STYLE = 'mapbox://styles/mapbox/satellite-streets-v12'
+    const LITE_STYLE = 'mapbox://styles/mapbox/dark-v11'
+    const liteMap = () => { try { return localStorage.getItem('hooder_map_lite') === '1' } catch { return false } }
+
     const map = new mapboxgl.Map({
       container: containerRef.current,
-      style:     'mapbox://styles/mapbox/satellite-streets-v12',
+      style:     liteMap() ? LITE_STYLE : SAT_STYLE,
       center:    [28.9784, 41.0082],
       zoom:      11,
       pitch:     52,
@@ -431,27 +437,14 @@ export default function MapView({
     const onResize = () => map.resize()
     window.addEventListener('resize', onResize)
 
-    map.on('load', () => {
-      map.resize()
-
-      // KALICI ÇÖZÜM (Barış): Mapbox'ın GERÇEK etiket hiyerarşisi tüm dünyada
-      // zoom'a göre gösterilsin → ülke → il/şehir → ilçe → mahalle → sokak.
-      // Bunlar zaten stilde var ve LOD'lu. Yalnız POI/havalimanı/transit gizlenir
-      // (kalabalık yapar; en yakında kendi MÜLK marker'larımız gösterilir).
-      ;[
-        'poi-label',
-        'airport-label',
-        'transit-label',
-      ].forEach(id => {
+    // Stile bağlı kurulum (POI etiket gizle + dil + su katmanı). Hem ilk 'load'da
+    // hem stil değişiminde ('style.load', setStyle sonrası) çalışır — çünkü setStyle
+    // stil katmanlarını sıfırlar (DOM marker'lar etkilenmez).
+    function styleSetup() {
+      ;['poi-label', 'airport-label', 'transit-label'].forEach(id => {
         if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'none')
       })
-
-      // Harita etiketlerini oyuncunun diline çevir (tüm dünya)
       applyMapLang(map)
-
-      // Su (deniz/göl) tespiti: satellite stilinde sorgulanabilir su dolgusu yok →
-      // mapbox-streets'ten GÖRÜNMEZ (opacity 0) bir su katmanı ekle, sadece
-      // queryRenderedFeatures için. Mülk/mahalle marker'ları su üstüne konmaz.
       try {
         if (!map.getSource('mb-water-src')) {
           map.addSource('mb-water-src', { type: 'vector', url: 'mapbox://mapbox.mapbox-streets-v8' })
@@ -461,6 +454,17 @@ export default function MapView({
         }
         waterLayers.current = ['mb-water-q']
       } catch { waterLayers.current = [] }
+    }
+
+    // Ayarlardan stil değişince canlı uygula (uydu ↔ lite) — marker'lar DOM olduğu
+    // için kalır; yalnız stil katmanları yeniden kurulur.
+    const onStyleToggle = () => { map.setStyle(liteMap() ? LITE_STYLE : SAT_STYLE) }
+    window.addEventListener('hooder-mapstyle', onStyleToggle)
+    map.on('style.load', () => { styleSetup(); reconcile(map) })
+
+    map.on('load', () => {
+      map.resize()
+      styleSetup()
 
       // ── Veriyi hazırla + ekrandaki marker'ları kur (viewport culling) ──────
       refreshData()
@@ -506,6 +510,7 @@ export default function MapView({
       //    tekrar fetch yok, API yükü sınırlı. Tüm dünya için geçerli.
       const exploreThrottle = isDesktop ? 120 : 150
       let lastExplore = 0
+      let prefetchT: ReturnType<typeof setTimeout> | null = null  // komşu hücre ön-yükleme zamanlayıcısı
       // ANLIK ETİKET: marker'ları gezinti DEVAM EDERKEN de senkronla (reconcile).
       // Eskiden reconcile yalnız moveend'de çalışıyordu → etiketler ancak durunca
       // beliriyordu (gecikme; bazen hiç çıkmıyordu). Artık her ~55 ms'de bir (en ufak
@@ -541,12 +546,25 @@ export default function MapView({
         if (z >= zHood && cbMapExplore.current) {
           const c = map.getCenter()
           cbMapExplore.current(c.lat, c.lng)
+          // ── ÖN-YÜKLEME: 700ms boşta kalınca komşu 4 hücreyi ısıt → o yöne
+          //    kaydırınca veri/marker hazır gelir. alreadyFetched zaten ısıtılanı
+          //    atlar (gereksiz API yok); kalıcı cache ile birlikte revisit anında.
+          const b = map.getBounds()
+          if (b) {
+            const dLat = (b.getNorth() - b.getSouth()) * 0.8, dLng = (b.getEast() - b.getWest()) * 0.8
+            if (prefetchT) clearTimeout(prefetchT)
+            prefetchT = setTimeout(() => {
+              const ex = cbMapExplore.current; if (!ex) return
+              ex(c.lat + dLat, c.lng); ex(c.lat - dLat, c.lng); ex(c.lat, c.lng + dLng); ex(c.lat, c.lng - dLng)
+            }, 700)
+          }
         }
       })
     })
 
     return () => {
       window.removeEventListener('resize', onResize)
+      window.removeEventListener('hooder-mapstyle', onStyleToggle)
       countryMkrs.current.forEach(m => m.remove())
       cityMkrs.current.forEach(m => m.remove())
       hoodMkrs.current.forEach(m => m.remove())

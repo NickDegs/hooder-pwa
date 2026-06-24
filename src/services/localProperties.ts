@@ -12,7 +12,7 @@ const TOKEN = import.meta.env.VITE_MAPBOX_TOKEN ?? ''
 // Dinamik mülk kayıt defteri (id → Property) — kalıcılık (reload sonrası owned
 // lookup) ve marker render için.
 const registry = new Map<string, Property>()
-export function registerProperties(props: Property[]) { props.forEach(p => registry.set(p.id, p)) }
+export function registerProperties(props: Property[]) { props.forEach(p => registry.set(p.id, p)); persistSoon() }
 export function getRegisteredProperty(id: string): Property | undefined { return registry.get(id) }
 export function allDynamicProperties(): Property[] { return [...registry.values()] }
 
@@ -20,6 +20,31 @@ export function allDynamicProperties(): Property[] { return [...registry.values(
 // olduğundan eşik de ~1km olmalı — yoksa biraz kaydırınca "zaten çekildi" sanıp
 // komşu alanı çekmez ve mülk marker'ları görünmezdi.
 const fetchedAreas: { lat: number; lng: number }[] = []
+
+// ── KALICI CACHE (hız): çekilen mülkler + bölgeler localStorage'da saklanır.
+// Reload/yeniden açılışta hidrate edilir → daha önce gidilen yere dönünce
+// marker'lar ANINDA (yeni API çağrısı yok), Market de dolu açılır. ~2000 mülk cap.
+const REG_KEY = 'hooder_dyn_props_v1', AREA_KEY = 'hooder_fetched_areas_v1'
+let _persistTimer: ReturnType<typeof setTimeout> | null = null
+function persistSoon() {
+  if (_persistTimer) return
+  _persistTimer = setTimeout(() => {
+    _persistTimer = null
+    try {
+      localStorage.setItem(REG_KEY, JSON.stringify([...registry.values()].slice(-2000)))
+      localStorage.setItem(AREA_KEY, JSON.stringify(fetchedAreas.slice(-500)))
+    } catch { /* kota dolu olabilir, geç */ }
+  }, 1500)
+}
+function hydrate() {
+  try {
+    const r = JSON.parse(localStorage.getItem(REG_KEY) || '[]')
+    if (Array.isArray(r)) for (const p of r) if (p && p.id) registry.set(p.id, p)
+    const a = JSON.parse(localStorage.getItem(AREA_KEY) || '[]')
+    if (Array.isArray(a)) for (const x of a) if (x && typeof x.lat === 'number' && typeof x.lng === 'number') fetchedAreas.push(x)
+  } catch { /* bozuksa boş başla */ }
+}
+hydrate()
 function alreadyFetched(lat: number, lng: number): boolean {
   // ~33 m: MİNİMUM yükleme mesafesi (Barış). Haritada milim oynayınca bile o anki
   // merkezin mülkleri ANINDA çekilir → "baktığın yer hep dolu". Yalnız neredeyse

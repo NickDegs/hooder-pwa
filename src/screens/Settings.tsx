@@ -40,6 +40,14 @@ export default function Settings() {
 
   // ── Yönetici: hediye kodu üret (kaç kullanım/ödül/adet SEN belirlersin) ──
   const [adminTok,  setAdminTok]  = useState(() => { try { return localStorage.getItem('hooder_admin') || '' } catch { return '' } })
+  // Hızlı (lite) harita: uydu yerine hafif vektör stil → yavaş bağlantıda hızlı yüklenir.
+  const [liteMap,   setLiteMap]   = useState(() => { try { return localStorage.getItem('hooder_map_lite') === '1' } catch { return false } })
+  function toggleLiteMap() {
+    const next = !liteMap
+    setLiteMap(next)
+    try { localStorage.setItem('hooder_map_lite', next ? '1' : '0') } catch { /* yoksay */ }
+    try { window.dispatchEvent(new Event('hooder-mapstyle')) } catch { /* yoksay */ }
+  }
   const [gReward,   setGReward]   = useState(25)     // milyon
   const [gUses,     setGUses]     = useState(1)      // kaç kullanım
   const [gCount,    setGCount]    = useState(5)      // kaç kod
@@ -296,6 +304,35 @@ export default function Settings() {
                 >{opt.label}</button>
               )
             })}
+          </div>
+        </GlassCard>
+
+        {/* Hızlı (lite) harita */}
+        <GlassCard style={{ marginBottom: 'var(--sp-lg)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 16 }}>🗺️</span>
+            <div style={{ flex: 1 }}>
+              <div className="t-bold" style={{ color: 'var(--text)' }}>Hızlı Harita (Lite)</div>
+              <div className="t-caption" style={{ color: 'var(--text-muted)' }}>
+                Uydu yerine hafif vektör harita · yavaş bağlantıda çok daha hızlı yüklenir
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={toggleLiteMap}
+              aria-label="Hızlı harita"
+              style={{
+                width: 52, height: 30, borderRadius: 999, flexShrink: 0, position: 'relative',
+                background: liteMap ? 'var(--primary)' : 'rgba(255,255,255,0.16)',
+                transition: 'background 0.2s',
+              }}
+            >
+              <span style={{
+                position: 'absolute', top: 3, left: liteMap ? 25 : 3, width: 24, height: 24,
+                borderRadius: '50%', background: '#fff', transition: 'left 0.2s',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
+              }} />
+            </button>
           </div>
         </GlassCard>
 
