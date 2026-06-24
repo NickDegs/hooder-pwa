@@ -8,6 +8,7 @@ import { useDragSheet } from './services/useDragSheet'
 import { useLang } from './services/i18n'
 import { initEconomy } from './services/economy'
 import { initPush } from './services/push'
+import { initIAP } from './services/iap'
 
 import MapView            from './components/MapView'
 import TabBar             from './components/TabBar'
@@ -82,6 +83,11 @@ export default function App() {
 
   // Push bildirimleri (yalnız native iOS) — izin + APNs kayıt + token backend'e
   useEffect(() => { if (user) initPush(user.token) }, [user?.uid]) // eslint-disable-line
+
+  // IAP'yi APP AÇILIŞINDA başlat (native): Store sekmesi açılmasa bile App Store ile
+  // senkron olur ve BİTMEMİŞ/owned consumable işlemler (Ask-to-Buy, kesinti, relaunch)
+  // teslim edilip cash kredisi verilir. initIAP idempotent (Store'da tekrar çağrılması sorun değil).
+  useEffect(() => { if (user) initIAP().catch(() => {}) }, [user?.uid]) // eslint-disable-line
 
   // Kabul edilen tekliflerin nakit/mülk transferlerini uygula (girişli oyuncular)
   useEffect(() => { if (user?.token) useGame.getState().claimTransfers() }, [user?.uid]) // eslint-disable-line

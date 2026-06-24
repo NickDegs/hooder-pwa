@@ -6,7 +6,7 @@ import GlassCard from '../components/GlassCard'
 
 import { API_BASE as API } from '../services/apiBase'
 import { isNativeIOS } from '../services/platform'
-import { initIAP, purchase as iapPurchase } from '../services/iap'
+import { initIAP, purchase as iapPurchase, setIapCreditUI, iapProductId } from '../services/iap'
 
 // localStorage'dan güvenli kullanıcı kimliği (bozuk JSON → 'guest')
 function getUserId(): string {
@@ -68,9 +68,14 @@ export default function Store() {
       .then(r => r.json())
       .then((pkgs: Package[]) => {
         setPackages(pkgs)
-        // Native iOS: paketleri Apple IAP (StoreKit) ürünleri olarak kaydet
+        // Native iOS: paketleri Apple IAP (StoreKit) ürünleri olarak kaydet +
+        // kredi geri-bildirim toast'ını bağla (cash event'te verilir, burada SADECE toast).
         if (isNativeIOS && Array.isArray(pkgs) && pkgs.length) {
           initIAP(pkgs.map(p => p.id)).catch(() => {})
+          setIapCreditUI((pid, amount) => {
+            const name = pkgs.find(p => iapProductId(p.id) === pid)?.name || ''
+            showToast(`🎉 ${name ? name + ' — ' : ''}+${formatPrice(amount)}`, true)
+          })
         }
       })
       .catch(() => setPackages([]))
@@ -125,9 +130,10 @@ export default function Store() {
     // ── Native iOS: yalnızca Apple In-App Purchase (App Store kuralı) ──
     if (isNativeIOS) {
       try {
+        // CASH KREDİSİ iap.ts event'inde verilir (purchase promise'ine bağlı DEĞİL;
+        // iPad/relaunch/Ask-to-Buy'da bile cash güvence altında). Burada addCash YOK
+        // → çift kredi olmaz. Başarı toast'ı setIapCreditUI callback'inden gelir.
         await iapPurchase(pkg.id)
-        addCash(pkg.cash)
-        showToast(`🎉 ${pkg.name} eklendi! +${formatPrice(pkg.cash)}`, true)
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'Satın alma başarısız'
         // Kullanıcı iptali sessiz geçilir
