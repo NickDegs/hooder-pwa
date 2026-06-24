@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, type CSSProperties } from 'react'
+import { createPortal } from 'react-dom'
 import { allProperties, dynamicProperties, allCities, categoryMeta, type PropertyCategory, type Property, formatPrice, formatIncome } from '../data'
 import { livePrice, liveIncome } from '../services/economy'
 import { ownershipPremium } from '../data'
@@ -319,21 +320,26 @@ export default function Market() {
         </div>
       </div>
 
-      {/* Confirm dialog */}
-      {confirm && (
+      {/* Confirm dialog — PORTAL ile document.body'ye render edilir.
+          KRİTİK iOS FIX: dialog Market, transform'lu "ekran paneli" (bottom sheet)
+          içinde render edilince position:fixed viewport'a DEĞİL o panele göre konumlanıp
+          kart tab bar arkasına düşüyor/görünmüyordu. Portal ile panelden çıkarılır →
+          tam ekran ortada, opak kart, blur yok. */}
+      {confirm && createPortal(
         <div style={{
-          position: 'fixed', inset: 0, zIndex: 200,
-          // iOS FIX: tam-ekran backdrop-filter:blur KULLANMA — 3D harita üstünde
-          // GlassCard blur'u ile üst üste binince WKWebView'de kompozisyon çöker →
-          // SİYAH EKRAN. Katı koyu zemin kullanılır (blur yok).
-          background: 'rgba(6,8,16,0.82)',
-          display: 'flex', alignItems: 'flex-end',
+          position: 'fixed', inset: 0, zIndex: 99999,
+          background: 'rgba(4,6,12,0.88)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
           padding: 'var(--sp-lg)',
-          paddingBottom: 'calc(var(--sp-lg) + var(--safe-bottom))',
           animation: 'fadeIn 0.2s ease',
         }} onClick={() => setConfirm(null)}>
-          <div style={{ width: '100%', maxWidth: 480, margin: '0 auto' }} onClick={e => e.stopPropagation()}>
-          <div style={LIST_CARD}>
+          <div onClick={e => e.stopPropagation()} style={{
+            width: '100%', maxWidth: 460,
+            background: '#141a28',                 // OPAK kart (yarı-saydam değil → her zaman net görünür)
+            border: '0.5px solid rgba(255,255,255,0.16)',
+            borderRadius: 20, padding: 22,
+            boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
+          }}>
             <div className="t-h3" style={{ color: 'var(--text)', marginBottom: 4 }}>Satın al: {confirm.name}</div>
             <div className="t-body" style={{ color: 'var(--text-muted)', marginBottom: 'var(--sp-lg)' }}>
               Mevcut nakit: {formatPrice(cash)}
@@ -341,7 +347,7 @@ export default function Market() {
             <div style={{ display: 'flex', gap: 'var(--sp-sm)' }}>
               <button onClick={() => setConfirm(null)} style={{
                 flex: 1, padding: 'var(--sp-md)', borderRadius: 'var(--r-lg)',
-                background: 'rgba(255,255,255,0.08)',
+                background: 'rgba(255,255,255,0.10)',
               }}>
                 <span className="t-btn-md" style={{ color: 'var(--text-sub)' }}>İptal</span>
               </button>
@@ -353,8 +359,8 @@ export default function Market() {
               </button>
             </div>
           </div>
-          </div>
-        </div>
+        </div>,
+        document.body,
       )}
 
       {/* Toast */}
