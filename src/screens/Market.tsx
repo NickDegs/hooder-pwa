@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect, type CSSProperties } from 'react'
-import { createPortal } from 'react-dom'
 import { allProperties, dynamicProperties, allCities, categoryMeta, type PropertyCategory, type Property, formatPrice, formatIncome } from '../data'
 import { livePrice, liveIncome } from '../services/economy'
 import { ownershipPremium } from '../data'
@@ -298,6 +297,26 @@ export default function Market() {
                       <span style={{ fontSize: 12 }}>✅</span>
                       <span className="t-btn-sm" style={{ color: 'var(--green)' }}>Sahipsiniz</span>
                     </div>
+                  ) : confirm?.id === prop.id ? (
+                    // İNLINE ONAY (iOS siyah-ekran fix): tam-ekran modal/overlay YOK.
+                    // "Satın Al"a basınca buton, kart İÇİNDE "İptal / Onayla" ikilisine
+                    // dönüşür → overlay olmadığından iOS'ta asla siyah kalmaz.
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <button onClick={() => setConfirm(null)} style={{
+                        padding: '6px 12px', borderRadius: 'var(--r-full)',
+                        background: 'rgba(255,255,255,0.12)',
+                      }}>
+                        <span className="t-btn-sm" style={{ color: 'var(--text-sub)' }}>{t('cancel')}</span>
+                      </button>
+                      <button onClick={() => handleBuy(prop)} style={{
+                        padding: '6px 14px', borderRadius: 'var(--r-full)',
+                        background: 'var(--green)',
+                      }}>
+                        <span className="t-btn-sm" style={{ color: '#04110a' }}>
+                          ✓ {formatPrice(Math.round(livePrice(prop.price) * premium))}
+                        </span>
+                      </button>
+                    </div>
                   ) : (
                     <button
                       onClick={() => setConfirm(prop)}
@@ -319,49 +338,6 @@ export default function Market() {
           })}
         </div>
       </div>
-
-      {/* Confirm dialog — PORTAL ile document.body'ye render edilir.
-          KRİTİK iOS FIX: dialog Market, transform'lu "ekran paneli" (bottom sheet)
-          içinde render edilince position:fixed viewport'a DEĞİL o panele göre konumlanıp
-          kart tab bar arkasına düşüyor/görünmüyordu. Portal ile panelden çıkarılır →
-          tam ekran ortada, opak kart, blur yok. */}
-      {confirm && createPortal(
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 99999,
-          background: 'rgba(4,6,12,0.88)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: 'var(--sp-lg)',
-          animation: 'fadeIn 0.2s ease',
-        }} onClick={() => setConfirm(null)}>
-          <div onClick={e => e.stopPropagation()} style={{
-            width: '100%', maxWidth: 460,
-            background: '#141a28',                 // OPAK kart (yarı-saydam değil → her zaman net görünür)
-            border: '0.5px solid rgba(255,255,255,0.16)',
-            borderRadius: 20, padding: 22,
-            boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
-          }}>
-            <div className="t-h3" style={{ color: 'var(--text)', marginBottom: 4 }}>Satın al: {confirm.name}</div>
-            <div className="t-body" style={{ color: 'var(--text-muted)', marginBottom: 'var(--sp-lg)' }}>
-              Mevcut nakit: {formatPrice(cash)}
-            </div>
-            <div style={{ display: 'flex', gap: 'var(--sp-sm)' }}>
-              <button onClick={() => setConfirm(null)} style={{
-                flex: 1, padding: 'var(--sp-md)', borderRadius: 'var(--r-lg)',
-                background: 'rgba(255,255,255,0.10)',
-              }}>
-                <span className="t-btn-md" style={{ color: 'var(--text-sub)' }}>İptal</span>
-              </button>
-              <button onClick={() => handleBuy(confirm)} style={{
-                flex: 2, padding: 'var(--sp-md)', borderRadius: 'var(--r-lg)',
-                background: 'var(--primary)',
-              }}>
-                <span className="t-btn-md" style={{ color: '#000' }}>Satın Al — {formatPrice(Math.round(livePrice(confirm.price) * premium))}</span>
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body,
-      )}
 
       {/* Toast */}
       {toast && (
