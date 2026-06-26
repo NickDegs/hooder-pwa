@@ -313,9 +313,8 @@ export default function App() {
           <div style={{
             width: 440, height: '100dvh', flexShrink: 0,
             display: 'flex', flexDirection: 'column',
-            background: 'rgba(4,8,15,0.32)',
-            backdropFilter: 'blur(32px) saturate(160%)',
-            WebkitBackdropFilter: 'blur(32px) saturate(160%)',
+            // Opak zemin (WebGL harita üzerinde backdrop-filter siyah ekran riski)
+            background: 'rgba(8,12,20,0.985)',
             borderLeft: '0.5px solid var(--specular)',
             animation: 'slideFromRight 0.55s cubic-bezier(0.22,1,0.36,1) forwards',
           }}>
@@ -369,9 +368,12 @@ export default function App() {
     position: 'fixed', bottom: 0, left: 0, right: 0,
     height: isDesktop ? 'var(--panel-h)' : `${screenSheet.fullDvh.toFixed(1)}dvh`, zIndex: 50,
     display: 'flex', flexDirection: 'column',
-    background: 'rgba(4,8,18,0.24)',
-    backdropFilter: 'blur(44px) saturate(200%)',
-    WebkitBackdropFilter: 'blur(44px) saturate(200%)',
+    // KRİTİK iOS SİYAH-EKRAN FIX (Barış): Panel, Mapbox WebGL canvas'ının ÜSTÜNDE.
+    // iOS WKWebView bir WebGL canvas'ı backdrop-filter ile blur'layamaz → panel
+    // SİYAH/karanlık render olur (Piyasa'ya basınca kara ekran). Bu yüzden panel
+    // OPAK katı zemin kullanır (backdrop-filter YOK) → her zaman net, kara ekran yok.
+    // Cam hissi lg-sheen (::after parıltı) + lg-edge (kenar highlight) ile korunur.
+    background: 'rgba(10,14,24,0.985)',
     borderTop: '0.5px solid rgba(255,255,255,0.18)',
     borderRadius: 'var(--r-2xl) var(--r-2xl) 0 0',
     boxShadow: '0 -12px 60px rgba(0,0,0,0.65), inset 0 0.5px 0 rgba(255,255,255,0.2)',
@@ -662,7 +664,9 @@ export default function App() {
       )}
 
       {/* ── Ekran paneli (harita dışı sekmeler) ─────────────────── */}
-      <div className="lg-refract lg-sheen lg-edge" style={screenPanelStyle}>
+      {/* NOT: lg-refract (SVG backdrop-filter) KALDIRILDI — WebGL harita üzerinde
+          iOS'ta siyah ekrana yol açıyordu. Opak zemin + lg-sheen/lg-edge yeterli. */}
+      <div className="lg-sheen lg-edge" style={screenPanelStyle}>
         {/* Çekme tutacağı — yukarı çek: tam ekran · aşağı çek: haritaya dön */}
         <div
           {...(isDesktop ? {} : screenSheet.handlers)}

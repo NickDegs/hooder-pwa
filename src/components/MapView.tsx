@@ -338,27 +338,47 @@ export default function MapView({
     const dLat = (b.getNorth() - b.getSouth()) * 0.12, dLng = (b.getEast() - b.getWest()) * 0.12
     const inView = (lng: number, lat: number) =>
       lat >= b.getSouth() - dLat && lat <= b.getNorth() + dLat && lng >= b.getWest() - dLng && lng <= b.getEast() + dLng
-    // ÇAKIŞMA ÖNLEME (declutter): etiketler iç içe girip yığılmasın. data DEĞERE göre
-    // sıralı geldiğinden (en değerli önce), ekran-uzayında bir etikete çok yakın düşen
-    // daha düşük öncelikli etiket GİZLENİR → yoğun bölgede sade, okunur, en değerli
-    // mülkler görünür. Pill'ler enine geniş olduğundan yatay boşluk daha büyük tutulur.
+    // ÇAKIŞMA ÖNLEME (declutter) + MERKEZ ÖNCELİĞİ: etiketler iç içe girmesin AMA
+    // kullanıcının BAKTIĞI yer (ekran merkezi = onun konumu) hep dolu olsun. Eskiden
+    // yerleştirme global fiyat sırasındaydı → en değerli mülkler ekranın KENARINDAysa
+    // merkez (senin konumun) boş kalıp etiketler "sağdan" çıkıyordu. Artık adaylar
+    // EKRAN MERKEZİNE uzaklığa göre sıralanır (yakın olan önce yer kapar) → bulunduğun
+    // yer her zaman dolu, kenarlar boşluk doldurur. Pill'ler enine geniş → yatay boşluk büyük.
     const placed: { x: number; y: number }[] = []
     const gapX = minGapPx, gapY = minGapPx * 0.52
-    const collides = (lng: number, lat: number): boolean => {
-      if (minGapPx <= 0) return false
-      const p = map.project([lng, lat])
-      for (const q of placed) { if (Math.abs(q.x - p.x) < gapX && Math.abs(q.y - p.y) < gapY) return true }
-      placed.push({ x: p.x, y: p.y }); return false
-    }
     const want = new Set<string>()
-    for (const it of data) {
-      const k = keyOf(it)
-      if (avoidWater && waterIds.current.has(k)) continue   // bilinen deniz mülkü → atla
-      const [lng, lat] = lnglatOf(it)
-      if (!inView(lng, lat)) continue
-      if (avoidWater && isWater(map, lng, lat)) { waterIds.current.add(k); continue } // deniz üstü → kalıcı atla
-      if (collides(lng, lat)) continue   // başka bir etiketle üst üste → gizle
-      want.add(k); if (want.size >= cap) break
+    if (minGapPx > 0) {
+      const cont = map.getContainer()
+      const ccx = cont.clientWidth / 2, ccy = cont.clientHeight / 2
+      // Görünür adayları topla + ekran konumlarını bir kez projekte et
+      const cand: { k: string; x: number; y: number; d: number }[] = []
+      for (const it of data) {
+        const k = keyOf(it)
+        if (avoidWater && waterIds.current.has(k)) continue   // bilinen deniz mülkü → atla
+        const [lng, lat] = lnglatOf(it)
+        if (!inView(lng, lat)) continue
+        if (avoidWater && isWater(map, lng, lat)) { waterIds.current.add(k); continue } // deniz üstü → kalıcı atla
+        const p = map.project([lng, lat])
+        cand.push({ k, x: p.x, y: p.y, d: Math.hypot(p.x - ccx, p.y - ccy) })
+      }
+      // Ekran merkezine yakın olanları ÖNCE yerleştir (kullanıcının konumu dolsun)
+      cand.sort((a, b) => a.d - b.d)
+      for (const c of cand) {
+        let hit = false
+        for (const q of placed) { if (Math.abs(q.x - c.x) < gapX && Math.abs(q.y - c.y) < gapY) { hit = true; break } }
+        if (hit) continue
+        placed.push({ x: c.x, y: c.y })
+        want.add(c.k); if (want.size >= cap) break
+      }
+    } else {
+      for (const it of data) {
+        const k = keyOf(it)
+        if (avoidWater && waterIds.current.has(k)) continue
+        const [lng, lat] = lnglatOf(it)
+        if (!inView(lng, lat)) continue
+        if (avoidWater && isWater(map, lng, lat)) { waterIds.current.add(k); continue }
+        want.add(k); if (want.size >= cap) break
+      }
     }
     // Görünürden çıkanları haritadan kaldır + havuzdan SİL (ekran dışı = RAM yemez,
     // "pasif". Geri gelince yeniden oluşturulur — cap'li olduğu için ucuz.)
@@ -388,8 +408,9 @@ export default function MapView({
     syncTier(map, false, countryMkrs, attCountry, [], () => '', () => [0, 0], makeCountryMarker, 1)
     syncTier(map, false, cityMkrs,    attCity,    [], () => '', () => [0, 0], makeCityMarker, 1)
     syncTier(map, false, hoodMkrs,    attHood,    [], () => '', () => [0, 0], makeHoodMarker, 1)
-    // minGapPx: etiketler birbirine binmesin (pill genişliği ~120px → yatay ~96px boşluk)
-    syncTier(map, propTier, propMkrs, attProp, propsData.current, p => p.id, p => [p.lng, p.lat], makePropMarker, big ? 90 : 48, true, big ? 104 : 96)
+    // minGapPx: etiketler birbirine binmesin (pill ~120px). Mobilde gap biraz
+    // küçültüldü + cap artırıldı → merkez/konum bölgesi daha dolu, yine de okunur.
+    syncTier(map, propTier, propMkrs, attProp, propsData.current, p => p.id, p => [p.lng, p.lat], makePropMarker, big ? 100 : 60, true, big ? 100 : 84)
 
     // Liste için: ekranda görünen mülkleri DEĞERE göre (büyükten küçüğe) bildir
     if (cbVisibleProps.current) {
