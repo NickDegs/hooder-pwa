@@ -32,6 +32,7 @@ interface Props {
   onMapPick?:            (lat: number, lng: number) => void  // haritada boş bir yere tıkla → o bölgeyi yükle/aç
   onMapExplore?:         (lat: number, lng: number) => void  // gezinti (pan) bitince o bölgeyi yükle (panel açmadan, canlı etiket)
   onVisibleProps?:       (props: Property[]) => void  // ekranda görünen mülkler (liste için, değere göre sıralı)
+  onDense?:              (dense: boolean) => void      // ekran çok mülk içeriyor → marker yerine liste aç
   onMapCenter?:          (hood: HoodGroup | null) => void
   flyToCity:             City | null
   highlightHood?:        string | null
@@ -191,7 +192,7 @@ function makePropEl(prop: Property, isOwned: boolean): HTMLElement {
 // ── Component ──────────────────────────────────────────────────────────────────
 
 export default function MapView({
-  selectedProperty, onSelectProperty, onSelectNeighborhood, onMapClick, onMapPick, onMapExplore, onVisibleProps, onMapCenter, flyToCity, highlightHood, ownedIds = [], isDesktop = false, localVersion = 0,
+  selectedProperty, onSelectProperty, onSelectNeighborhood, onMapClick, onMapPick, onMapExplore, onVisibleProps, onDense, onMapCenter, flyToCity, highlightHood, ownedIds = [], isDesktop = false, localVersion = 0,
 }: Props) {
   const { lang } = useLang()
   const containerRef = useRef<HTMLDivElement>(null)
@@ -212,6 +213,7 @@ export default function MapView({
   const cbMapPick     = useRef(onMapPick)
   const cbMapExplore  = useRef(onMapExplore)
   const cbVisibleProps = useRef(onVisibleProps); cbVisibleProps.current = onVisibleProps
+  const cbDense       = useRef(onDense); cbDense.current = onDense
   const cbMapCenter   = useRef(onMapCenter)
   cbSelect.current    = onSelectProperty
   cbHood.current      = onSelectNeighborhood
@@ -421,21 +423,32 @@ export default function MapView({
     syncTier(map, false, countryMkrs, attCountry, [], () => '', () => [0, 0], makeCountryMarker, 1)
     syncTier(map, false, cityMkrs,    attCity,    [], () => '', () => [0, 0], makeCityMarker, 1)
     syncTier(map, false, hoodMkrs,    attHood,    [], () => '', () => [0, 0], makeHoodMarker, 1)
-    // KASMA ÖNLEME (Barış): cap düşürüldü + gap büyütüldü → mahalle zoom'unda aynı
-    // anda az sayıda (okunur) mülk marker'ı çizilir, GPU patlamaz. Merkez önceliği korunur.
-    syncTier(map, propTier, propMkrs, attProp, propsData.current, p => p.id, p => [p.lng, p.lat], makePropMarker, big ? 70 : 40, true, big ? 92 : 84)
+
+    // Ekrandaki mülkleri bir kez hesapla (hem yoğunluk hem liste için)
+    let inView: Property[] = []
+    if (propTier) {
+      const b = map.getBounds()
+      if (b) {
+        const dLat = (b.getNorth() - b.getSouth()) * 0.12, dLng = (b.getEast() - b.getWest()) * 0.12
+        inView = propsData.current.filter(p =>
+          p.lat >= b.getSouth() - dLat && p.lat <= b.getNorth() + dLat && p.lng >= b.getWest() - dLng && p.lng <= b.getEast() + dLng)
+      }
+    }
+    // ── YOĞUNLUK SINIRI (Barış: "belli limitten sonra sadece liste") ──────────────
+    // Ekranda DENSE'ten çok mülk varsa harita marker'larını HİÇ çizme: yüzlerce DOM
+    // marker iOS'ta GPU'yu patlatıp aşırı kasıyordu + harita dokunulamaz hale geliyordu.
+    // O durumda marker yok (harita temiz, akıcı) → App liste panelini açar (tüm mülkler
+    // değere göre sıralı). Az mülklü (seyrek) bölgede yine marker gösterilir.
+    const DENSE = big ? 40 : 18
+    const dense = propTier && inView.length > DENSE
+    // KASMA ÖNLEME: yoğunsa marker tier'ı pasif (çizilmez) → liste devralır.
+    syncTier(map, propTier && !dense, propMkrs, attProp, propsData.current, p => p.id, p => [p.lng, p.lat], makePropMarker, big ? 40 : 18, true, big ? 92 : 84)
+    cbDense.current?.(dense)
 
     // Liste için: ekranda görünen mülkleri DEĞERE göre (büyükten küçüğe) bildir
     if (cbVisibleProps.current) {
-      if (!propTier) { cbVisibleProps.current([]) }
-      else {
-        const b = map.getBounds()
-        const dLat = b ? (b.getNorth() - b.getSouth()) * 0.12 : 0, dLng = b ? (b.getEast() - b.getWest()) * 0.12 : 0
-        const inView = b ? propsData.current.filter(p =>
-          p.lat >= b.getSouth() - dLat && p.lat <= b.getNorth() + dLat && p.lng >= b.getWest() - dLng && p.lng <= b.getEast() + dLng) : []
-        inView.sort((a, c) => livePrice(c.price) - livePrice(a.price))
-        cbVisibleProps.current(inView.slice(0, 120))
-      }
+      if (!propTier) cbVisibleProps.current([])
+      else { const s = inView.slice().sort((a, c) => livePrice(c.price) - livePrice(a.price)); cbVisibleProps.current(s.slice(0, 200)) }
     }
   }
 

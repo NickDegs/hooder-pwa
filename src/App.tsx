@@ -60,6 +60,16 @@ export default function App() {
   const [showCityPicker, setShowCityPicker] = useState(false)
   const [visibleProps,   setVisibleProps]   = useState<Property[]>([])  // ekranda görünen mülkler (liste)
   const [showList,       setShowList]        = useState(false)          // harita ↔ liste
+  const listDismissedRef = useRef(false)     // yoğun bölgede liste elle kapatıldı → pan'de tekrar açma
+
+  // Harita çok mülk içerince (yoğun): marker yerine LİSTE aç (Barış: "limitten sonra
+  // sadece liste"). Kullanıcı listeyi kapatırsa (listDismissed) yoğunluk sürdükçe geri
+  // açma; seyrek bölgeye/uzağa gidince guard sıfırlanır → bir sonraki yoğun bölgede yine açılır.
+  function handleDense(dense: boolean) {
+    if (!dense) { listDismissedRef.current = false; return }
+    if (tab === 0 && !showList && !selectedProp && !selectedHood && !claimTarget && !listDismissedRef.current) setShowList(true)
+  }
+  function closeList() { setShowList(false); listDismissedRef.current = true }
 
   useEffect(() => {
     if (!user) return
@@ -243,6 +253,7 @@ export default function App() {
             onMapPick={handleMapPick}
             onMapExplore={handleMapExplore}
             onVisibleProps={setVisibleProps}
+            onDense={handleDense}
             onMapCenter={h => { if (h) setSelectedHood(h) }}
             flyToCity={flyToCity}
             highlightHood={selectedHood?.key ?? null}
@@ -355,7 +366,7 @@ export default function App() {
           </button>
         )}
         {isMap && showList && (
-          <PropertyListPanel props={visibleProps} onSelect={(p) => { setShowList(false); handleSelectProperty(p) }} onClose={() => setShowList(false)} isDesktop />
+          <PropertyListPanel props={visibleProps} onSelect={(p) => { setShowList(false); handleSelectProperty(p) }} onClose={closeList} isDesktop />
         )}
       </div>
     )
@@ -397,6 +408,7 @@ export default function App() {
         onMapPick={handleMapPick}
         onMapExplore={handleMapExplore}
         onVisibleProps={setVisibleProps}
+        onDense={handleDense}
         onMapCenter={h => setLiveHood(h)}
         flyToCity={flyToCity}
         highlightHood={(selectedHood ?? liveHood)?.key ?? null}
@@ -588,7 +600,7 @@ export default function App() {
         <PropertyListPanel
           props={visibleProps}
           onSelect={(p) => { setShowList(false); handleSelectProperty(p) }}
-          onClose={() => setShowList(false)}
+          onClose={closeList}
           isDesktop={false}
         />
       )}
