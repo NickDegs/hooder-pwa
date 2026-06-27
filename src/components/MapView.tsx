@@ -78,7 +78,7 @@ const TXT_GLOW = 'text-shadow:0 1px 3px rgba(0,0,0,0.85),0 0 10px rgba(0,0,0,0.5
 // Country glass pill — EN ÜST kademe, en büyük/belirgin
 function makeCountryEl(g: CountryGroup): HTMLElement {
   const wrap = document.createElement('div')
-  wrap.style.cssText = 'cursor:pointer;padding:6px;width:max-content;animation:markerIn 0.34s cubic-bezier(0.22,1,0.36,1) both;'
+  wrap.style.cssText = 'cursor:pointer;padding:6px;width:max-content;animation:markerIn 0.08s linear both;'
   const el = document.createElement('div')
   el.style.cssText = `
     display:flex;flex-direction:column;align-items:center;
@@ -102,7 +102,7 @@ function makeCountryEl(g: CountryGroup): HTMLElement {
 // City glass pill
 function makeCityEl(g: CityGroup, count: number): HTMLElement {
   const wrap = document.createElement('div')
-  wrap.style.cssText = 'cursor:pointer;padding:5px;width:max-content;animation:markerIn 0.34s cubic-bezier(0.22,1,0.36,1) both;'
+  wrap.style.cssText = 'cursor:pointer;padding:5px;width:max-content;animation:markerIn 0.08s linear both;'
   const el = document.createElement('div')
   el.style.cssText = `
     display:flex;flex-direction:column;align-items:center;
@@ -126,7 +126,7 @@ function makeCityEl(g: CityGroup, count: number): HTMLElement {
 // Neighbourhood card
 function makeHoodEl(h: HoodGroup, ownedCount: number, isSelected: boolean): HTMLElement {
   const wrap = document.createElement('div')
-  wrap.style.cssText = 'cursor:pointer;padding:4px;width:max-content;animation:markerIn 0.34s cubic-bezier(0.22,1,0.36,1) both;'
+  wrap.style.cssText = 'cursor:pointer;padding:4px;width:max-content;animation:markerIn 0.08s linear both;'
   const accent = ownedCount > 0 ? 'rgba(48,209,88,0.45)' : 'rgba(255,255,255,0.18)'
   const pct = Math.round((ownedCount / h.properties.length) * 100)
 
@@ -164,7 +164,7 @@ function makeHoodEl(h: HoodGroup, ownedCount: number, isSelected: boolean): HTML
 function makePropEl(prop: Property, isOwned: boolean): HTMLElement {
   const meta = categoryMeta[prop.category]
   const wrap = document.createElement('div')
-  wrap.style.cssText = 'cursor:pointer;padding:5px;width:max-content;animation:markerIn 0.34s cubic-bezier(0.22,1,0.36,1) both;'
+  wrap.style.cssText = 'cursor:pointer;padding:5px;width:max-content;animation:markerIn 0.08s linear both;'
   const el = document.createElement('div')
   el.style.cssText = `
     display:flex;align-items:center;gap:5px;
@@ -249,6 +249,10 @@ export default function MapView({
   // Su (deniz/göl) tespiti: stildeki su katmanları + su üstü çıkan id'ler (kalıcı atla)
   const waterLayers = useRef<string[]>([])
   const waterIds    = useRef<Set<string>>(new Set())
+  // Kara olduğu kesinleşen mülkler (su kontrolü bir KEZ yapılır; koordinat sabit →
+  // sonuç değişmez). Düşük reconcile throttle'ında her karede queryRenderedFeatures
+  // çağırmamak için: kara işaretliyse bir daha kontrol etme → akıcı kalır.
+  const landIds     = useRef<Set<string>>(new Set())
 
   // Platforma göre eşikler: masaüstü geniş ekran, mobil dar ekran
   const zHood = isDesktop ? Z_HOOD_DSK : Z_HOOD_MOB
@@ -357,7 +361,11 @@ export default function MapView({
         if (avoidWater && waterIds.current.has(k)) continue   // bilinen deniz mülkü → atla
         const [lng, lat] = lnglatOf(it)
         if (!inView(lng, lat)) continue
-        if (avoidWater && isWater(map, lng, lat)) { waterIds.current.add(k); continue } // deniz üstü → kalıcı atla
+        // Su kontrolü mülk başına BİR KEZ (kara cache'i) → her karede tekrar yok
+        if (avoidWater && !landIds.current.has(k)) {
+          if (isWater(map, lng, lat)) { waterIds.current.add(k); continue }
+          landIds.current.add(k)
+        }
         const p = map.project([lng, lat])
         cand.push({ k, x: p.x, y: p.y, d: Math.hypot(p.x - ccx, p.y - ccy) })
       }
@@ -376,7 +384,10 @@ export default function MapView({
         if (avoidWater && waterIds.current.has(k)) continue
         const [lng, lat] = lnglatOf(it)
         if (!inView(lng, lat)) continue
-        if (avoidWater && isWater(map, lng, lat)) { waterIds.current.add(k); continue }
+        if (avoidWater && !landIds.current.has(k)) {
+          if (isWater(map, lng, lat)) { waterIds.current.add(k); continue }
+          landIds.current.add(k)
+        }
         want.add(k); if (want.size >= cap) break
       }
     }
@@ -408,9 +419,9 @@ export default function MapView({
     syncTier(map, false, countryMkrs, attCountry, [], () => '', () => [0, 0], makeCountryMarker, 1)
     syncTier(map, false, cityMkrs,    attCity,    [], () => '', () => [0, 0], makeCityMarker, 1)
     syncTier(map, false, hoodMkrs,    attHood,    [], () => '', () => [0, 0], makeHoodMarker, 1)
-    // minGapPx: etiketler birbirine binmesin (pill ~120px). Mobilde gap biraz
-    // küçültüldü + cap artırıldı → merkez/konum bölgesi daha dolu, yine de okunur.
-    syncTier(map, propTier, propMkrs, attProp, propsData.current, p => p.id, p => [p.lng, p.lat], makePropMarker, big ? 100 : 60, true, big ? 100 : 84)
+    // minGapPx: saydam etiketler → kirlilik az (Barış). Gap küçültüldü + cap
+    // artırıldı → çok daha çok mülk etiketi anında görünür, merkez önceliği korunur.
+    syncTier(map, propTier, propMkrs, attProp, propsData.current, p => p.id, p => [p.lng, p.lat], makePropMarker, big ? 140 : 90, true, big ? 72 : 58)
 
     // Liste için: ekranda görünen mülkleri DEĞERE göre (büyükten küçüğe) bildir
     if (cbVisibleProps.current) {
@@ -537,7 +548,9 @@ export default function MapView({
       // beliriyordu (gecikme; bazen hiç çıkmıyordu). Artık her ~55 ms'de bir (en ufak
       // kıpırtıda) ekranda görünen ne varsa anında çizilir. reconcile cap'li (mobil
       // 48 marker) + viewport-culling olduğundan akıcı kalır.
-      const reconcileThrottle = isDesktop ? 50 : 55
+      // ANINDA ETİKET (Barış): throttle minimumda → en ufak kıpırtıda ekrandaki
+      // etiketler anında çizilir (gecikme yok). cap + viewport-culling akıcı tutar.
+      const reconcileThrottle = isDesktop ? 16 : 22
       let lastReconcile = 0
       map.on('move', () => {
         cbMapCenter.current?.(null)
