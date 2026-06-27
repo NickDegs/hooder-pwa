@@ -44,12 +44,14 @@ interface Props {
 // zoom < Z_COUNTRY: ülke (en büyük) · Z_COUNTRY..Z_HOOD: şehir/il
 // Z_HOOD..Z_PROP: ilçe/mahalle (artık İL GÖRÜNÜMÜNDE de görünür) · ≥ Z_PROP: mülk
 const Z_COUNTRY = 4.5
-// Desktop (macOS): geniş ekran. Mülk eşiği düşük → apartman dahil çok mülk haritada
+// Desktop (macOS): geniş ekran. Mülk eşiği MAHALLE seviyesine çekildi → uzaktan
+// yüzlerce mülk birden çizilip telefon/GPU kasmasın (Barış). İl/ilçe/mahalle ADLARI
+// haritanın kendi etiketlerinden gelir (kademeli); biz YALNIZ mahalle zoom'unda mülk gösteririz.
 const Z_HOOD_DSK = 9.5
-const Z_PROP_DSK = 11.5
-// Mobile (iOS): dar ekran. Mülk eşiği düşürüldü → haritada daha çok satın alınabilir mülk
+const Z_PROP_DSK = 13
+// Mobile (iOS): dar ekran + sınırlı GPU. Mülk yalnız iyice yaklaşınca (mahalle) görünür.
 const Z_HOOD_MOB = 10.5
-const Z_PROP_MOB = 12.3
+const Z_PROP_MOB = 14
 
 // ── Marker arka planı ───────────────────────────────────────────────────────
 // NOT: Marker'larda backdrop-filter:blur KULLANILMAZ. Haritada aynı anda yüzlerce
@@ -419,9 +421,9 @@ export default function MapView({
     syncTier(map, false, countryMkrs, attCountry, [], () => '', () => [0, 0], makeCountryMarker, 1)
     syncTier(map, false, cityMkrs,    attCity,    [], () => '', () => [0, 0], makeCityMarker, 1)
     syncTier(map, false, hoodMkrs,    attHood,    [], () => '', () => [0, 0], makeHoodMarker, 1)
-    // minGapPx: saydam etiketler → kirlilik az (Barış). Gap küçültüldü + cap
-    // artırıldı → çok daha çok mülk etiketi anında görünür, merkez önceliği korunur.
-    syncTier(map, propTier, propMkrs, attProp, propsData.current, p => p.id, p => [p.lng, p.lat], makePropMarker, big ? 140 : 90, true, big ? 72 : 58)
+    // KASMA ÖNLEME (Barış): cap düşürüldü + gap büyütüldü → mahalle zoom'unda aynı
+    // anda az sayıda (okunur) mülk marker'ı çizilir, GPU patlamaz. Merkez önceliği korunur.
+    syncTier(map, propTier, propMkrs, attProp, propsData.current, p => p.id, p => [p.lng, p.lat], makePropMarker, big ? 70 : 40, true, big ? 92 : 84)
 
     // Liste için: ekranda görünen mülkleri DEĞERE göre (büyükten küçüğe) bildir
     if (cbVisibleProps.current) {
@@ -548,9 +550,9 @@ export default function MapView({
       // beliriyordu (gecikme; bazen hiç çıkmıyordu). Artık her ~55 ms'de bir (en ufak
       // kıpırtıda) ekranda görünen ne varsa anında çizilir. reconcile cap'li (mobil
       // 48 marker) + viewport-culling olduğundan akıcı kalır.
-      // ANINDA ETİKET (Barış): throttle minimumda → en ufak kıpırtıda ekrandaki
-      // etiketler anında çizilir (gecikme yok). cap + viewport-culling akıcı tutar.
-      const reconcileThrottle = isDesktop ? 16 : 22
+      // Throttle: anlık his ama GPU dostu (Barış kasma şikayeti). 22ms'de her karede
+      // 90 marker yeniden konumlanıp kasıyordu → makul değer + düşük cap = akıcı.
+      const reconcileThrottle = isDesktop ? 33 : 45
       let lastReconcile = 0
       map.on('move', () => {
         cbMapCenter.current?.(null)
