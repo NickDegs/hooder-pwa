@@ -49,10 +49,11 @@ const Z_COUNTRY = 4.5
 // yüzlerce mülk birden çizilip telefon/GPU kasmasın (Barış). İl/ilçe/mahalle ADLARI
 // haritanın kendi etiketlerinden gelir (kademeli); biz YALNIZ mahalle zoom'unda mülk gösteririz.
 const Z_HOOD_DSK = 9.5
-const Z_PROP_DSK = 13
-// Mobile (iOS): dar ekran + sınırlı GPU. Mülk yalnız iyice yaklaşınca (mahalle) görünür.
+const Z_PROP_DSK = 11.5
+// Mobile (iOS): mülkler mahalle/ilçe zoom'unda görünür (ana ekranda boş kalmasın).
+// Çok yaklaşınca kasmayı cap + yoğunluk-liste devralır, eşik çok yüksek tutulmaz.
 const Z_HOOD_MOB = 10.5
-const Z_PROP_MOB = 14
+const Z_PROP_MOB = 12.5
 
 // ── Marker arka planı ───────────────────────────────────────────────────────
 // NOT: Marker'larda backdrop-filter:blur KULLANILMAZ. Haritada aynı anda yüzlerce
@@ -439,10 +440,12 @@ export default function MapView({
     // marker iOS'ta GPU'yu patlatıp aşırı kasıyordu + harita dokunulamaz hale geliyordu.
     // O durumda marker yok (harita temiz, akıcı) → App liste panelini açar (tüm mülkler
     // değere göre sıralı). Az mülklü (seyrek) bölgede yine marker gösterilir.
-    const DENSE = big ? 40 : 18
+    // DENSE: yalnız GERÇEKTEN tıka basa dolu bölgede liste-moduna geç (yoksa ana
+    // ekranda marker hiç çıkmıyordu). Normal mahalle/ilçe görünümünde marker'lar görünür.
+    const DENSE = big ? 90 : 50
     const dense = propTier && inView.length > DENSE
-    // KASMA ÖNLEME: yoğunsa marker tier'ı pasif (çizilmez) → liste devralır.
-    syncTier(map, propTier && !dense, propMkrs, attProp, propsData.current, p => p.id, p => [p.lng, p.lat], makePropMarker, big ? 40 : 18, true, big ? 92 : 84)
+    // Marker cap'i: dolu görünür ama düşük (asıl kasma cap=90'daydı; 24 akıcı).
+    syncTier(map, propTier && !dense, propMkrs, attProp, propsData.current, p => p.id, p => [p.lng, p.lat], makePropMarker, big ? 50 : 24, true, big ? 92 : 84)
     cbDense.current?.(dense)
 
     // Liste için: ekranda görünen mülkleri DEĞERE göre (büyükten küçüğe) bildir
